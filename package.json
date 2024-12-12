@@ -4,7 +4,7 @@
   "description": "The CodeSandbox SDK",
   "author": "CodeSandbox",
   "license": "MIT",
-  "repository": "git+https://github.com/codesandbox/codesandbox-applications.git",
+  "repository": "git+https://github.com/codesandbox/codesandbox-sdk.git",
   "bin": {
     "csb": "dist/bin/codesandbox.js"
   },
@@ -93,11 +93,10 @@
     "prettier": "^2.2.1",
     "semver": "^6.3.0",
     "tslib": "^2.1.0",
+    "typescript": "^5.7.2",
     "util": "0.12.5",
     "why-is-node-running": "^2.3.0",
     "yargs": "^17.7.2"
   },
-  "dependencies": {
-    "typescript": "^5.7.2"
-  }
+  "dependencies": {}
 }
