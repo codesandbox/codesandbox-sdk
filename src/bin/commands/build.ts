@@ -111,9 +111,9 @@ export const buildCommand: yargs.CommandModule<
       }
 
       if (argv.fromSandbox) {
-        spinner.succeed("Sandbox reused");
+        spinner.succeed(`Sandbox reused: ${sandboxId}`);
       } else {
-        spinner.succeed("Sandbox created");
+        spinner.succeed(`Sandbox created: ${sandboxId}`);
       }
 
       if (argv.cluster) {
@@ -275,6 +275,9 @@ export const buildCommand: yargs.CommandModule<
         );
 
         spinner.succeed("All ports are open");
+      } else {
+        spinner.succeed("No ports to open, waiting 5 seconds for tasks to run...");
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       }
 
       spinner.start("Creating memory snapshot...");
