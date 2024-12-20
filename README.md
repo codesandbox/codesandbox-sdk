@@ -6,10 +6,9 @@ CodeSandbox SDK enables you to programmatically spin up development environments
 
 Under the hood, the SDK uses the microVM infrastructure of CodeSandbox to spin up sandboxes. It supports:
 
-- Starting fresh VMs within 4 seconds
 - Snapshotting/restoring VMs (checkpointing) at any point in time
-  - With snapshot restore times of less than 2 seconds
-- Cloning VMs within 3 seconds
+  - With snapshot restore times within 1 second
+- Cloning VMs & Snapshots within 2 seconds
 - Source control (git, GitHub, CodeSandbox SCM)
 - Running any Dockerfile
 
