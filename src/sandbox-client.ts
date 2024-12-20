@@ -285,7 +285,6 @@ export class SandboxClient {
     });
 
     const sandbox = handleResponse(result, "Failed to create sandbox");
-    console.log(sandbox);
 
     return this.connectToSandbox(sandbox.id, () => {
       if (sandbox.start_response) {
