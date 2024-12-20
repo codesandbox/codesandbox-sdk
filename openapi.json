@@ -200,6 +200,38 @@
             "description": "Sandbox privacy. 0 for public, 1 for unlisted, and 2 for private. Subject to the minimum privacy restrictions of the workspace. Defaults to the privacy of the original sandbox.",
             "type": "integer"
           },
+          "start_options": {
+            "description": "Optional VM start configuration. If provided, the sandbox VM will be started immediately after creation.",
+            "properties": {
+              "hibernation_timeout_seconds": {
+                "description": "The time in seconds after which the VM will hibernate due to inactivity.\nMust be a positive integer between 1 and 86400 (24 hours).\nDefaults to 300 seconds (5 minutes) if not specified.\n",
+                "example": 300,
+                "maximum": 86400,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "ipcountry": {
+                "description": "This determines in which cluster, closest to the given country the VM will be started in. The format is ISO-3166-1 alpha-2. If not set, the VM will be started closest to the caller of this API. This will only be applied when a VM is run for the first time, and will only serve as a hint (e.g. if the template of this sandbox runs in EU cluster, this sandbox will also run in the EU cluster).",
+                "example": "NL",
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              "tier": {
+                "description": "Determines which specs to start the VM with. If not specified, the VM will start with the default specs for the workspace.\n\nYou can only specify a VM tier when starting a VM that is inside your workspace. Specifying a VM tier for someone else's sandbox will return an error.\n\nNot all tiers will be available depending on the workspace subscription status, and higher tiers incur higher costs. Please see codesandbox.io/pricing for details on specs and costs.\n",
+                "enum": [
+                  "Pico",
+                  "Nano",
+                  "Micro",
+                  "Small",
+                  "Medium",
+                  "Large",
+                  "XLarge"
+                ],
+                "example": "Micro"
+              }
+            },
+            "type": "object"
+          },
           "tags": {
             "default": [],
             "description": "Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.",
@@ -213,7 +245,8 @@
             "type": "string"
           }
         },
-        "title": "SandboxForkRequest"
+        "title": "SandboxForkRequest",
+        "type": "object"
       },
       "SandboxForkResponse": {
         "allOf": [
@@ -242,6 +275,37 @@
                 "properties": {
                   "alias": { "type": "string" },
                   "id": { "type": "string" },
+                  "start_response": {
+                    "description": "VM start response. Only present when start_options were provided in the request.",
+                    "nullable": true,
+                    "properties": {
+                      "bootup_type": { "type": "string" },
+                      "cluster": { "type": "string" },
+                      "id": { "type": "string" },
+                      "latest_pitcher_version": { "type": "string" },
+                      "pitcher_manager_version": { "type": "string" },
+                      "pitcher_token": { "type": "string" },
+                      "pitcher_url": { "type": "string" },
+                      "pitcher_version": { "type": "string" },
+                      "reconnect_token": { "type": "string" },
+                      "user_workspace_path": { "type": "string" },
+                      "workspace_path": { "type": "string" }
+                    },
+                    "required": [
+                      "bootup_type",
+                      "cluster",
+                      "id",
+                      "latest_pitcher_version",
+                      "pitcher_manager_version",
+                      "pitcher_token",
+                      "pitcher_url",
+                      "pitcher_version",
+                      "reconnect_token",
+                      "user_workspace_path",
+                      "workspace_path"
+                    ],
+                    "type": "object"
+                  },
                   "title": { "nullable": true, "type": "string" }
                 },
                 "required": ["alias", "id", "title"],
@@ -605,6 +669,7 @@
           "ipcountry": {
             "description": "This determines in which cluster, closest to the given country the VM will be started in. The format is ISO-3166-1 alpha-2. If not set, the VM will be started closest to the caller of this API. This will only be applied when a VM is run for the first time, and will only serve as a hint (e.g. if the template of this sandbox runs in EU cluster, this sandbox will also run in the EU cluster).",
             "example": "NL",
+            "pattern": "^[A-Z]{2}$",
             "type": "string"
           },
           "tier": {
@@ -618,11 +683,11 @@
               "Large",
               "XLarge"
             ],
-            "example": "Micro",
-            "type": "string"
+            "example": "Micro"
           }
         },
-        "title": "VMStartRequest"
+        "title": "VMStartRequest",
+        "type": "object"
       },
       "VMStartResponse": {
         "allOf": [
@@ -695,12 +760,12 @@
               "Large",
               "XLarge"
             ],
-            "example": "Micro",
-            "type": "string"
+            "example": "Micro"
           }
         },
         "required": ["tier"],
-        "title": "VMUpdateSpecsRequest"
+        "title": "VMUpdateSpecsRequest",
+        "type": "object"
       },
       "VMUpdateSpecsResponse": {
         "allOf": [
@@ -748,7 +813,8 @@
           }
         },
         "required": ["name"],
-        "title": "WorkspaceCreateRequest"
+        "title": "WorkspaceCreateRequest",
+        "type": "object"
       },
       "WorkspaceCreateResponse": {
         "allOf": [
@@ -930,8 +996,8 @@
             "name": "order_by",
             "required": false,
             "schema": {
-              "enum": ["inserted_at", "updated_at"],
-              "type": "string"
+              "default": "updated_at",
+              "enum": ["inserted_at", "updated_at"]
             }
           },
           {
@@ -940,7 +1006,7 @@
             "in": "query",
             "name": "direction",
             "required": false,
-            "schema": { "enum": ["asc", "desc"], "type": "string" }
+            "schema": { "default": "desc", "enum": ["asc", "desc"] }
           },
           {
             "description": "Maximum number of sandboxes to return in a single response",
@@ -1236,6 +1302,6 @@
     }
   },
   "security": [],
-  "servers": [{ "url": "https://api.codesandbox.io", "variables": {} }],
+  "servers": [{ "url": "https://api.codesandbox.stream", "variables": {} }],
   "tags": []
 }

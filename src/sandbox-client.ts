@@ -148,6 +148,15 @@ export class VMTier {
   }
 }
 
+function startOptionsFromOpts(opts: StartSandboxOpts | undefined) {
+  if (!opts) return undefined;
+  return {
+    ipcountry: opts.ipcountry,
+    tier: opts.vmTier?.name,
+    hibernation_timeout_seconds: opts.hibernationTimeoutSeconds,
+  };
+}
+
 export interface StartSandboxOpts {
   /**
    * Country, served as a hint on where you want the sandbox to be scheduled. For example, if "NL" is given
@@ -218,11 +227,7 @@ export class SandboxClient {
   ): Promise<SandboxStartData> {
     const startResult = await vmStart({
       client: this.apiClient,
-      body: {
-        ipcountry: opts?.ipcountry,
-        tier: opts?.vmTier?.name,
-        hibernation_timeout_seconds: opts?.hibernationTimeoutSeconds,
-      },
+      body: startOptionsFromOpts(opts),
       path: {
         id,
       },
@@ -261,6 +266,7 @@ export class SandboxClient {
     // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
     const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
 
+    console.log(opts?.autoConnect === false ? undefined : startOptionsFromOpts(opts))
     const result = await sandboxFork({
       client: this.apiClient,
       body: {
@@ -269,6 +275,8 @@ export class SandboxClient {
         description: opts?.description,
         tags: tagsWithSdk,
         path,
+        start_options:
+          opts?.autoConnect === false ? undefined : startOptionsFromOpts(opts || {}),
       },
       path: {
         id: typeof templateId === "string" ? templateId : templateId.id,
@@ -276,14 +284,15 @@ export class SandboxClient {
     });
 
     const sandbox = handleResponse(result, "Failed to create sandbox");
+    console.log(sandbox);
 
-    if (opts?.autoConnect === false) {
+    return this.connectToSandbox(sandbox.id, () => {
+      if (sandbox.start_response) {
+        return Promise.resolve(sandbox.start_response);
+      }
+
       return this.start(sandbox.id, opts);
-    }
-
-    return this.connectToSandbox(sandbox.id, () =>
-      this.start(sandbox.id, opts)
-    );
+    });
   }
 
   /**
