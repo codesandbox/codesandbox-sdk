@@ -15,7 +15,6 @@ import { hashDirectory } from "../utils/hash";
 
 export type BuildCommandArgs = {
   path: string;
-  force?: boolean;
   ipCountry?: string;
   fromSandbox?: string;
   skipFiles?: boolean;
@@ -31,12 +30,6 @@ export const buildCommand: yargs.CommandModule<
     "Build an efficient memory snapshot from a directory. This snapshot can be used to create sandboxes quickly.",
   builder: (yargs: yargs.Argv) =>
     yargs
-      .option("force", {
-        alias: "f",
-        describe:
-          "Force the creation of a new sandbox, normally a sandbox is reused if it already exists for the given folder (if the files are the same)",
-        type: "boolean",
-      })
       .option("ip-country", {
         describe:
           "Cluster closest to this country to create the snapshot in, this ensures that sandboxes created of this snapshot will be created in the same cluster",
@@ -101,7 +94,7 @@ export const buildCommand: yargs.CommandModule<
             alreadyExists: true,
             sandboxId: argv.fromSandbox,
           }
-        : await getOrCreateSandbox(apiClient, tag, argv.force);
+        : await createSandbox(apiClient, tag);
 
       if (alreadyExists && !argv.fromSandbox) {
         spinner.succeed("Sandbox snapshot has been created before:");
@@ -276,7 +269,9 @@ export const buildCommand: yargs.CommandModule<
 
         spinner.succeed("All ports are open");
       } else {
-        spinner.succeed("No ports to open, waiting 5 seconds for tasks to run...");
+        spinner.succeed(
+          "No ports to open, waiting 5 seconds for tasks to run..."
+        );
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
 
@@ -297,31 +292,13 @@ export const buildCommand: yargs.CommandModule<
   },
 };
 
-async function getOrCreateSandbox(
+async function createSandbox(
   apiClient: Client,
-  shaTag: string,
-  force = false
+  shaTag: string
 ): Promise<{
   alreadyExists: boolean;
   sandboxId: string;
 }> {
-  if (!force) {
-    const res = handleResponse(
-      await sandboxList({
-        query: {
-          page_size: 1,
-          tags: shaTag,
-        },
-        client: apiClient,
-      }),
-      "Failed to get sandboxes from API"
-    );
-
-    if (res.sandboxes.length > 0) {
-      return { alreadyExists: true, sandboxId: res.sandboxes[0].id };
-    }
-  }
-
   const sandbox = handleResponse(
     await sandboxCreate({
       client: apiClient,
