@@ -36,6 +36,14 @@ function ensure<T>(value: T | undefined, message: string): T {
   return value;
 }
 
+function getBaseUrl(token: string) {
+  if (token.startsWith("csb_")) {
+    return "https://api.codesandbox.io";
+  }
+
+  return "https://api.together.ai/csb/sdk";
+}
+
 export class CodeSandbox {
   private baseUrl: string;
   private apiToken: string;
@@ -44,13 +52,15 @@ export class CodeSandbox {
   public readonly sandbox: SandboxClient;
 
   constructor(apiToken?: string, private readonly opts: ClientOpts = {}) {
-    this.baseUrl = opts.baseUrl ?? "https://api.codesandbox.io";
     this.apiToken =
       apiToken ||
       ensure(
-        typeof process !== "undefined" ? process.env?.CSB_API_KEY : undefined,
-        "CSB_API_KEY is not set"
+        typeof process !== "undefined"
+          ? process.env?.CSB_API_KEY || process.env?.TOGETHER_API_KEY
+          : undefined,
+        "CSB_API_KEY or TOGETHER_API_KEY is not set"
       );
+    this.baseUrl = opts.baseUrl ?? getBaseUrl(this.apiToken);
 
     this.apiClient = createClient(
       createConfig({

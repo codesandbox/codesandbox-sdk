@@ -266,7 +266,6 @@ export class SandboxClient {
     // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
     const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
 
-    console.log(opts?.autoConnect === false ? undefined : startOptionsFromOpts(opts))
     const result = await sandboxFork({
       client: this.apiClient,
       body: {
@@ -276,7 +275,9 @@ export class SandboxClient {
         tags: tagsWithSdk,
         path,
         start_options:
-          opts?.autoConnect === false ? undefined : startOptionsFromOpts(opts || {}),
+          opts?.autoConnect === false
+            ? undefined
+            : startOptionsFromOpts(opts || {}),
       },
       path: {
         id: typeof templateId === "string" ? templateId : templateId.id,
