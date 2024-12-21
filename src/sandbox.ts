@@ -98,12 +98,13 @@ export class SandboxWithoutClient extends Disposable {
   constructor(protected pitcherClient: IPitcherClient) {
     super();
 
-    const metricsDisposable = {
-      dispose:
-        this.pitcherClient.clients.system.startMetricsPollingAtInterval(5000),
-    };
+    // TODO: Bring this back once metrics polling does not reset inactivity
+    // const metricsDisposable = {
+    //   dispose:
+    //     this.pitcherClient.clients.system.startMetricsPollingAtInterval(5000),
+    // };
 
-    this.addDisposable(metricsDisposable);
+    // this.addDisposable(metricsDisposable);
     this.addDisposable(this.pitcherClient);
   }
 
@@ -123,52 +124,53 @@ export class SandboxWithoutClient extends Disposable {
     return `https://codesandbox.io/p/devbox/${this.id}`;
   }
 
-  /**
-   * Get the current system metrics. This return type may change in the future.
-   */
-  public async getMetrics(): Promise<SystemMetricsStatus> {
-    await this.pitcherClient.clients.system.update();
+  // TODO: Bring this back once metrics polling does not reset inactivity
+  // /**
+  //  * Get the current system metrics. This return type may change in the future.
+  //  */
+  // public async getMetrics(): Promise<SystemMetricsStatus> {
+  //   await this.pitcherClient.clients.system.update();
 
-    const barrier = new Barrier<_protocol.system.SystemMetricsStatus>();
-    const initialMetrics = this.pitcherClient.clients.system.getMetrics();
-    if (!initialMetrics) {
-      const disposable = this.pitcherClient.clients.system.onMetricsUpdated(
-        (metrics) => {
-          if (metrics) {
-            barrier.open(metrics);
-          }
-        }
-      );
-      disposable.dispose();
-    } else {
-      barrier.open(initialMetrics);
-    }
+  //   const barrier = new Barrier<_protocol.system.SystemMetricsStatus>();
+  //   const initialMetrics = this.pitcherClient.clients.system.getMetrics();
+  //   if (!initialMetrics) {
+  //     const disposable = this.pitcherClient.clients.system.onMetricsUpdated(
+  //       (metrics) => {
+  //         if (metrics) {
+  //           barrier.open(metrics);
+  //         }
+  //       }
+  //     );
+  //     disposable.dispose();
+  //   } else {
+  //     barrier.open(initialMetrics);
+  //   }
 
-    const barrierResult = await barrier.wait();
-    if (barrierResult.status === "disposed") {
-      throw new Error("Metrics not available");
-    }
+  //   const barrierResult = await barrier.wait();
+  //   if (barrierResult.status === "disposed") {
+  //     throw new Error("Metrics not available");
+  //   }
 
-    const metrics = barrierResult.value;
+  //   const metrics = barrierResult.value;
 
-    return {
-      cpu: {
-        cores: metrics.cpu.cores,
-        used: metrics.cpu.used / 100,
-        configured: metrics.cpu.configured,
-      },
-      memory: {
-        usedKiB: metrics.memory.used * 1024 * 1024,
-        totalKiB: metrics.memory.total * 1024 * 1024,
-        configuredKiB: metrics.memory.total * 1024 * 1024,
-      },
-      storage: {
-        usedKB: metrics.storage.used * 1000 * 1000,
-        totalKB: metrics.storage.total * 1000 * 1000,
-        configuredKB: metrics.storage.configured * 1000 * 1000,
-      },
-    };
-  }
+  //   return {
+  //     cpu: {
+  //       cores: metrics.cpu.cores,
+  //       used: metrics.cpu.used / 100,
+  //       configured: metrics.cpu.configured,
+  //     },
+  //     memory: {
+  //       usedKiB: metrics.memory.used * 1024 * 1024,
+  //       totalKiB: metrics.memory.total * 1024 * 1024,
+  //       configuredKiB: metrics.memory.total * 1024 * 1024,
+  //     },
+  //     storage: {
+  //       usedKB: metrics.storage.used * 1000 * 1000,
+  //       totalKB: metrics.storage.total * 1000 * 1000,
+  //       configuredKB: metrics.storage.configured * 1000 * 1000,
+  //     },
+  //   };
+  // }
 
   /**
    * Disconnect from the sandbox, this does not hibernate the sandbox (but it will
