@@ -1,6 +1,6 @@
 {
   "name": "@codesandbox/sdk",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "The CodeSandbox SDK",
   "author": "CodeSandbox",
   "license": "MIT",
@@ -97,6 +97,5 @@
     "util": "0.12.5",
     "why-is-node-running": "^2.3.0",
     "yargs": "^17.7.2"
-  },
-  "dependencies": {}
+  }
 }
