@@ -59,12 +59,6 @@ Promise.all([
     platform: "node",
     outdir: "dist/esm",
     plugins: [browserifyPlugin],
-    banner: {
-      js: `
-import {createRequire} from 'module'
-const require = createRequire(import.meta.url)
-        `.trim(),
-    },
   }),
 
   // Edge:
@@ -86,12 +80,6 @@ const require = createRequire(import.meta.url)
     format: "esm",
     platform: "browser",
     plugins: [browserifyPlugin],
-    banner: {
-      js: `
-import {createRequire} from 'module'
-const require = createRequire(import.meta.url)
-        `.trim(),
-    },
   }),
 
   // Bin builds:
