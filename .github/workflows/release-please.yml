@@ -18,6 +18,7 @@ jobs:
         with:
           release-type: node
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          bump-minor-pre-major: true
 
       - uses: actions/checkout@v4
 
