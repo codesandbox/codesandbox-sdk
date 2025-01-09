@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { isBinaryFile } from "isbinaryfile";
 
 import { DisposableStore } from "@codesandbox/pitcher-common";
 import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
@@ -89,12 +90,13 @@ export const buildCommand: yargs.CommandModule<
       const tag = `sha:${shortHash}-${cluster || ""}`;
 
       spinner.start(`Creating or updating sandbox...`);
-      const { alreadyExists, sandboxId } = argv.fromSandbox
+      const { alreadyExists, sandboxId, filesIncluded } = argv.fromSandbox
         ? {
             alreadyExists: true,
+            filesIncluded: false,
             sandboxId: argv.fromSandbox,
           }
-        : await createSandbox(apiClient, tag);
+        : await createSandbox(apiClient, tag, filePaths, argv.path);
 
       if (alreadyExists && !argv.fromSandbox) {
         spinner.succeed("Sandbox snapshot has been created before:");
@@ -120,7 +122,7 @@ export const buildCommand: yargs.CommandModule<
       });
       spinner.succeed("Sandbox opened");
 
-      if (!argv.skipFiles) {
+      if (!argv.skipFiles && !filesIncluded) {
         spinner.start("Writing files to sandbox...");
         let i = 0;
         for (const filePath of filePaths) {
@@ -294,16 +296,22 @@ export const buildCommand: yargs.CommandModule<
 
 async function createSandbox(
   apiClient: Client,
-  shaTag: string
+  shaTag: string,
+  filePaths: string[],
+  rootPath: string
 ): Promise<{
   alreadyExists: boolean;
   sandboxId: string;
+  filesIncluded: boolean;
 }> {
+  // Include the files in the sandbox if there are no binary files and there are 30 or less files
+  const files = await getFiles(filePaths, rootPath);
+
   const sandbox = handleResponse(
     await sandboxCreate({
       client: apiClient,
       body: {
-        files: {},
+        files,
         privacy: 1,
         tags: ["sdk", shaTag],
         path: "/SDK-Templates",
@@ -314,5 +322,38 @@ async function createSandbox(
     "Failed to create sandbox"
   );
 
-  return { alreadyExists: false, sandboxId: sandbox.id };
+  return {
+    alreadyExists: false,
+    sandboxId: sandbox.id,
+    filesIncluded: Object.keys(files).length > 0,
+  };
+}
+
+async function getFiles(
+  filePaths: string[],
+  rootPath: string
+): Promise<Record<string, { code: string }>> {
+  if (filePaths.length > 30) {
+    return {};
+  }
+
+  let hasBinaryFile = false;
+  const files: Record<string, { code: string }> = {};
+  await Promise.all(
+    filePaths.map(async (filePath) => {
+      const content = await fs.readFile(path.join(rootPath, filePath));
+
+      if (await isBinaryFile(content)) {
+        hasBinaryFile = true;
+      }
+
+      files[filePath] = { code: content.toString() };
+    })
+  );
+
+  if (hasBinaryFile) {
+    return {};
+  }
+
+  return files;
 }
