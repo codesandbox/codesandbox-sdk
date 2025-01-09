@@ -1,6 +1,6 @@
 {
   "name": "@codesandbox/sdk",
-  "version": "0.0.11",
+  "version": "0.1.0",
   "description": "The CodeSandbox SDK",
   "author": "CodeSandbox",
   "license": "MIT",
@@ -49,7 +49,7 @@
   },
   "types": "./dist/esm/index.d.ts",
   "scripts": {
-    "build": "pnpm clean && pnpm build:esbuild && pnpm build:cjs:types && pnpm build:esm:types && chmod +x dist/bin/codesandbox.js",
+    "build": "npm run clean && npm run build:esbuild && npm run build:cjs:types && npm run build:esm:types && chmod +x dist/bin/codesandbox.js",
     "build:cjs": "tsc -p ./tsconfig.build-cjs.json",
     "build:esm": "tsc -p ./tsconfig.build-esm.json",
     "build:esbuild": "node esbuild.js",
@@ -61,9 +61,8 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier '**/*.{md,js,jsx,json,ts,tsx}' --write",
     "postbuild": "rimraf {lib,es}/**/__tests__ {lib,es}/**/*.{spec,test}.{js,d.ts,js.map}",
-    "preversion": "pnpm test",
     "postversion": "git push && git push --tags",
-    "prepublish": "pnpm build"
+    "prepublish": "npm run build"
   },
   "keywords": [
     "typescript",
@@ -92,6 +91,7 @@
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
     "prettier": "^2.2.1",
+    "rimraf": "^6.0.1",
     "semver": "^6.3.0",
     "tslib": "^2.1.0",
     "typescript": "^5.7.2",
