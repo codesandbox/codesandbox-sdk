@@ -18,7 +18,6 @@ jobs:
         with:
           release-type: node
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-          release-as: 0.1.0 # Temp. Remove after initial release-please PR has been merged
           bump-minor-pre-major: true
           bump-patch-for-minor-pre-major: true
 
