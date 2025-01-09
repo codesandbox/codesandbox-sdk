@@ -245,4 +245,13 @@ export class Sandbox extends SandboxWithoutClient {
   public async updateTier(tier: VMTier): Promise<void> {
     await this.sandboxClient.updateTier(this.id, tier);
   }
+
+  /**
+   * Updates the hibernation timeout of a sandbox.
+   *
+   * @param timeoutSeconds The new hibernation timeout in seconds
+   */
+  public async updateHibernationTimeout(timeoutSeconds: number): Promise<void> {
+    await this.sandboxClient.updateHibernationTimeout(this.id, timeoutSeconds);
+  }
 }

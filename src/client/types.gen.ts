@@ -390,6 +390,28 @@ export type VMStartResponse = {
     };
 };
 
+export type VMUpdateHibernationTimeoutRequest = {
+    /**
+     * The new hibernation timeout in seconds.
+     *
+     * Must be greater than 0 and less than or equal to 86400 (24 hours).
+     *
+     */
+    hibernation_timeout_seconds: number;
+};
+
+export type VMUpdateHibernationTimeoutResponse = {
+    errors?: Array<((string | {
+    [key: string]: unknown;
+}))>;
+    success?: boolean;
+} & {
+    data?: {
+        hibernation_timeout_seconds: number;
+        id: string;
+    };
+};
+
 export type VMUpdateSpecsRequest = {
     /**
      * Determines which specs to update the VM with.
@@ -555,6 +577,23 @@ export type VmHibernateResponse = (VMHibernateResponse);
 
 export type VmHibernateError = unknown;
 
+export type VmUpdateHibernationTimeoutData = {
+    /**
+     * VM Update Hibernation Timeout Request
+     */
+    body?: VMUpdateHibernationTimeoutRequest;
+    path: {
+        /**
+         * Sandbox ID
+         */
+        id: string;
+    };
+};
+
+export type VmUpdateHibernationTimeoutResponse = (VMUpdateHibernationTimeoutResponse);
+
+export type VmUpdateHibernationTimeoutError = unknown;
+
 export type VmShutdownData = {
     /**
      * VM Shutdown Request
@@ -571,6 +610,23 @@ export type VmShutdownData = {
 export type VmShutdownResponse = (VMShutdownResponse);
 
 export type VmShutdownError = unknown;
+
+export type VmUpdateSpecsData = {
+    /**
+     * VM Update Specs Request
+     */
+    body?: VMUpdateSpecsRequest;
+    path: {
+        /**
+         * Sandbox ID
+         */
+        id: string;
+    };
+};
+
+export type VmUpdateSpecsResponse = (VMUpdateSpecsResponse);
+
+export type VmUpdateSpecsError = unknown;
 
 export type VmStartData = {
     /**
@@ -589,7 +645,7 @@ export type VmStartResponse = (VMStartResponse);
 
 export type VmStartError = unknown;
 
-export type VmUpdateSpecsData = {
+export type VmUpdateSpecs2Data = {
     /**
      * VM Update Specs Request
      */
@@ -602,6 +658,6 @@ export type VmUpdateSpecsData = {
     };
 };
 
-export type VmUpdateSpecsResponse = (VMUpdateSpecsResponse);
+export type VmUpdateSpecs2Response = (VMUpdateSpecsResponse);
 
-export type VmUpdateSpecsError = unknown;
+export type VmUpdateSpecs2Error = unknown;

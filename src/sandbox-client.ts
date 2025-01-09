@@ -7,6 +7,7 @@ import {
   vmHibernate,
   vmShutdown,
   vmStart,
+  vmUpdateHibernationTimeout,
   vmUpdateSpecs,
 } from "./client";
 import { Sandbox } from "./sandbox";
@@ -369,6 +370,28 @@ export class SandboxClient {
     });
 
     handleResponse(response, `Failed to update sandbox tier ${id}`);
+  }
+
+  /**
+   * Updates the hibernation timeout of a sandbox.
+   *
+   * @param id The ID of the sandbox to update
+   * @param timeoutSeconds The new hibernation timeout in seconds
+   */
+  async updateHibernationTimeout(
+    id: string,
+    timeoutSeconds: number
+  ): Promise<void> {
+    const response = await vmUpdateHibernationTimeout({
+      client: this.apiClient,
+      path: { id },
+      body: { hibernation_timeout_seconds: timeoutSeconds },
+    });
+
+    handleResponse(
+      response,
+      `Failed to update hibernation timeout for sandbox ${id}`
+    );
   }
 
   private async connectToSandbox(
