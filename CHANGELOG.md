@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.1.0...v0.2.0) (2025-01-10)
+
+
+### Features
+
+* add support for updating hibernation timeout ([#31](https://github.com/codesandbox/codesandbox-sdk/issues/31)) ([efd2051](https://github.com/codesandbox/codesandbox-sdk/commit/efd20510512cfeacc776d47cb0cf5d5563ba2914))
+
+
+### Performance Improvements
+
+* **build:** precreate files inside sandbox ([#16](https://github.com/codesandbox/codesandbox-sdk/issues/16)) ([6cd070e](https://github.com/codesandbox/codesandbox-sdk/commit/6cd070ed1c0c8fc81eba21fcd990bf145489cf91))
+
 ## 0.1.0 (2025-01-09)
 
 
