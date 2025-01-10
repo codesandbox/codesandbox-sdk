@@ -747,6 +747,57 @@
         ],
         "title": "VMStartResponse"
       },
+      "VMUpdateHibernationTimeoutRequest": {
+        "properties": {
+          "hibernation_timeout_seconds": {
+            "description": "The new hibernation timeout in seconds.\n\nMust be greater than 0 and less than or equal to 86400 (24 hours).\n",
+            "example": 300,
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": ["hibernation_timeout_seconds"],
+        "title": "VMUpdateHibernationTimeoutRequest",
+        "type": "object"
+      },
+      "VMUpdateHibernationTimeoutResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": [
+                  {
+                    "oneOf": [
+                      { "type": "string" },
+                      { "additionalProperties": true, "type": "object" }
+                    ],
+                    "title": "Error"
+                  }
+                ],
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "hibernation_timeout_seconds": { "type": "integer" },
+                  "id": { "type": "string" }
+                },
+                "required": ["id", "hibernation_timeout_seconds"],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMUpdateHibernationTimeoutResponse"
+      },
       "VMUpdateSpecsRequest": {
         "properties": {
           "tier": {
@@ -1181,6 +1232,49 @@
         "tags": ["vm"]
       }
     },
+    "/vm/{id}/hibernation_timeout": {
+      "put": {
+        "callbacks": {},
+        "description": "Updates the hibernation timeout of a running VM.\n\nThis endpoint can only be used on VMs that belong to your team's workspace.\nThe new timeout must be greater than 0 and less than or equal to 86400 seconds (24 hours).\n",
+        "operationId": "vm/update_hibernation_timeout",
+        "parameters": [
+          {
+            "description": "Sandbox ID",
+            "example": "new",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VMUpdateHibernationTimeoutRequest"
+              }
+            }
+          },
+          "description": "VM Update Hibernation Timeout Request",
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMUpdateHibernationTimeoutResponse"
+                }
+              }
+            },
+            "description": "VM Update Hibernation Timeout Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Update VM Hibernation Timeout",
+        "tags": ["vm"]
+      }
+    },
     "/vm/{id}/shutdown": {
       "post": {
         "callbacks": {},
@@ -1217,6 +1311,47 @@
         },
         "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Shutdown a VM",
+        "tags": ["vm"]
+      }
+    },
+    "/vm/{id}/specs": {
+      "put": {
+        "callbacks": {},
+        "description": "Updates the specifications (CPU, memory, storage) of a running VM.\n\nThis endpoint can only be used on VMs that belong to your team's workspace.\nThe new tier must not exceed your team's maximum allowed tier.\n",
+        "operationId": "vm/update_specs",
+        "parameters": [
+          {
+            "description": "Sandbox ID",
+            "example": "new",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VMUpdateSpecsRequest" }
+            }
+          },
+          "description": "VM Update Specs Request",
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMUpdateSpecsResponse"
+                }
+              }
+            },
+            "description": "VM Update Specs Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Update VM Specs",
         "tags": ["vm"]
       }
     },
@@ -1263,7 +1398,7 @@
       "post": {
         "callbacks": {},
         "description": "Updates the specifications (CPU, memory, storage) of a running VM.\n\nThis endpoint can only be used on VMs that belong to your team's workspace.\nThe new tier must not exceed your team's maximum allowed tier.\n",
-        "operationId": "vm/update_specs",
+        "operationId": "vm/update_specs (2)",
         "parameters": [
           {
             "description": "Sandbox ID",
