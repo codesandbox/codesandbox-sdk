@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.2.0...v0.3.0) (2025-01-14)
+
+
+### Features
+
+* add support for listing sandboxes ([#33](https://github.com/codesandbox/codesandbox-sdk/issues/33)) ([6771396](https://github.com/codesandbox/codesandbox-sdk/commit/677139624f95431ec97e12ec985c3545bfe43678))
+
 ## [0.2.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.1.0...v0.2.0) (2025-01-10)
 
 
