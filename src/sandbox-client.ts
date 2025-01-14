@@ -4,6 +4,7 @@ import type { Client } from "@hey-api/client-fetch";
 import type { VmStartResponse, tier } from "./client";
 import {
   sandboxFork,
+  sandboxList,
   vmHibernate,
   vmShutdown,
   vmStart,
@@ -15,6 +16,24 @@ import { handleResponse } from "./utils/handle-response";
 
 export type SandboxPrivacy = "public" | "unlisted" | "private";
 export type SandboxStartData = Required<VmStartResponse>["data"];
+
+export type SandboxInfo = {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  title?: string;
+  description?: string;
+  privacy: SandboxPrivacy;
+  tags: string[];
+};
+
+export type SandboxListOpts = {
+  tags?: string[];
+  page?: number;
+  pageSize?: number;
+  orderBy?: "inserted_at" | "updated_at";
+  direction?: "asc" | "desc";
+};
 
 export const DEFAULT_SUBSCRIPTIONS = {
   client: {
@@ -353,6 +372,35 @@ export class SandboxClient {
   }
 
   /**
+   * List sandboxes from the current workspace with optional filters.
+   * Results are limited to a maximum of 50 sandboxes per request.
+   */
+  async list(opts: SandboxListOpts = {}): Promise<SandboxInfo[]> {
+    const response = await sandboxList({
+      client: this.apiClient,
+      query: {
+        tags: opts.tags?.join(","),
+        page: opts.page,
+        page_size: opts.pageSize,
+        order_by: opts.orderBy,
+        direction: opts.direction,
+      },
+    });
+
+    const info = handleResponse(response, "Failed to list sandboxes");
+
+    return info.sandboxes.map((sandbox) => ({
+      id: sandbox.id,
+      createdAt: new Date(sandbox.created_at),
+      updatedAt: new Date(sandbox.updated_at),
+      title: sandbox.title ?? undefined,
+      description: sandbox.description ?? undefined,
+      privacy: privacyFromNumber(sandbox.privacy),
+      tags: sandbox.tags,
+    }));
+  }
+
+  /**
    * Updates the specs that this sandbox runs on. It will dynamically scale the sandbox to the
    * new specs without a reboot. Be careful when scaling specs down, if the VM is using more memory
    * than it can scale down to, it can become very slow.
@@ -466,4 +514,17 @@ function privacyToNumber(privacy: SandboxPrivacy): number {
     case "private":
       return 2;
   }
+}
+
+function privacyFromNumber(privacy: number): SandboxPrivacy {
+  switch (privacy) {
+    case 0:
+      return "public";
+    case 1:
+      return "unlisted";
+    case 2:
+      return "private";
+  }
+
+  throw new Error(`Invalid privacy number: ${privacy}`);
 }
