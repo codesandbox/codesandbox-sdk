@@ -6,9 +6,18 @@ import {
   SandboxStartData,
   CreateSandboxOpts,
   VMTier,
+  SandboxListOpts,
+  SandboxInfo,
 } from "./sandbox-client";
 
-export { SandboxClient, SandboxStartData, CreateSandboxOpts, VMTier };
+export {
+  SandboxClient,
+  SandboxStartData,
+  CreateSandboxOpts,
+  VMTier,
+  SandboxListOpts,
+  SandboxInfo,
+};
 export * from "./sandbox";
 
 export interface ClientOpts {
