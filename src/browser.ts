@@ -1,6 +1,6 @@
 import { initPitcherClient } from "@codesandbox/pitcher-client";
 
-import { SandboxWithoutClient } from "./sandbox";
+import { SandboxSession } from "./sandbox";
 import { DEFAULT_SUBSCRIPTIONS, type SandboxStartData } from "./sandbox-client";
 
 export { SandboxStartData };
@@ -41,8 +41,8 @@ export { SandboxStartData };
  * ```
  */
 export async function connectToSandbox(
-  startInfo: SandboxStartData,
-): Promise<SandboxWithoutClient> {
+  startInfo: SandboxStartData
+): Promise<SandboxSession> {
   const pitcherClient = await initPitcherClient(
     {
       appId: "sdk",
@@ -71,8 +71,8 @@ export async function connectToSandbox(
       },
       subscriptions: DEFAULT_SUBSCRIPTIONS,
     },
-    () => {},
+    () => {}
   );
 
-  return new SandboxWithoutClient(pitcherClient);
+  return new SandboxSession(pitcherClient);
 }

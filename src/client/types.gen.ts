@@ -316,6 +316,58 @@ export type TokenUpdateResponse = {
     };
 };
 
+export type VMCreateSessionRequest = {
+    /**
+     * Permission level for the session
+     */
+    permission: 'read' | 'write';
+    /**
+     * Unique identifier for the session
+     */
+    session_id: string;
+};
+
+/**
+ * Permission level for the session
+ */
+export type permission = 'read' | 'write';
+
+export type VMCreateSessionResponse = {
+    errors?: Array<((string | {
+    [key: string]: unknown;
+}))>;
+    success?: boolean;
+} & {
+    data?: {
+        /**
+         * List of capabilities granted to this session
+         */
+        capabilities: Array<(string)>;
+        /**
+         * Detailed permissions for this session
+         */
+        permissions: {
+            [key: string]: unknown;
+        };
+        /**
+         * Token to authenticate with Pitcher
+         */
+        pitcher_token: string;
+        /**
+         * WebSocket URL to connect to Pitcher
+         */
+        pitcher_url: string;
+        /**
+         * Path to the user's workspace in the VM
+         */
+        user_workspace_path: string;
+        /**
+         * The Linux username created for this session
+         */
+        username: string;
+    };
+};
+
 export type VMHibernateRequest = {
     [key: string]: unknown;
 };
@@ -593,6 +645,23 @@ export type VmUpdateHibernationTimeoutData = {
 export type VmUpdateHibernationTimeoutResponse = (VMUpdateHibernationTimeoutResponse);
 
 export type VmUpdateHibernationTimeoutError = unknown;
+
+export type VmCreateSessionData = {
+    /**
+     * VM Create Session Request
+     */
+    body?: VMCreateSessionRequest;
+    path: {
+        /**
+         * Sandbox ID
+         */
+        id: string;
+    };
+};
+
+export type VmCreateSessionResponse = (VMCreateSessionResponse);
+
+export type VmCreateSessionError = unknown;
 
 export type VmShutdownData = {
     /**

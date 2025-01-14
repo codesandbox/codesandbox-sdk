@@ -12,6 +12,7 @@ import { Shells } from "./shells";
 import { Tasks } from "./tasks";
 
 import type { SandboxClient, VMTier } from ".";
+import { Sessions } from "./sessions";
 
 export {
   FSStatResult,
@@ -55,7 +56,7 @@ export interface SystemMetricsStatus {
   };
 }
 
-export class SandboxWithoutClient extends Disposable {
+export class SandboxSession extends Disposable {
   /**
    * Namespace for all filesystem operations on this sandbox.
    */
@@ -182,7 +183,11 @@ export class SandboxWithoutClient extends Disposable {
   }
 }
 
-export class Sandbox extends SandboxWithoutClient {
+export class Sandbox extends SandboxSession {
+  public readonly sessions = this.addDisposable(
+    new Sessions(this.id, this.sandboxClient)
+  );
+
   constructor(
     private sandboxClient: SandboxClient,
     pitcherClient: IPitcherClient
