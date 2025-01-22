@@ -599,6 +599,91 @@
         ],
         "title": "TokenUpdateResponse"
       },
+      "VMCreateSessionRequest": {
+        "properties": {
+          "permission": {
+            "description": "Permission level for the session",
+            "enum": ["read", "write"],
+            "example": "write",
+            "type": "string"
+          },
+          "session_id": {
+            "description": "Unique identifier for the session",
+            "example": "my-session-1",
+            "type": "string"
+          }
+        },
+        "required": ["session_id", "permission"],
+        "title": "VMCreateSessionRequest",
+        "type": "object"
+      },
+      "VMCreateSessionResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": [
+                  {
+                    "oneOf": [
+                      { "type": "string" },
+                      { "additionalProperties": true, "type": "object" }
+                    ],
+                    "title": "Error"
+                  }
+                ],
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "capabilities": {
+                    "description": "List of capabilities granted to this session",
+                    "items": { "type": "string" },
+                    "type": "array"
+                  },
+                  "permissions": {
+                    "description": "Detailed permissions for this session",
+                    "type": "object"
+                  },
+                  "pitcher_token": {
+                    "description": "Token to authenticate with Pitcher",
+                    "type": "string"
+                  },
+                  "pitcher_url": {
+                    "description": "WebSocket URL to connect to Pitcher",
+                    "type": "string"
+                  },
+                  "user_workspace_path": {
+                    "description": "Path to the user's workspace in the VM",
+                    "type": "string"
+                  },
+                  "username": {
+                    "description": "The Linux username created for this session",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "username",
+                  "pitcher_token",
+                  "user_workspace_path",
+                  "capabilities",
+                  "permissions",
+                  "pitcher_url"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMCreateSessionResponse"
+      },
       "VMHibernateRequest": { "properties": {}, "title": "VMHibernateRequest" },
       "VMHibernateResponse": {
         "allOf": [
@@ -1272,6 +1357,49 @@
         },
         "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Update VM Hibernation Timeout",
+        "tags": ["vm"]
+      }
+    },
+    "/vm/{id}/sessions": {
+      "post": {
+        "callbacks": {},
+        "description": "Creates a new session on a running VM. A session represents an isolated Linux user, with their own container\nwhile their API token has specific permissions (currently, read or write).\nThe session is identified by a unique session ID, and the username is based on the session ID.\n\nThis endpoint requires the VM to be running. If the VM is not running, it will return a 404 error.\n",
+        "operationId": "vm/create_session",
+        "parameters": [
+          {
+            "description": "Sandbox ID",
+            "example": "new",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VMCreateSessionRequest"
+              }
+            }
+          },
+          "description": "VM Create Session Request",
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMCreateSessionResponse"
+                }
+              }
+            },
+            "description": "VM Create Session Response"
+          }
+        },
+        "security": [{ "authorization": ["sandbox:read", "vm:manage"] }],
+        "summary": "Create a new session on a VM",
         "tags": ["vm"]
       }
     },

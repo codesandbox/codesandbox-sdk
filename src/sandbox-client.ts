@@ -4,6 +4,7 @@ import type { Client } from "@hey-api/client-fetch";
 import type { VmStartResponse, tier } from "./client";
 import {
   sandboxFork,
+  vmCreateSession,
   sandboxList,
   vmHibernate,
   vmShutdown,
@@ -11,8 +12,9 @@ import {
   vmUpdateHibernationTimeout,
   vmUpdateSpecs,
 } from "./client";
-import { Sandbox } from "./sandbox";
+import { Sandbox, SandboxSession } from "./sandbox";
 import { handleResponse } from "./utils/handle-response";
+import { SessionCreateOptions, SessionConnectInfo } from "./sessions";
 
 export type SandboxPrivacy = "public" | "unlisted" | "private";
 export type SandboxStartData = Required<VmStartResponse>["data"];
@@ -502,6 +504,70 @@ export class SandboxClient {
     );
 
     return new Sandbox(this, pitcherClient);
+  }
+
+  public async createSession(
+    sandboxId: string,
+    sessionId: string,
+    options: SessionCreateOptions & { autoConnect: false }
+  ): Promise<SessionConnectInfo>;
+  public async createSession(
+    sandboxId: string,
+    sessionId: string,
+    options?: SessionCreateOptions & { autoConnect?: true }
+  ): Promise<SandboxSession>;
+  public async createSession(
+    sandboxId: string,
+    sessionId: string,
+    options?: SessionCreateOptions
+  ): Promise<SandboxSession>;
+  public async createSession(
+    sandboxId: string,
+    sessionId: string,
+    options: SessionCreateOptions = {}
+  ): Promise<SandboxSession | SessionConnectInfo> {
+    const response = await vmCreateSession({
+      client: this.apiClient,
+      body: {
+        session_id: sessionId,
+        permission: options.permission ?? "write",
+      },
+      path: {
+        id: sandboxId,
+      },
+    });
+
+    const handledResponse = handleResponse(
+      response,
+      `Failed to create session ${sessionId}`
+    );
+
+    if (options.autoConnect === false) {
+      return {
+        id: sandboxId,
+        pitcher_token: handledResponse.pitcher_token,
+        pitcher_url: handledResponse.pitcher_url,
+        user_workspace_path: handledResponse.user_workspace_path,
+      };
+    }
+
+    const connectedSandbox = await this.connectToSandbox(sandboxId, () =>
+      Promise.resolve({
+        bootup_type: "RESUME",
+        cluster: "session",
+        id: sandboxId,
+        latest_pitcher_version: "1.0.0-session",
+        pitcher_manager_version: "1.0.0-session",
+        pitcher_token: handledResponse.pitcher_token,
+        pitcher_url: handledResponse.pitcher_url,
+        pitcher_version: "1.0.0-session",
+        reconnect_token: "",
+        user_workspace_path: handledResponse.user_workspace_path,
+        workspace_path: handledResponse.user_workspace_path,
+      })
+    );
+
+    return connectedSandbox;
   }
 }
 

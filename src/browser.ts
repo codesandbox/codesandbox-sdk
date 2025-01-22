@@ -1,9 +1,19 @@
-import { initPitcherClient } from "@codesandbox/pitcher-client";
+import {
+  initPitcherClient,
+  PitcherManagerResponse,
+} from "@codesandbox/pitcher-client";
 
-import { SandboxWithoutClient } from "./sandbox";
+import { SandboxSession } from "./sandbox";
 import { DEFAULT_SUBSCRIPTIONS, type SandboxStartData } from "./sandbox-client";
+import { SessionConnectInfo } from "./sessions";
 
 export { SandboxStartData };
+
+function isStartData(
+  data: SandboxStartData | SessionConnectInfo
+): data is SandboxStartData {
+  return "bootup_type" in data;
+}
 
 /**
  * With this function you can connect to a sandbox from the browser.
@@ -41,8 +51,47 @@ export { SandboxStartData };
  * ```
  */
 export async function connectToSandbox(
-  startInfo: SandboxStartData,
-): Promise<SandboxWithoutClient> {
+  startInfo: SandboxStartData | SessionConnectInfo
+): Promise<SandboxSession> {
+  const useStartData = isStartData(startInfo);
+
+  let requestPitcherInstance: () => Promise<PitcherManagerResponse>;
+  if (useStartData) {
+    requestPitcherInstance = async () => {
+      const data = startInfo;
+
+      return {
+        bootupType: data.bootup_type as "RUNNING" | "CLEAN" | "RESUME" | "FORK",
+        pitcherURL: data.pitcher_url,
+        workspacePath: data.workspace_path,
+        userWorkspacePath: data.user_workspace_path,
+        pitcherManagerVersion: data.pitcher_manager_version,
+        pitcherVersion: data.pitcher_version,
+        latestPitcherVersion: data.latest_pitcher_version,
+        pitcherToken: data.pitcher_token,
+        cluster: data.cluster,
+      };
+    };
+  } else {
+    requestPitcherInstance = async () => {
+      const data = startInfo;
+
+      return {
+        bootupType: "RESUME",
+        cluster: "session",
+        id: data.id,
+        latestPitcherVersion: "1.0.0-session",
+        pitcherManagerVersion: "1.0.0-session",
+        pitcherToken: data.pitcher_token,
+        pitcherURL: data.pitcher_url,
+        pitcherVersion: "1.0.0-session",
+        reconnectToken: "",
+        userWorkspacePath: data.user_workspace_path,
+        workspacePath: data.user_workspace_path,
+      };
+    };
+  }
+
   const pitcherClient = await initPitcherClient(
     {
       appId: "sdk",
@@ -50,29 +99,11 @@ export async function connectToSandbox(
       onFocusChange() {
         return () => {};
       },
-      requestPitcherInstance: async () => {
-        const data = startInfo;
-
-        return {
-          bootupType: data.bootup_type as
-            | "RUNNING"
-            | "CLEAN"
-            | "RESUME"
-            | "FORK",
-          pitcherURL: data.pitcher_url,
-          workspacePath: data.workspace_path,
-          userWorkspacePath: data.user_workspace_path,
-          pitcherManagerVersion: data.pitcher_manager_version,
-          pitcherVersion: data.pitcher_version,
-          latestPitcherVersion: data.latest_pitcher_version,
-          pitcherToken: data.pitcher_token,
-          cluster: data.cluster,
-        };
-      },
+      requestPitcherInstance,
       subscriptions: DEFAULT_SUBSCRIPTIONS,
     },
-    () => {},
+    () => {}
   );
 
-  return new SandboxWithoutClient(pitcherClient);
+  return new SandboxSession(pitcherClient);
 }
