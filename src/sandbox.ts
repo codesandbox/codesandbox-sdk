@@ -13,6 +13,7 @@ import { Tasks } from "./tasks";
 
 import type { SandboxClient, VMTier } from ".";
 import { Sessions } from "./sessions";
+export { SessionConnectInfo } from "./sessions";
 
 export {
   FSStatResult,

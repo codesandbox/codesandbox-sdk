@@ -13,7 +13,7 @@ import {
 } from "./client";
 import { Sandbox, SandboxSession } from "./sandbox";
 import { handleResponse } from "./utils/handle-response";
-import { SessionCreateOptions } from "./sessions";
+import { SessionCreateOptions, SessionConnectInfo } from "./sessions";
 
 export type SandboxPrivacy = "public" | "unlisted" | "private";
 export type SandboxStartData = Required<VmStartResponse>["data"];
@@ -461,8 +461,23 @@ export class SandboxClient {
   public async createSession(
     sandboxId: string,
     sessionId: string,
+    options: SessionCreateOptions & { autoConnect: false }
+  ): Promise<SessionConnectInfo>;
+  public async createSession(
+    sandboxId: string,
+    sessionId: string,
+    options?: SessionCreateOptions & { autoConnect?: true }
+  ): Promise<SandboxSession>;
+  public async createSession(
+    sandboxId: string,
+    sessionId: string,
+    options?: SessionCreateOptions
+  ): Promise<SandboxSession>;
+  public async createSession(
+    sandboxId: string,
+    sessionId: string,
     options: SessionCreateOptions = {}
-  ): Promise<SandboxSession> {
+  ): Promise<SandboxSession | SessionConnectInfo> {
     const response = await vmCreateSession({
       client: this.apiClient,
       body: {
@@ -479,16 +494,25 @@ export class SandboxClient {
       `Failed to create session ${sessionId}`
     );
 
+    if (options.autoConnect === false) {
+      return {
+        id: sandboxId,
+        pitcher_token: handledResponse.pitcher_token,
+        pitcher_url: handledResponse.pitcher_url,
+        user_workspace_path: handledResponse.user_workspace_path,
+      };
+    }
+
     const connectedSandbox = await this.connectToSandbox(sandboxId, () =>
       Promise.resolve({
         bootup_type: "RESUME",
-        cluster: "eu-1",
+        cluster: "session",
         id: sandboxId,
-        latest_pitcher_version: "1.0.0",
-        pitcher_manager_version: "1.0.0",
+        latest_pitcher_version: "1.0.0-session",
+        pitcher_manager_version: "1.0.0-session",
         pitcher_token: handledResponse.pitcher_token,
         pitcher_url: handledResponse.pitcher_url,
-        pitcher_version: "1.0.0",
+        pitcher_version: "1.0.0-session",
         reconnect_token: "",
         user_workspace_path: handledResponse.user_workspace_path,
         workspace_path: handledResponse.user_workspace_path,
