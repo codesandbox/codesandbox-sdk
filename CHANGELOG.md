@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.3.0...v0.4.0) (2025-01-22)
+
+
+### Features
+
+* support for creating sessions ([#32](https://github.com/codesandbox/codesandbox-sdk/issues/32)) ([491d13d](https://github.com/codesandbox/codesandbox-sdk/commit/491d13db77992df5e3ab3fefb5b9de7e8edbd1c9))
+
 ## [0.3.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.2.0...v0.3.0) (2025-01-14)
 
 
