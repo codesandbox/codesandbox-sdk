@@ -1,4 +1,4 @@
-const esbuild = require("esbuild");
+import esbuild from "esbuild";
 
 // Common plugin for module replacements
 const browserifyPlugin = {
