@@ -53,7 +53,7 @@
     "build": "npm run clean && npm run build:esbuild && npm run build:cjs:types && npm run build:esm:types && chmod +x dist/bin/codesandbox.js",
     "build:cjs": "tsc -p ./tsconfig.build-cjs.json",
     "build:esm": "tsc -p ./tsconfig.build-esm.json",
-    "build:esbuild": "node esbuild.js",
+    "build:esbuild": "node esbuild.cjs",
     "build:cjs:types": "tsc -p ./tsconfig.build-cjs.json --emitDeclarationOnly",
     "build:esm:types": "tsc -p ./tsconfig.build-esm.json --emitDeclarationOnly",
     "build-openapi": "rimraf src/client && curl -o openapi.json https://api.codesandbox.io/meta/openapi && npx prettier --write ./openapi.json && npx @hey-api/openapi-ts -i ./openapi.json -o src/client -c @hey-api/client-fetch",
