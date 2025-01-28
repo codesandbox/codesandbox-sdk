@@ -1,14 +1,96 @@
 import ora from "ora";
-
 import { CodeSandbox } from "../../../";
 
-export async function hibernateSandbox(sandboxId: string) {
-  const sdk = new CodeSandbox();
+type CommandResult = {
+  success: boolean;
+  message: string;
+};
 
-  const spinner = ora("Hibernating sandbox...").start();
-  await sdk.sandbox.hibernate(sandboxId);
-  spinner.succeed("Sandbox hibernated successfully");
+async function hibernateSingleSandbox(
+  id: string,
+  spinner: ReturnType<typeof ora>
+): Promise<CommandResult> {
+  try {
+    await new CodeSandbox().sandbox.hibernate(id);
+    const message = `✔ Sandbox ${id} hibernated successfully`;
+    // eslint-disable-next-line no-console
+    console.log(message);
+    return { success: true, message };
+  } catch (error) {
+    const message = `✖ Failed to hibernate sandbox ${id}`;
+    // eslint-disable-next-line no-console
+    console.log(message);
+    return { success: false, message };
+  }
+}
 
-  // eslint-disable-next-line no-console
-  console.log(sandboxId);
+export async function hibernateSandbox(id?: string) {
+  if (id) {
+    const spinner = ora("Hibernating sandbox...").start();
+    const result = await hibernateSingleSandbox(id, spinner);
+    spinner.stop();
+    if (!result.success) {
+      process.exit(1);
+    }
+    return;
+  }
+
+  // No ID provided, try to read from stdin
+  process.stdin.resume();
+  process.stdin.setEncoding("utf-8");
+
+  let data = "";
+
+  try {
+    for await (const chunk of process.stdin) {
+      data += chunk;
+    }
+
+    const ids = data
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    if (ids.length === 0) {
+      // eslint-disable-next-line no-console
+      console.log("No sandbox IDs provided");
+      process.exit(1);
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(`⠋ Hibernating ${ids.length} sandboxes...`);
+
+    let successCount = 0;
+    let failCount = 0;
+    const results: CommandResult[] = [];
+
+    for (const sandboxId of ids) {
+      try {
+        const result = await hibernateSingleSandbox(sandboxId, null as any);
+        results.push(result);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        failCount++;
+      }
+    }
+
+    // Final summary
+    if (failCount === 0) {
+      // eslint-disable-next-line no-console
+      console.log(`\n✔ Successfully hibernated all ${successCount} sandboxes`);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(
+        `\n⚠ Hibernation completed: ${successCount} succeeded, ${failCount} failed`
+      );
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.log("Failed to hibernate sandboxes");
+    throw error;
+  }
 }

@@ -392,6 +392,19 @@
             "properties": {
               "data": {
                 "properties": {
+                  "pagination": {
+                    "properties": {
+                      "current_page": { "type": "integer" },
+                      "next_page": {
+                        "description": "The number of the next page, if any. If `null`, the current page is the last page of records.",
+                        "nullable": true,
+                        "type": "integer"
+                      },
+                      "total_records": { "type": "integer" }
+                    },
+                    "required": ["total_records", "current_page", "next_page"],
+                    "type": "object"
+                  },
                   "sandboxes": {
                     "items": {
                       "properties": {
@@ -426,7 +439,7 @@
                     "type": "array"
                   }
                 },
-                "required": ["sandboxes"],
+                "required": ["sandboxes", "pagination"],
                 "type": "object"
               }
             },
@@ -610,6 +623,7 @@
           "session_id": {
             "description": "Unique identifier for the session",
             "example": "my-session-1",
+            "pattern": "^[a-zA-Z0-9_-]+$",
             "type": "string"
           }
         },
@@ -643,16 +657,16 @@
               "data": {
                 "properties": {
                   "capabilities": {
-                    "description": "List of capabilities granted to this session",
+                    "description": "List of capabilities that Pitcher has",
                     "items": { "type": "string" },
                     "type": "array"
                   },
                   "permissions": {
-                    "description": "Detailed permissions for this session",
+                    "description": "The permissions of the current session",
                     "type": "object"
                   },
                   "pitcher_token": {
-                    "description": "Token to authenticate with Pitcher",
+                    "description": "Token to authenticate with Pitcher (the agent running inside the VM)",
                     "type": "string"
                   },
                   "pitcher_url": {
@@ -1162,6 +1176,13 @@
             "name": "page",
             "required": false,
             "schema": { "default": 1, "minimum": 1, "type": "integer" }
+          },
+          {
+            "description": "If true, only returns VMs for which a heartbeat was received in the last 30 seconds.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": { "enum": ["running"] }
           }
         ],
         "responses": {
@@ -1363,7 +1384,7 @@
     "/vm/{id}/sessions": {
       "post": {
         "callbacks": {},
-        "description": "Creates a new session on a running VM. A session represents an isolated Linux user, with their own container\nwhile their API token has specific permissions (currently, read or write).\nThe session is identified by a unique session ID, and the username is based on the session ID.\n\nThis endpoint requires the VM to be running. If the VM is not running, it will return a 404 error.\n",
+        "description": "Creates a new session on a running VM. A session represents an isolated Linux user, with their own container.\nA session has a single use token that the user can use to connect to the VM. This token has specific permissions (currently, read or write).\nThe session is identified by a unique session ID, and the Linux username is based on the session ID.\n\nThis endpoint requires the VM to be running. If the VM is not running, it will return a 404 error.\n",
         "operationId": "vm/create_session",
         "parameters": [
           {
@@ -1398,7 +1419,7 @@
             "description": "VM Create Session Response"
           }
         },
-        "security": [{ "authorization": ["sandbox:read", "vm:manage"] }],
+        "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Create a new session on a VM",
         "tags": ["vm"]
       }
@@ -1565,6 +1586,6 @@
     }
   },
   "security": [],
-  "servers": [{ "url": "https://api.codesandbox.stream", "variables": {} }],
+  "servers": [{ "url": "https://api.codesandbox.io", "variables": {} }],
   "tags": []
 }

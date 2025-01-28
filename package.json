@@ -55,8 +55,8 @@
     "build:esbuild": "node esbuild.js",
     "build:cjs:types": "tsc -p ./tsconfig.build-cjs.json --emitDeclarationOnly",
     "build:esm:types": "tsc -p ./tsconfig.build-esm.json --emitDeclarationOnly",
-    "build-openapi": "rimraf src/client && curl -o openapi.json https://api.codesandbox.io/meta/openapi && npx prettier --write ./openapi.json && npx @hey-api/openapi-ts -i ./openapi.json -o src/client -c @hey-api/client-fetch",
-    "build-openapi:staging": "rimraf src/client && curl -o openapi.json https://api.codesandbox.stream/meta/openapi && npx prettier --write ./openapi.json && npx -y @hey-api/openapi-ts -i ./openapi.json -o src/client -c @hey-api/client-fetch",
+    "build-openapi": "rimraf src/client && curl -o openapi.json https://api.codesandbox.io/meta/openapi && npx prettier --write ./openapi.json && node_modules/.bin/openapi-ts -i ./openapi.json -o src/client -c @hey-api/client-fetch",
+    "build-openapi:staging": "rimraf src/client && curl -o openapi.json https://api.codesandbox.stream/meta/openapi && npx prettier --write ./openapi.json && node_modules/.bin/openapi-ts -i ./openapi.json -o src/client -c @hey-api/client-fetch",
     "clean": "rimraf ./dist",
     "typecheck": "tsc --noEmit",
     "format": "prettier '**/*.{md,js,jsx,json,ts,tsx}' --write",
@@ -78,11 +78,13 @@
     "@codesandbox/pitcher-common": "0.360.2",
     "@codesandbox/pitcher-protocol": "0.360.4",
     "@hey-api/client-fetch": "^0.5.1",
+    "@hey-api/openapi-ts": "0.60.1",
     "@types/blessed": "^0.1.25",
     "@types/yargs": "^17.0.33",
     "blessed": "^0.1.81",
     "blessed-contrib": "^4.11.0",
     "buffer-browserify": "^0.2.5",
+    "cli-table3": "^0.6.3",
     "crypto-browserify": "^3.12.1",
     "esbuild": "^0.24.0",
     "ignore": "^6.0.2",
@@ -98,5 +100,6 @@
     "util": "0.12.5",
     "why-is-node-running": "^2.3.0",
     "yargs": "^17.7.2"
-  }
+  },
+  "dependencies": {}
 }

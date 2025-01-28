@@ -69,7 +69,8 @@ export class CodeSandbox {
           : undefined,
         "CSB_API_KEY or TOGETHER_API_KEY is not set"
       );
-    this.baseUrl = opts.baseUrl ?? getBaseUrl(this.apiToken);
+    this.baseUrl =
+      process.env.CSB_BASE_URL ?? opts.baseUrl ?? getBaseUrl(this.apiToken);
 
     this.apiClient = createClient(
       createConfig({
