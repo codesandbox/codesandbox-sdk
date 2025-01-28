@@ -36,11 +36,16 @@ export type SandboxListOpts = {
   status?: "running";
 };
 
-export type SandboxListResponse = {
+export interface SandboxListResponse {
   sandboxes: SandboxInfo[];
   hasMore: boolean;
   totalCount: number;
-};
+  pagination: {
+    currentPage: number;
+    nextPage: number | null;
+    pageSize: number;
+  };
+}
 
 export type PaginationOpts = {
   page?: number;
@@ -390,23 +395,26 @@ export class SandboxClient {
    * 1. Simple limit-based fetching (default):
    *    ```ts
    *    // Get up to 100 sandboxes (default)
-   *    const { sandboxes } = await client.list();
+   *    const { sandboxes, totalCount } = await client.list();
    *
    *    // Get up to 200 sandboxes
-   *    const { sandboxes } = await client.list({ limit: 200 });
+   *    const { sandboxes, totalCount } = await client.list({ limit: 200 });
    *    ```
    *
    * 2. Manual pagination:
    *    ```ts
    *    // Get first page
-   *    const { sandboxes, hasMore } = await client.list({
+   *    const { sandboxes, pagination } = await client.list({
    *      pagination: { page: 1, pageSize: 50 }
    *    });
+   *    // pagination = { currentPage: 1, nextPage: 2, pageSize: 50 }
    *
-   *    // Get second page
-   *    const nextPage = await client.list({
-   *      pagination: { page: 2, pageSize: 50 }
-   *    });
+   *    // Get next page if available
+   *    if (pagination.nextPage) {
+   *      const { sandboxes, pagination: nextPagination } = await client.list({
+   *        pagination: { page: pagination.nextPage, pageSize: 50 }
+   *      });
+   *    }
    *    ```
    */
   async list(
@@ -415,46 +423,14 @@ export class SandboxClient {
       pagination?: PaginationOpts;
     } = {}
   ): Promise<SandboxListResponse> {
-    // If pagination is specified, do a single request with those params
-    if (opts.pagination) {
-      const response = await sandboxList({
-        client: this.apiClient,
-        query: {
-          tags: opts.tags?.join(","),
-          page: opts.pagination.page,
-          page_size: opts.pagination.pageSize,
-          order_by: opts.orderBy,
-          direction: opts.direction,
-          status: opts.status,
-        },
-      });
-
-      const info = handleResponse(response, "Failed to list sandboxes");
-      const sandboxes = info.sandboxes.map((sandbox) => ({
-        id: sandbox.id,
-        createdAt: new Date(sandbox.created_at),
-        updatedAt: new Date(sandbox.updated_at),
-        title: sandbox.title ?? undefined,
-        description: sandbox.description ?? undefined,
-        privacy: privacyFromNumber(sandbox.privacy),
-        tags: sandbox.tags,
-      }));
-
-      return {
-        sandboxes,
-        hasMore: info.pagination.next_page !== null,
-        totalCount: info.pagination.total_records,
-      };
-    }
-
-    // Otherwise, do limit-based fetching
     const limit = opts.limit ?? 100;
-    const pageSize = 50; // API's maximum page size
     let allSandboxes: SandboxInfo[] = [];
-    let currentPage = 1;
+    let currentPage = opts.pagination?.page ?? 1;
+    let pageSize = opts.pagination?.pageSize ?? 50;
     let totalCount = 0;
+    let nextPage: number | null = null;
 
-    while (allSandboxes.length < limit) {
+    while (true) {
       const response = await sandboxList({
         client: this.apiClient,
         query: {
@@ -469,6 +445,7 @@ export class SandboxClient {
 
       const info = handleResponse(response, "Failed to list sandboxes");
       totalCount = info.pagination.total_records;
+      nextPage = info.pagination.next_page;
 
       const sandboxes = info.sandboxes.map((sandbox) => ({
         id: sandbox.id,
@@ -483,18 +460,23 @@ export class SandboxClient {
       allSandboxes = [...allSandboxes, ...sandboxes];
 
       // Stop if we've hit the limit or there are no more pages
-      if (!info.pagination.next_page || allSandboxes.length >= limit) {
+      if (!nextPage || allSandboxes.length >= limit) {
         allSandboxes = allSandboxes.slice(0, limit);
         break;
       }
 
-      currentPage = info.pagination.next_page;
+      currentPage = nextPage;
     }
 
     return {
       sandboxes: allSandboxes,
       hasMore: totalCount > allSandboxes.length,
       totalCount,
+      pagination: {
+        currentPage,
+        nextPage: allSandboxes.length >= limit ? nextPage : null,
+        pageSize,
+      },
     };
   }
 

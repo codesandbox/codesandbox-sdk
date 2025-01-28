@@ -1,8 +1,10 @@
 import type { CommandModule } from "yargs";
 import { forkSandbox } from "./fork";
 import { hibernateSandbox } from "./hibernate";
-import { DEFAULT_LIMIT, listSandboxes } from "./list";
+import { listSandboxes } from "./list";
 import { shutdownSandbox } from "./shutdown";
+
+const DEFAULT_LIMIT = 100;
 
 export const sandboxCommand: CommandModule = {
   command: "sandbox",
@@ -68,13 +70,18 @@ export const sandboxCommand: CommandModule = {
             {
               tags: argv.tags?.split(","),
               status: argv.status as "running" | undefined,
-              page: argv.page as number | undefined,
-              pageSize: argv["page-size"] as number | undefined,
               orderBy: argv["order-by"] as
                 | "inserted_at"
                 | "updated_at"
                 | undefined,
               direction: argv.direction as "asc" | "desc" | undefined,
+              pagination:
+                argv.page || argv["page-size"]
+                  ? {
+                      page: argv.page,
+                      pageSize: argv["page-size"],
+                    }
+                  : undefined,
             },
             argv["headers"] as boolean,
             argv.limit as number | undefined
