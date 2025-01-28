@@ -1,7 +1,7 @@
 import { initPitcherClient } from "@codesandbox/pitcher-client";
 import type { Client } from "@hey-api/client-fetch";
 
-import type { VmStartResponse, tier } from "./client";
+import type { VmStartResponse, VmUpdateSpecsRequest } from "./client";
 import {
   sandboxFork,
   vmCreateSession,
@@ -35,6 +35,7 @@ export type SandboxListOpts = {
   pageSize?: number;
   orderBy?: "inserted_at" | "updated_at";
   direction?: "asc" | "desc";
+  status?: "running";
 };
 
 export const DEFAULT_SUBSCRIPTIONS = {
@@ -140,13 +141,13 @@ export class VMTier {
   public static readonly XLarge = new VMTier("XLarge", 64, 128, 50);
 
   private constructor(
-    public readonly name: tier,
+    public readonly name: VmUpdateSpecsRequest["tier"],
     public readonly cpuCores: number,
     public readonly memoryGiB: number,
     public readonly diskGB: number
   ) {}
 
-  public static fromName(name: tier): VMTier {
+  public static fromName(name: VmUpdateSpecsRequest["tier"]): VMTier {
     return VMTier[name];
   }
 
@@ -377,7 +378,23 @@ export class SandboxClient {
    * List sandboxes from the current workspace with optional filters.
    * Results are limited to a maximum of 50 sandboxes per request.
    */
-  async list(opts: SandboxListOpts = {}): Promise<SandboxInfo[]> {
+  async list(opts: SandboxListOpts = {}): Promise<{
+    sandboxes: SandboxInfo[];
+    pagination: {
+      /**
+       * The current page of the results.
+       */
+      currentPage: number;
+      /**
+       * The next page of the results, if any. If `null`, the current page is the last page of records.
+       */
+      nextPage: number | null;
+      /**
+       * The total number of records.
+       */
+      totalRecords: number;
+    };
+  }> {
     const response = await sandboxList({
       client: this.apiClient,
       query: {
@@ -386,20 +403,28 @@ export class SandboxClient {
         page_size: opts.pageSize,
         order_by: opts.orderBy,
         direction: opts.direction,
+        status: opts.status,
       },
     });
 
     const info = handleResponse(response, "Failed to list sandboxes");
 
-    return info.sandboxes.map((sandbox) => ({
-      id: sandbox.id,
-      createdAt: new Date(sandbox.created_at),
-      updatedAt: new Date(sandbox.updated_at),
-      title: sandbox.title ?? undefined,
-      description: sandbox.description ?? undefined,
-      privacy: privacyFromNumber(sandbox.privacy),
-      tags: sandbox.tags,
-    }));
+    return {
+      sandboxes: info.sandboxes.map((sandbox) => ({
+        id: sandbox.id,
+        createdAt: new Date(sandbox.created_at),
+        updatedAt: new Date(sandbox.updated_at),
+        title: sandbox.title ?? undefined,
+        description: sandbox.description ?? undefined,
+        privacy: privacyFromNumber(sandbox.privacy),
+        tags: sandbox.tags,
+      })),
+      pagination: {
+        currentPage: info.pagination.current_page,
+        nextPage: info.pagination.next_page,
+        totalRecords: info.pagination.total_records,
+      },
+    };
   }
 
   /**
