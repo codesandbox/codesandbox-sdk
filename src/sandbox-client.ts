@@ -376,41 +376,34 @@ export class SandboxClient {
 
   /**
    * List sandboxes from the current workspace with optional filters.
-   * Results are limited to a maximum of 50 sandboxes per request.
+   * By default, returns up to 100 sandboxes.
    */
-  async list(opts: SandboxListOpts = {}): Promise<{
+  async list(
+    opts: Omit<SandboxListOpts, "page" | "pageSize"> & { limit?: number } = {}
+  ): Promise<{
     sandboxes: SandboxInfo[];
-    pagination: {
-      /**
-       * The current page of the results.
-       */
-      currentPage: number;
-      /**
-       * The next page of the results, if any. If `null`, the current page is the last page of records.
-       */
-      nextPage: number | null;
-      /**
-       * The total number of records.
-       */
-      totalRecords: number;
-    };
   }> {
-    const response = await sandboxList({
-      client: this.apiClient,
-      query: {
-        tags: opts.tags?.join(","),
-        page: opts.page,
-        page_size: opts.pageSize,
-        order_by: opts.orderBy,
-        direction: opts.direction,
-        status: opts.status,
-      },
-    });
+    const limit = opts.limit ?? 100;
+    const pageSize = 50; // API's maximum page size
+    let allSandboxes: SandboxInfo[] = [];
+    let currentPage = 1;
 
-    const info = handleResponse(response, "Failed to list sandboxes");
+    while (allSandboxes.length < limit) {
+      const response = await sandboxList({
+        client: this.apiClient,
+        query: {
+          tags: opts.tags?.join(","),
+          page: currentPage,
+          page_size: pageSize,
+          order_by: opts.orderBy,
+          direction: opts.direction,
+          status: opts.status,
+        },
+      });
 
-    return {
-      sandboxes: info.sandboxes.map((sandbox) => ({
+      const info = handleResponse(response, "Failed to list sandboxes");
+
+      const sandboxes = info.sandboxes.map((sandbox) => ({
         id: sandbox.id,
         createdAt: new Date(sandbox.created_at),
         updatedAt: new Date(sandbox.updated_at),
@@ -418,13 +411,20 @@ export class SandboxClient {
         description: sandbox.description ?? undefined,
         privacy: privacyFromNumber(sandbox.privacy),
         tags: sandbox.tags,
-      })),
-      pagination: {
-        currentPage: info.pagination.current_page,
-        nextPage: info.pagination.next_page,
-        totalRecords: info.pagination.total_records,
-      },
-    };
+      }));
+
+      allSandboxes = [...allSandboxes, ...sandboxes];
+
+      // Stop if we've hit the limit or there are no more pages
+      if (!info.pagination.next_page || allSandboxes.length >= limit) {
+        allSandboxes = allSandboxes.slice(0, limit);
+        break;
+      }
+
+      currentPage = info.pagination.next_page;
+    }
+
+    return { sandboxes: allSandboxes };
   }
 
   /**
