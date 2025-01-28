@@ -14,7 +14,7 @@ type OutputFormat = {
 };
 
 const TABLE_FORMAT: OutputFormat[] = [
-  { field: "id", header: "NAME", width: 24 },
+  { field: "id", header: "ID", width: 24 },
   { field: "title", header: "TITLE", width: 40 },
   { field: "privacy", header: "PRIVACY", width: 10 },
   { field: "tags", header: "TAGS", width: 20 },
