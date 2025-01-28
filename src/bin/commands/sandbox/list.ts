@@ -124,7 +124,7 @@ export async function listSandboxes(
       });
 
       // eslint-disable-next-line no-console
-      console.log(
+      console.error(
         `\nShowing ${allSandboxes.length} of ${totalCount} sandboxes`
       );
 
@@ -177,7 +177,7 @@ export async function listSandboxes(
 
     if (limit && totalCount > allSandboxes.length) {
       // eslint-disable-next-line no-console
-      console.log(
+      console.error(
         `\nShowing ${allSandboxes.length} of ${totalCount} sandboxes`
       );
     }
