@@ -95,8 +95,9 @@ export const sandboxCommand: CommandModule = {
         },
       })
       .command({
-        command: "hibernate <id>",
-        describe: "Hibernate a sandbox",
+        command: "hibernate [id]",
+        describe:
+          "Hibernate sandbox(es). If no ID is provided, reads sandbox IDs from stdin",
         builder: (yargs) => {
           return yargs.positional("id", {
             describe: "ID of the sandbox to hibernate",
@@ -104,12 +105,13 @@ export const sandboxCommand: CommandModule = {
           });
         },
         handler: async (argv) => {
-          await hibernateSandbox(argv.id as string);
+          await hibernateSandbox(argv.id);
         },
       })
       .command({
-        command: "shutdown <id>",
-        describe: "Shutdown a sandbox",
+        command: "shutdown [id]",
+        describe:
+          "Shutdown sandbox(es). If no ID is provided, reads sandbox IDs from stdin",
         builder: (yargs) => {
           return yargs.positional("id", {
             describe: "ID of the sandbox to shutdown",
@@ -117,7 +119,7 @@ export const sandboxCommand: CommandModule = {
           });
         },
         handler: async (argv) => {
-          await shutdownSandbox(argv.id as string);
+          await shutdownSandbox(argv.id);
         },
       })
       .demandCommand(1, "Please specify a sandbox command");
