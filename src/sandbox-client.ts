@@ -31,11 +31,25 @@ export type SandboxInfo = {
 
 export type SandboxListOpts = {
   tags?: string[];
-  page?: number;
-  pageSize?: number;
   orderBy?: "inserted_at" | "updated_at";
   direction?: "asc" | "desc";
   status?: "running";
+};
+
+export interface SandboxListResponse {
+  sandboxes: SandboxInfo[];
+  hasMore: boolean;
+  totalCount: number;
+  pagination: {
+    currentPage: number;
+    nextPage: number | null;
+    pageSize: number;
+  };
+}
+
+export type PaginationOpts = {
+  page?: number;
+  pageSize?: number;
 };
 
 export const DEFAULT_SUBSCRIPTIONS = {
@@ -376,19 +390,47 @@ export class SandboxClient {
 
   /**
    * List sandboxes from the current workspace with optional filters.
-   * By default, returns up to 100 sandboxes.
+   *
+   * This method supports two modes of operation:
+   * 1. Simple limit-based fetching (default):
+   *    ```ts
+   *    // Get up to 100 sandboxes (default)
+   *    const { sandboxes, totalCount } = await client.list();
+   *
+   *    // Get up to 200 sandboxes
+   *    const { sandboxes, totalCount } = await client.list({ limit: 200 });
+   *    ```
+   *
+   * 2. Manual pagination:
+   *    ```ts
+   *    // Get first page
+   *    const { sandboxes, pagination } = await client.list({
+   *      pagination: { page: 1, pageSize: 50 }
+   *    });
+   *    // pagination = { currentPage: 1, nextPage: 2, pageSize: 50 }
+   *
+   *    // Get next page if available
+   *    if (pagination.nextPage) {
+   *      const { sandboxes, pagination: nextPagination } = await client.list({
+   *        pagination: { page: pagination.nextPage, pageSize: 50 }
+   *      });
+   *    }
+   *    ```
    */
   async list(
-    opts: Omit<SandboxListOpts, "page" | "pageSize"> & { limit?: number } = {}
-  ): Promise<{
-    sandboxes: SandboxInfo[];
-  }> {
+    opts: SandboxListOpts & {
+      limit?: number;
+      pagination?: PaginationOpts;
+    } = {}
+  ): Promise<SandboxListResponse> {
     const limit = opts.limit ?? 100;
-    const pageSize = 50; // API's maximum page size
     let allSandboxes: SandboxInfo[] = [];
-    let currentPage = 1;
+    let currentPage = opts.pagination?.page ?? 1;
+    let pageSize = opts.pagination?.pageSize ?? 50;
+    let totalCount = 0;
+    let nextPage: number | null = null;
 
-    while (allSandboxes.length < limit) {
+    while (true) {
       const response = await sandboxList({
         client: this.apiClient,
         query: {
@@ -402,6 +444,8 @@ export class SandboxClient {
       });
 
       const info = handleResponse(response, "Failed to list sandboxes");
+      totalCount = info.pagination.total_records;
+      nextPage = info.pagination.next_page;
 
       const sandboxes = info.sandboxes.map((sandbox) => ({
         id: sandbox.id,
@@ -416,15 +460,24 @@ export class SandboxClient {
       allSandboxes = [...allSandboxes, ...sandboxes];
 
       // Stop if we've hit the limit or there are no more pages
-      if (!info.pagination.next_page || allSandboxes.length >= limit) {
+      if (!nextPage || allSandboxes.length >= limit) {
         allSandboxes = allSandboxes.slice(0, limit);
         break;
       }
 
-      currentPage = info.pagination.next_page;
+      currentPage = nextPage;
     }
 
-    return { sandboxes: allSandboxes };
+    return {
+      sandboxes: allSandboxes,
+      hasMore: totalCount > allSandboxes.length,
+      totalCount,
+      pagination: {
+        currentPage,
+        nextPage: allSandboxes.length >= limit ? nextPage : null,
+        pageSize,
+      },
+    };
   }
 
   /**

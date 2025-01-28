@@ -1,9 +1,11 @@
 import ora from "ora";
 import Table from "cli-table3";
 import { CodeSandbox } from "../../../";
-import type { SandboxListOpts, SandboxInfo } from "../../../sandbox-client";
-
-export const DEFAULT_LIMIT = 100;
+import type {
+  SandboxListOpts,
+  SandboxInfo,
+  PaginationOpts,
+} from "../../../sandbox-client";
 
 type OutputFormat = {
   field: string;
@@ -41,41 +43,59 @@ function formatAge(date: Date): string {
 
 export async function listSandboxes(
   outputFields?: string,
-  listOpts: SandboxListOpts = {},
+  listOpts: SandboxListOpts & { pagination?: PaginationOpts } = {},
   showHeaders = true,
-  limit = DEFAULT_LIMIT
+  limit?: number
 ) {
   const sdk = new CodeSandbox();
   const spinner = ora("Fetching sandboxes...").start();
 
   try {
     let allSandboxes: SandboxInfo[] = [];
-    let currentPage = listOpts.page || 1;
-    const pageSize = listOpts.pageSize || 20;
+    let totalCount = 0;
+    let currentPage = 1;
+    const pageSize = 50; // API's maximum page size
 
-    // Keep fetching until we hit the limit or run out of sandboxes
     while (true) {
-      const { sandboxes, pagination } = await sdk.sandbox.list({
+      const {
+        sandboxes,
+        totalCount: total,
+        pagination,
+      } = await sdk.sandbox.list({
         ...listOpts,
-        page: currentPage,
-        pageSize,
+        limit: undefined, // Force pagination so we can show progress
+        pagination: {
+          page: currentPage,
+          pageSize,
+        },
       });
 
-      allSandboxes = [...allSandboxes, ...sandboxes];
-
-      // Stop if we've hit the limit
-      if (allSandboxes.length >= limit) {
-        allSandboxes = allSandboxes.slice(0, limit);
+      if (sandboxes.length === 0) {
         break;
       }
 
-      // Stop if there are no more pages
-      if (!pagination.nextPage) {
+      totalCount = total;
+      const newSandboxes = sandboxes.filter(
+        (sandbox) =>
+          !allSandboxes.some((existing) => existing.id === sandbox.id)
+      );
+      allSandboxes = [...allSandboxes, ...newSandboxes];
+
+      spinner.text = `Fetching sandboxes... (${allSandboxes.length}${
+        limit ? `/${Math.min(limit, totalCount)}` : `/${totalCount}`
+      })`;
+
+      // Stop if we've reached the total count
+      if (allSandboxes.length >= totalCount) {
         break;
       }
 
-      currentPage = pagination.nextPage;
-      spinner.text = `Fetching sandboxes... (${allSandboxes.length}/${limit})`;
+      currentPage++;
+    }
+
+    // Apply limit after fetching all sandboxes
+    if (limit) {
+      allSandboxes = allSandboxes.slice(0, limit);
     }
 
     spinner.stop();
@@ -103,6 +123,12 @@ export async function listSandboxes(
         // eslint-disable-next-line no-console
         console.log(values.join("\t"));
       });
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `\nShowing ${allSandboxes.length} of ${totalCount} sandboxes`
+      );
+
       return;
     }
 
@@ -149,6 +175,13 @@ export async function listSandboxes(
 
     // eslint-disable-next-line no-console
     console.log(table.toString());
+
+    if (limit && totalCount > allSandboxes.length) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `\nShowing ${allSandboxes.length} of ${totalCount} sandboxes`
+      );
+    }
   } catch (error) {
     spinner.fail("Failed to fetch sandboxes");
     throw error;

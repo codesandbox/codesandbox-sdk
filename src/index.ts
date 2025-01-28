@@ -8,6 +8,7 @@ import {
   VMTier,
   SandboxListOpts,
   SandboxInfo,
+  PaginationOpts,
 } from "./sandbox-client";
 
 export {
@@ -17,6 +18,7 @@ export {
   VMTier,
   SandboxListOpts,
   SandboxInfo,
+  PaginationOpts,
 };
 export * from "./sandbox";
 
