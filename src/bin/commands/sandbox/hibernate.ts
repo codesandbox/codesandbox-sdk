@@ -1,24 +1,37 @@
 import ora from "ora";
 import { CodeSandbox } from "../../../";
 
+type CommandResult = {
+  success: boolean;
+  message: string;
+};
+
 async function hibernateSingleSandbox(
   id: string,
   spinner: ReturnType<typeof ora>
-) {
+): Promise<CommandResult> {
   try {
     await new CodeSandbox().sandbox.hibernate(id);
-    spinner.succeed(`Sandbox ${id} hibernated successfully`);
+    const message = `✔ Sandbox ${id} hibernated successfully`;
+    // eslint-disable-next-line no-console
+    console.log(message);
+    return { success: true, message };
   } catch (error) {
-    spinner.fail(`Failed to hibernate sandbox ${id}`);
-    throw error;
+    const message = `✖ Failed to hibernate sandbox ${id}`;
+    // eslint-disable-next-line no-console
+    console.log(message);
+    return { success: false, message };
   }
 }
 
 export async function hibernateSandbox(id?: string) {
-  const spinner = ora("Hibernating sandbox...").start();
-
   if (id) {
-    await hibernateSingleSandbox(id, spinner);
+    const spinner = ora("Hibernating sandbox...").start();
+    const result = await hibernateSingleSandbox(id, spinner);
+    spinner.stop();
+    if (!result.success) {
+      process.exit(1);
+    }
     return;
   }
 
@@ -39,19 +52,45 @@ export async function hibernateSandbox(id?: string) {
       .filter((line) => line.length > 0);
 
     if (ids.length === 0) {
-      spinner.fail("No sandbox IDs provided");
+      // eslint-disable-next-line no-console
+      console.log("No sandbox IDs provided");
       process.exit(1);
     }
 
-    spinner.text = `Hibernating ${ids.length} sandboxes...`;
+    // eslint-disable-next-line no-console
+    console.log(`⠋ Hibernating ${ids.length} sandboxes...`);
+
+    let successCount = 0;
+    let failCount = 0;
+    const results: CommandResult[] = [];
 
     for (const sandboxId of ids) {
-      await hibernateSingleSandbox(sandboxId, spinner);
+      try {
+        const result = await hibernateSingleSandbox(sandboxId, null as any);
+        results.push(result);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        failCount++;
+      }
     }
 
-    spinner.succeed(`Successfully hibernated ${ids.length} sandboxes`);
+    // Final summary
+    if (failCount === 0) {
+      // eslint-disable-next-line no-console
+      console.log(`\n✔ Successfully hibernated all ${successCount} sandboxes`);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(
+        `\n⚠ Hibernation completed: ${successCount} succeeded, ${failCount} failed`
+      );
+    }
   } catch (error) {
-    spinner.fail("Failed to hibernate sandboxes");
+    // eslint-disable-next-line no-console
+    console.log("Failed to hibernate sandboxes");
     throw error;
   }
 }

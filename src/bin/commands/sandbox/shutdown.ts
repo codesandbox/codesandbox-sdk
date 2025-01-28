@@ -1,24 +1,37 @@
 import ora from "ora";
 import { CodeSandbox } from "../../../";
 
+type CommandResult = {
+  success: boolean;
+  message: string;
+};
+
 async function shutdownSingleSandbox(
   id: string,
   spinner: ReturnType<typeof ora>
-) {
+): Promise<CommandResult> {
   try {
     await new CodeSandbox().sandbox.shutdown(id);
-    spinner.succeed(`Sandbox ${id} shutdown successfully`);
+    const message = `✔ Sandbox ${id} shutdown successfully`;
+    // eslint-disable-next-line no-console
+    console.log(message);
+    return { success: true, message };
   } catch (error) {
-    spinner.fail(`Failed to shutdown sandbox ${id}`);
-    throw error;
+    const message = `✖ Failed to shutdown sandbox ${id}`;
+    // eslint-disable-next-line no-console
+    console.log(message);
+    return { success: false, message };
   }
 }
 
 export async function shutdownSandbox(id?: string) {
-  const spinner = ora("Shutting down sandbox...").start();
-
   if (id) {
-    await shutdownSingleSandbox(id, spinner);
+    const spinner = ora("Shutting down sandbox...").start();
+    const result = await shutdownSingleSandbox(id, spinner);
+    spinner.stop();
+    if (!result.success) {
+      process.exit(1);
+    }
     return;
   }
 
@@ -39,19 +52,45 @@ export async function shutdownSandbox(id?: string) {
       .filter((line) => line.length > 0);
 
     if (ids.length === 0) {
-      spinner.fail("No sandbox IDs provided");
+      // eslint-disable-next-line no-console
+      console.log("No sandbox IDs provided");
       process.exit(1);
     }
 
-    spinner.text = `Shutting down ${ids.length} sandboxes...`;
+    // eslint-disable-next-line no-console
+    console.log(`⠋ Shutting down ${ids.length} sandboxes...`);
+
+    let successCount = 0;
+    let failCount = 0;
+    const results: CommandResult[] = [];
 
     for (const sandboxId of ids) {
-      await shutdownSingleSandbox(sandboxId, spinner);
+      try {
+        const result = await shutdownSingleSandbox(sandboxId, null as any);
+        results.push(result);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        failCount++;
+      }
     }
 
-    spinner.succeed(`Successfully shutdown ${ids.length} sandboxes`);
+    // Final summary
+    if (failCount === 0) {
+      // eslint-disable-next-line no-console
+      console.log(`\n✔ Successfully shutdown all ${successCount} sandboxes`);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(
+        `\n⚠ Shutdown completed: ${successCount} succeeded, ${failCount} failed`
+      );
+    }
   } catch (error) {
-    spinner.fail("Failed to shutdown sandboxes");
+    // eslint-disable-next-line no-console
+    console.log("Failed to shutdown sandboxes");
     throw error;
   }
 }
