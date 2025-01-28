@@ -31,11 +31,20 @@ export type SandboxInfo = {
 
 export type SandboxListOpts = {
   tags?: string[];
-  page?: number;
-  pageSize?: number;
   orderBy?: "inserted_at" | "updated_at";
   direction?: "asc" | "desc";
   status?: "running";
+};
+
+export type SandboxListResponse = {
+  sandboxes: SandboxInfo[];
+  hasMore: boolean;
+  totalCount: number;
+};
+
+export type PaginationOpts = {
+  page?: number;
+  pageSize?: number;
 };
 
 export const DEFAULT_SUBSCRIPTIONS = {
@@ -376,17 +385,74 @@ export class SandboxClient {
 
   /**
    * List sandboxes from the current workspace with optional filters.
-   * By default, returns up to 100 sandboxes.
+   *
+   * This method supports two modes of operation:
+   * 1. Simple limit-based fetching (default):
+   *    ```ts
+   *    // Get up to 100 sandboxes (default)
+   *    const { sandboxes } = await client.list();
+   *
+   *    // Get up to 200 sandboxes
+   *    const { sandboxes } = await client.list({ limit: 200 });
+   *    ```
+   *
+   * 2. Manual pagination:
+   *    ```ts
+   *    // Get first page
+   *    const { sandboxes, hasMore } = await client.list({
+   *      pagination: { page: 1, pageSize: 50 }
+   *    });
+   *
+   *    // Get second page
+   *    const nextPage = await client.list({
+   *      pagination: { page: 2, pageSize: 50 }
+   *    });
+   *    ```
    */
   async list(
-    opts: Omit<SandboxListOpts, "page" | "pageSize"> & { limit?: number } = {}
-  ): Promise<{
-    sandboxes: SandboxInfo[];
-  }> {
+    opts: SandboxListOpts & {
+      limit?: number;
+      pagination?: PaginationOpts;
+    } = {}
+  ): Promise<SandboxListResponse> {
+    // If pagination is specified, do a single request with those params
+    if (opts.pagination) {
+      const response = await sandboxList({
+        client: this.apiClient,
+        query: {
+          tags: opts.tags?.join(","),
+          page: opts.pagination.page,
+          page_size: opts.pagination.pageSize,
+          order_by: opts.orderBy,
+          direction: opts.direction,
+          status: opts.status,
+        },
+      });
+
+      const info = handleResponse(response, "Failed to list sandboxes");
+      const sandboxes = info.sandboxes.map((sandbox) => ({
+        id: sandbox.id,
+        createdAt: new Date(sandbox.created_at),
+        updatedAt: new Date(sandbox.updated_at),
+        title: sandbox.title ?? undefined,
+        description: sandbox.description ?? undefined,
+        privacy: privacyFromNumber(sandbox.privacy),
+        tags: sandbox.tags,
+      }));
+
+      return {
+        sandboxes,
+        hasMore: info.pagination.next_page !== null,
+        totalCount: info.pagination.total_records,
+      };
+    }
+
+    // Otherwise, do limit-based fetching
     const limit = opts.limit ?? 100;
     const pageSize = 50; // API's maximum page size
     let allSandboxes: SandboxInfo[] = [];
     let currentPage = 1;
+    let totalCount = 0;
 
     while (allSandboxes.length < limit) {
       const response = await sandboxList({
@@ -402,6 +468,7 @@ export class SandboxClient {
       });
 
       const info = handleResponse(response, "Failed to list sandboxes");
+      totalCount = info.pagination.total_records;
 
       const sandboxes = info.sandboxes.map((sandbox) => ({
         id: sandbox.id,
@@ -424,7 +491,11 @@ export class SandboxClient {
       currentPage = info.pagination.next_page;
     }
 
-    return { sandboxes: allSandboxes };
+    return {
+      sandboxes: allSandboxes,
+      hasMore: totalCount > allSandboxes.length,
+      totalCount,
+    };
   }
 
   /**
