@@ -394,7 +394,7 @@ export class SandboxClient {
    * This method supports two modes of operation:
    * 1. Simple limit-based fetching (default):
    *    ```ts
-   *    // Get up to 100 sandboxes (default)
+   *    // Get up to 50 sandboxes (default)
    *    const { sandboxes, totalCount } = await client.list();
    *
    *    // Get up to 200 sandboxes
@@ -423,10 +423,10 @@ export class SandboxClient {
       pagination?: PaginationOpts;
     } = {}
   ): Promise<SandboxListResponse> {
-    const limit = opts.limit ?? 100;
+    const limit = opts.limit ?? 50;
     let allSandboxes: SandboxInfo[] = [];
     let currentPage = opts.pagination?.page ?? 1;
-    let pageSize = opts.pagination?.pageSize ?? 50;
+    let pageSize = opts.pagination?.pageSize ?? limit;
     let totalCount = 0;
     let nextPage: number | null = null;
 
@@ -457,11 +457,14 @@ export class SandboxClient {
         tags: sandbox.tags,
       }));
 
-      allSandboxes = [...allSandboxes, ...sandboxes];
+      const newSandboxes = sandboxes.filter(
+        (sandbox) =>
+          !allSandboxes.some((existing) => existing.id === sandbox.id)
+      );
+      allSandboxes = [...allSandboxes, ...newSandboxes];
 
       // Stop if we've hit the limit or there are no more pages
       if (!nextPage || allSandboxes.length >= limit) {
-        allSandboxes = allSandboxes.slice(0, limit);
         break;
       }
 
