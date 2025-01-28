@@ -45,7 +45,7 @@ export async function listSandboxes(
   outputFields?: string,
   listOpts: SandboxListOpts & { pagination?: PaginationOpts } = {},
   showHeaders = true,
-  limit?: number
+  limit = 100
 ) {
   const sdk = new CodeSandbox();
   const spinner = ora("Fetching sandboxes...").start();
@@ -63,7 +63,6 @@ export async function listSandboxes(
         pagination,
       } = await sdk.sandbox.list({
         ...listOpts,
-        limit: undefined, // Force pagination so we can show progress
         pagination: {
           page: currentPage,
           pageSize,
@@ -86,11 +85,11 @@ export async function listSandboxes(
       })`;
 
       // Stop if we've reached the total count
-      if (allSandboxes.length >= totalCount) {
+      if (allSandboxes.length >= limit || pagination.nextPage == null) {
         break;
       }
 
-      currentPage++;
+      currentPage = pagination.nextPage;
     }
 
     // Apply limit after fetching all sandboxes
