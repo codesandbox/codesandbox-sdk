@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.4.0...v0.5.0) (2025-01-28)
+
+
+### Features
+
+* add more advanced pagination options ([#39](https://github.com/codesandbox/codesandbox-sdk/issues/39)) ([f086bb8](https://github.com/codesandbox/codesandbox-sdk/commit/f086bb88be2cb92848c8b8eae411408028978791))
+* list sandboxes by running status ([#37](https://github.com/codesandbox/codesandbox-sdk/issues/37)) ([1e9e19c](https://github.com/codesandbox/codesandbox-sdk/commit/1e9e19c7df09ea15025873e8557cbed031d2e9d0))
+
 ## [0.4.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.3.0...v0.4.0) (2025-01-22)
 
 
