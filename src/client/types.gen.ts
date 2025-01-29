@@ -231,6 +231,14 @@ export type SandboxListResponse = {
     success?: boolean;
 } & {
     data?: {
+        pagination: {
+            current_page: number;
+            /**
+             * The number of the next page, if any. If `null`, the current page is the last page of records.
+             */
+            next_page: (number) | null;
+            total_records: number;
+        };
         sandboxes: Array<{
             created_at: string;
             description?: (string) | null;
@@ -340,17 +348,17 @@ export type VMCreateSessionResponse = {
 } & {
     data?: {
         /**
-         * List of capabilities granted to this session
+         * List of capabilities that Pitcher has
          */
         capabilities: Array<(string)>;
         /**
-         * Detailed permissions for this session
+         * The permissions of the current session
          */
         permissions: {
             [key: string]: unknown;
         };
         /**
-         * Token to authenticate with Pitcher
+         * Token to authenticate with Pitcher (the agent running inside the VM)
          */
         pitcher_token: string;
         /**
@@ -560,6 +568,10 @@ export type SandboxListData = {
          * Maximum number of sandboxes to return in a single response
          */
         page_size?: number;
+        /**
+         * If true, only returns VMs for which a heartbeat was received in the last 30 seconds.
+         */
+        status?: 'running';
         /**
          * Comma-separated list of tags to filter by
          */

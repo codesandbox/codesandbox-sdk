@@ -135,9 +135,9 @@ export const vmUpdateHibernationTimeout = <ThrowOnError extends boolean = false>
 
 /**
  * Create a new session on a VM
- * Creates a new session on a running VM. A session represents an isolated Linux user, with their own container
- * while their API token has specific permissions (currently, read or write).
- * The session is identified by a unique session ID, and the username is based on the session ID.
+ * Creates a new session on a running VM. A session represents an isolated Linux user, with their own container.
+ * A session has a single use token that the user can use to connect to the VM. This token has specific permissions (currently, read or write).
+ * The session is identified by a unique session ID, and the Linux username is based on the session ID.
  *
  * This endpoint requires the VM to be running. If the VM is not running, it will return a 404 error.
  *
