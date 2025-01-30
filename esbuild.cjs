@@ -92,7 +92,7 @@ const require = topLevelCreateRequire(import.meta.url);
   // Bin builds:
   esbuild.build({
     entryPoints: ["src/bin/main.ts"],
-    outfile: "dist/bin/codesandbox.js",
+    outfile: "dist/bin/codesandbox.cjs",
     bundle: true,
     format: "cjs",
     platform: "node",
