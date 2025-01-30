@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/codesandbox/codesandbox-sdk/compare/v0.5.0...v0.5.1) (2025-01-30)
+
+
+### Bug Fixes
+
+* uploads of big files ([#44](https://github.com/codesandbox/codesandbox-sdk/issues/44)) ([c8e6f46](https://github.com/codesandbox/codesandbox-sdk/commit/c8e6f46299f51f9f8ac3acc5934d34a16e7db051))
+
 ## [0.5.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.4.0...v0.5.0) (2025-01-28)
 
 
