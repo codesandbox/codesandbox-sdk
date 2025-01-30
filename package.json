@@ -7,7 +7,7 @@
   "repository": "git+https://github.com/codesandbox/codesandbox-sdk.git",
   "type": "module",
   "bin": {
-    "csb": "dist/bin/codesandbox.js"
+    "csb": "dist/bin/codesandbox.cjs"
   },
   "module": "./dist/esm/index.js",
   "main": "./dist/esm/index.js",
@@ -50,7 +50,7 @@
   },
   "types": "./dist/esm/index.d.ts",
   "scripts": {
-    "build": "npm run clean && npm run build:esbuild && npm run build:cjs:types && npm run build:esm:types && chmod +x dist/bin/codesandbox.js",
+    "build": "npm run clean && npm run build:esbuild && npm run build:cjs:types && npm run build:esm:types && chmod +x dist/bin/codesandbox.cjs",
     "build:cjs": "tsc -p ./tsconfig.build-cjs.json",
     "build:esm": "tsc -p ./tsconfig.build-esm.json",
     "build:esbuild": "node esbuild.cjs",
