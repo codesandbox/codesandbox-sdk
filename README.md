@@ -22,7 +22,7 @@ To get started, install the SDK:
 npm install @codesandbox/sdk
 ```
 
-Then, create an API token by going to https://codesandbox.io/t/api, and clicking on the "Create API Token" button. You can then use this token to authenticate with the SDK:
+Create an API token by going to https://codesandbox.io/t/api, and clicking on the "Create API Token" button. You can then use this token to authenticate with the SDK:
 
 ```javascript
 import { CodeSandbox } from "@codesandbox/sdk";
