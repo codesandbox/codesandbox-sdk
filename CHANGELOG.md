@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/codesandbox/codesandbox-sdk/compare/v0.5.1...v0.5.2) (2025-01-30)
+
+
+### Bug Fixes
+
+* esm node build ([#36](https://github.com/codesandbox/codesandbox-sdk/issues/36)) ([4691813](https://github.com/codesandbox/codesandbox-sdk/commit/46918131508bcf56bde7b0d3f2afb07ae710fec5))
+
 ## [0.5.1](https://github.com/codesandbox/codesandbox-sdk/compare/v0.5.0...v0.5.1) (2025-01-30)
 
 
