@@ -74,7 +74,7 @@
     "README.md"
   ],
   "devDependencies": {
-    "@codesandbox/pitcher-client": "0.360.2",
+    "@codesandbox/pitcher-client": "1.1.5",
     "@codesandbox/pitcher-common": "0.360.2",
     "@codesandbox/pitcher-protocol": "0.360.4",
     "@hey-api/client-fetch": "^0.5.1",
