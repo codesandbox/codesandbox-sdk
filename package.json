@@ -9,8 +9,8 @@
   "bin": {
     "csb": "dist/bin/codesandbox.js"
   },
-  "module": "./dist/esm/index.edge.js",
-  "main": "./dist/esm/index.edge.js",
+  "module": "./dist/esm/index.js",
+  "main": "./dist/esm/index.js",
   "private": false,
   "publishConfig": {
     "@codesandbox:registry": "https://registry.npmjs.org"
@@ -38,7 +38,7 @@
         "require": "./dist/cjs/index.edge.js",
         "default": "./dist/cjs/index.edge.js"
       },
-      "import": "./dist/esm/index.edge.js",
+      "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js",
       "default": "./dist/cjs/index.js"
     },
@@ -78,8 +78,8 @@
     "@codesandbox/pitcher-client": "1.1.5",
     "@codesandbox/pitcher-common": "0.360.2",
     "@codesandbox/pitcher-protocol": "0.360.4",
-    "@hey-api/client-fetch": "^0.5.1",
-    "@hey-api/openapi-ts": "0.60.1",
+    "@hey-api/client-fetch": "^0.7.3",
+    "@hey-api/openapi-ts": "^0.63.2",
     "@types/blessed": "^0.1.25",
     "@types/yargs": "^17.0.33",
     "blessed": "^0.1.81",

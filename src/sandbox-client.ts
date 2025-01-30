@@ -1,7 +1,7 @@
 import { initPitcherClient } from "@codesandbox/pitcher-client";
 import type { Client } from "@hey-api/client-fetch";
 
-import type { VmStartResponse, tier } from "./client";
+import type { VmStartResponse, VmUpdateSpecsRequest } from "./client";
 import {
   sandboxFork,
   vmCreateSession,
@@ -155,13 +155,13 @@ export class VMTier {
   public static readonly XLarge = new VMTier("XLarge", 64, 128, 50);
 
   private constructor(
-    public readonly name: tier,
+    public readonly name: VmUpdateSpecsRequest["tier"],
     public readonly cpuCores: number,
     public readonly memoryGiB: number,
     public readonly diskGB: number
   ) {}
 
-  public static fromName(name: tier): VMTier {
+  public static fromName(name: VmUpdateSpecsRequest["tier"]): VMTier {
     return VMTier[name];
   }
 
