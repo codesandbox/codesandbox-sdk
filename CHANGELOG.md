@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/codesandbox/codesandbox-sdk/compare/v0.5.2...v0.5.3) (2025-01-30)
+
+
+### Bug Fixes
+
+* use cjs for binary ([#47](https://github.com/codesandbox/codesandbox-sdk/issues/47)) ([7fc76a5](https://github.com/codesandbox/codesandbox-sdk/commit/7fc76a5648f1f2665dfda7c39d1432ca2ae2f768))
+
 ## [0.5.2](https://github.com/codesandbox/codesandbox-sdk/compare/v0.5.1...v0.5.2) (2025-01-30)
 
 
