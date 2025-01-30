@@ -38,7 +38,7 @@
         "require": "./dist/cjs/index.edge.js",
         "default": "./dist/cjs/index.edge.js"
       },
-      "import": "./dist/esm/index.js",
+      "import": "./dist/esm/index.edge.js",
       "require": "./dist/cjs/index.js",
       "default": "./dist/cjs/index.js"
     },
