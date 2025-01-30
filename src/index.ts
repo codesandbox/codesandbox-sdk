@@ -81,6 +81,7 @@ export class CodeSandbox {
           Authorization: `Bearer ${this.apiToken}`,
           ...(opts.headers ?? {}),
         },
+        fetch: opts.fetch ?? fetch,
       })
     );
 

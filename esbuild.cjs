@@ -57,6 +57,13 @@ Promise.all([
     bundle: true,
     format: "esm",
     platform: "node",
+    banner: {
+      js: `
+import { fileURLToPath } from 'url';
+import { createRequire as topLevelCreateRequire } from 'module';
+const require = topLevelCreateRequire(import.meta.url);
+      `.trim(),
+    },
     outdir: "dist/esm",
     plugins: [browserifyPlugin],
   }),
