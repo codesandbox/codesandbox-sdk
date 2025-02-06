@@ -18,6 +18,8 @@ export type ShellCreateOpts = {
 export type ShellRunOpts = {
   ptySize?: ShellSize;
   shellName?: string;
+  env?: Record<string, string>;
+  cwd?: string;
 };
 export type ShellOpenOpts = {
   ptySize?: ShellSize;
@@ -123,8 +125,9 @@ export class Shells extends Disposable {
       command,
       opts?.ptySize ?? DEFAULT_SHELL_SIZE,
       undefined,
-      undefined,
-      opts?.shellName
+      opts?.env,
+      opts?.shellName,
+      opts?.cwd
     );
 
     return shell;
@@ -287,7 +290,8 @@ function runCommandAsUser(
   shellSize: ShellSize = DEFAULT_SHELL_SIZE,
   runPreCommand?: () => Promise<void>,
   env?: Record<string, string>,
-  shellName?: string
+  shellName?: string,
+  cwd?: string
 ): RunningCommand {
   const disposableStore = new DisposableStore();
   const onOutput = new Emitter<string>();
@@ -300,9 +304,14 @@ function runCommandAsUser(
       await runPreCommand();
     }
 
-    const commandWithEnv = `env ${Object.entries(env ?? {})
+    // TODO: use a new shell API that natively supports cwd & env
+    let commandWithEnv = `env ${Object.entries(env ?? {})
       .map(([key, value]) => `${key}=${value}`)
       .join(" ")} ${command}`;
+
+    if (cwd) {
+      commandWithEnv = `cd ${cwd} && ${commandWithEnv}`;
+    }
 
     shell = await pitcher.clients.shell.create(
       pitcher.workspacePath,
