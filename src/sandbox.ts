@@ -260,4 +260,28 @@ export class Sandbox extends SandboxSession {
   public async updateHibernationTimeout(timeoutSeconds: number): Promise<void> {
     await this.sandboxClient.updateHibernationTimeout(this.id, timeoutSeconds);
   }
+
+  private keepAliveInterval: NodeJS.Timeout | null = null;
+  /**
+   * If enabled, we will keep the sandbox from hibernating as long as the SDK is connected to it.
+   */
+  public keepActiveWhileConnected(enabled: boolean) {
+    if (enabled && !this.keepAliveInterval) {
+      this.keepAliveInterval = setInterval(() => {
+        this.pitcherClient.clients.system.update();
+      }, 1000 * 30);
+
+      this.onWillDispose(() => {
+        if (this.keepAliveInterval) {
+          clearInterval(this.keepAliveInterval);
+          this.keepAliveInterval = null;
+        }
+      });
+    } else {
+      if (this.keepAliveInterval) {
+        clearInterval(this.keepAliveInterval);
+        this.keepAliveInterval = null;
+      }
+    }
+  }
 }
