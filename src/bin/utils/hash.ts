@@ -13,24 +13,19 @@ interface HashResult {
 const MAX_FILES = 50_000;
 
 export async function hashDirectory(dirPath: string): Promise<HashResult> {
-  // Initialize ignore rules from .gitignore and .dockerignore
+  // Initialize ignore rules from .gitignore, .dockerignore and .csbignore
   const ig = ignore();
-  const gitignorePath = join(dirPath, ".gitignore");
-  const dockerignorePath = join(dirPath, ".dockerignore");
-  const csbIgnorePath = join(dirPath, ".csbignore");
+  const ignoreFiles = [".gitignore", ".dockerignore", ".csbignore"];
+  ignoreFiles.forEach((file) => {
+    const fullPath = join(dirPath, file);
+    if (existsSync(fullPath)) {
+      ig.add(readFileSync(fullPath, "utf8"));
+      ig.add(file);
+    }
+  });
 
   // Always ignore .git folder
   ig.add(".git/**");
-
-  if (existsSync(gitignorePath)) {
-    ig.add(readFileSync(gitignorePath, "utf8"));
-  }
-  if (existsSync(dockerignorePath)) {
-    ig.add(readFileSync(dockerignorePath, "utf8"));
-  }
-  if (existsSync(csbIgnorePath)) {
-    ig.add(readFileSync(csbIgnorePath, "utf8"));
-  }
 
   const relevantFiles: string[] = [];
   const fileHashes: string[] = [];
