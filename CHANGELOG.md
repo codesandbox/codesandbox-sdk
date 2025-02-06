@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.5.3...v0.6.0) (2025-02-06)
+
+
+### Features
+
+* allow sandbox to keep active while connected ([#53](https://github.com/codesandbox/codesandbox-sdk/issues/53)) ([7ad63d7](https://github.com/codesandbox/codesandbox-sdk/commit/7ad63d73926a13c7c1d4c23568901f7fd418c899))
+* support env and cwd in shell api ([#52](https://github.com/codesandbox/codesandbox-sdk/issues/52)) ([7bf1e35](https://github.com/codesandbox/codesandbox-sdk/commit/7bf1e35c79b347e1b85dc557236c601aa0f455a9))
+
+
+### Bug Fixes
+
+* **snapshot:** don't include ignorefiles when building snapshots ([#50](https://github.com/codesandbox/codesandbox-sdk/issues/50)) ([64abff8](https://github.com/codesandbox/codesandbox-sdk/commit/64abff88deec9bf2ccac0a857be48b7de1ee6205))
+
 ## [0.5.3](https://github.com/codesandbox/codesandbox-sdk/compare/v0.5.2...v0.5.3) (2025-01-30)
 
 
