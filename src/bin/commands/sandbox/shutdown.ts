@@ -64,19 +64,28 @@ export async function shutdownSandbox(id?: string) {
     let failCount = 0;
     const results: CommandResult[] = [];
 
-    for (const sandboxId of ids) {
-      try {
-        const result = await shutdownSingleSandbox(sandboxId, null as any);
-        results.push(result);
-        if (result.success) {
-          successCount++;
-        } else {
+    // Run all shutdowns in parallel
+    const shutdownPromises = ids.map((sandboxId) =>
+      shutdownSingleSandbox(sandboxId, null as any)
+        .then((result) => {
+          results.push(result);
+          if (result.success) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+          return result;
+        })
+        .catch(() => {
           failCount++;
-        }
-      } catch (error) {
-        failCount++;
-      }
-    }
+          return {
+            success: false,
+            message: `Failed to shutdown sandbox ${sandboxId}`,
+          };
+        })
+    );
+
+    await Promise.all(shutdownPromises);
 
     // Final summary
     if (failCount === 0) {
