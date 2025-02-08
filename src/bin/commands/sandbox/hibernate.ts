@@ -64,19 +64,28 @@ export async function hibernateSandbox(id?: string) {
     let failCount = 0;
     const results: CommandResult[] = [];
 
-    for (const sandboxId of ids) {
-      try {
-        const result = await hibernateSingleSandbox(sandboxId, null as any);
-        results.push(result);
-        if (result.success) {
-          successCount++;
-        } else {
+    // Run all hibernations in parallel
+    const hibernatePromises = ids.map((sandboxId) =>
+      hibernateSingleSandbox(sandboxId, null as any)
+        .then((result) => {
+          results.push(result);
+          if (result.success) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+          return result;
+        })
+        .catch(() => {
           failCount++;
-        }
-      } catch (error) {
-        failCount++;
-      }
-    }
+          return {
+            success: false,
+            message: `Failed to hibernate sandbox ${sandboxId}`,
+          };
+        })
+    );
+
+    await Promise.all(hibernatePromises);
 
     // Final summary
     if (failCount === 0) {
