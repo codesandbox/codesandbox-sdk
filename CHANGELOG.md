@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/codesandbox/codesandbox-sdk/compare/v0.6.0...v0.6.1) (2025-02-08)
+
+
+### Performance Improvements
+
+* do hibernation and shutdown in parallel ([#54](https://github.com/codesandbox/codesandbox-sdk/issues/54)) ([d8e4c6f](https://github.com/codesandbox/codesandbox-sdk/commit/d8e4c6f54ac91aef526af7ac8207f62f084b159d))
+
 ## [0.6.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.5.3...v0.6.0) (2025-02-06)
 
 
