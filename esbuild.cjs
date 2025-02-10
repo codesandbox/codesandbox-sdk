@@ -24,7 +24,8 @@ Promise.all([
     entryPoints: ["src/browser.ts"],
     bundle: true,
     format: "cjs",
-    outdir: "dist/cjs",
+    // .cjs extension is required because "type": "module" is set in package.json
+    outfile: "dist/cjs/browser.cjs",
     platform: "browser",
     plugins: [browserifyPlugin],
   }),
@@ -47,7 +48,8 @@ Promise.all([
     bundle: true,
     format: "cjs",
     platform: "node",
-    outdir: "dist/cjs",
+    // .cjs extension is required because "type": "module" is set in package.json
+    outfile: "dist/cjs/index.cjs",
     plugins: [browserifyPlugin],
   }),
 
@@ -64,7 +66,7 @@ import { createRequire as topLevelCreateRequire } from 'module';
 const require = topLevelCreateRequire(import.meta.url);
       `.trim(),
     },
-    outdir: "dist/esm",
+    outfile: "dist/esm/index.js",
     plugins: [browserifyPlugin],
   }),
 
@@ -72,7 +74,8 @@ const require = topLevelCreateRequire(import.meta.url);
   // CommonJS build
   esbuild.build({
     entryPoints: ["src/index.ts"],
-    outfile: "dist/cjs/index.edge.js",
+    // .cjs extension is required because "type": "module" is set in package.json
+    outfile: "dist/cjs/index.edge.cjs",
     bundle: true,
     format: "cjs",
     platform: "browser",

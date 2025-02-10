@@ -20,8 +20,8 @@
       "types": "./dist/esm/index.d.ts",
       "edge-light": {
         "import": "./dist/esm/index.edge.js",
-        "require": "./dist/cjs/index.edge.js",
-        "default": "./dist/cjs/index.edge.js"
+        "require": "./dist/cjs/index.edge.cjs",
+        "default": "./dist/cjs/index.edge.cjs"
       },
       "worker": {
         "import": "./dist/esm/index.edge.js",
@@ -39,13 +39,14 @@
         "default": "./dist/cjs/index.edge.js"
       },
       "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "default": "./dist/cjs/index.js"
+      "require": "./dist/cjs/index.cjs",
+      "default": "./dist/cjs/index.cjs"
     },
     "./browser": {
       "types": "./dist/esm/browser.d.ts",
       "import": "./dist/esm/browser.js",
-      "require": "./dist/cjs/browser.js"
+      "require": "./dist/cjs/browser.cjs",
+      "default": "./dist/cjs/browser.cjs"
     }
   },
   "types": "./dist/esm/index.d.ts",
