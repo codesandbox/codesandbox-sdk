@@ -88,7 +88,7 @@
     "buffer-browserify": "^0.2.5",
     "cli-table3": "^0.6.3",
     "crypto-browserify": "^3.12.1",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.25.0",
     "ignore": "^6.0.2",
     "isbinaryfile": "^5.0.4",
     "ora": "7.0.1",
