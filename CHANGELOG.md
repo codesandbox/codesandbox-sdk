@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/codesandbox/codesandbox-sdk/compare/v0.6.1...v0.6.2) (2025-02-10)
+
+
+### Bug Fixes
+
+* CommonJS build requires .cjs extension for ESM package ([#56](https://github.com/codesandbox/codesandbox-sdk/issues/56)) ([528022e](https://github.com/codesandbox/codesandbox-sdk/commit/528022e1e6beabd7e91ea755e544bffec02f265e))
+
 ## [0.6.1](https://github.com/codesandbox/codesandbox-sdk/compare/v0.6.0...v0.6.1) (2025-02-08)
 
 
