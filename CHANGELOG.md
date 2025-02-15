@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.6.2...v0.7.0) (2025-02-15)
+
+
+### Features
+
+* add support for passing name and path to cli ([#60](https://github.com/codesandbox/codesandbox-sdk/issues/60)) ([00e8c20](https://github.com/codesandbox/codesandbox-sdk/commit/00e8c201b4dcd55f9ce15fc3bd7db09b7c88a103))
+
 ## [0.6.2](https://github.com/codesandbox/codesandbox-sdk/compare/v0.6.1...v0.6.2) (2025-02-10)
 
 
