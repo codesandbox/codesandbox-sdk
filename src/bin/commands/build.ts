@@ -7,26 +7,29 @@ import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
 
-import type { SetupProgress } from "../../";
+import { SetupProgress, VMTier } from "../../";
 import { CodeSandbox, PortInfo } from "../../";
-import { sandboxList, sandboxCreate } from "../../client";
+import { sandboxCreate, sandboxFork, VmUpdateSpecsRequest } from "../../client";
 import { handleResponse } from "../../utils/handle-response";
 import { BASE_URL, getApiKey } from "../utils/constants";
 import { hashDirectory } from "../utils/hash";
 
 export type BuildCommandArgs = {
-  path: string;
+  directory: string;
+  name?: string;
+  path?: string;
   ipCountry?: string;
   fromSandbox?: string;
   skipFiles?: boolean;
   cluster?: string;
+  vmTier?: VmUpdateSpecsRequest["tier"];
 };
 
 export const buildCommand: yargs.CommandModule<
   Record<string, never>,
   BuildCommandArgs
 > = {
-  command: "build <path>",
+  command: "build <directory>",
   describe:
     "Build an efficient memory snapshot from a directory. This snapshot can be used to create sandboxes quickly.",
   builder: (yargs: yargs.Argv) =>
@@ -48,11 +51,27 @@ export const buildCommand: yargs.CommandModule<
         describe: "Cluster to create the sandbox in",
         type: "string",
       })
-      .positional("path", {
-        describe: "Path to the project",
+      .option("name", {
+        describe: "Name for the resulting sandbox that will serve as snapshot",
+        type: "string",
+      })
+      .option("path", {
+        describe:
+          "Which folder (in the dashboard) the sandbox will be created in",
+        default: "SDK-Templates",
+        type: "string",
+      })
+      .option("vm-tier", {
+        describe: "Base specs to use for the template sandbox",
+        type: "string",
+        choices: VMTier.All.map((t) => t.name),
+      })
+      .positional("directory", {
+        describe: "Path to the project that we'll create a snapshot from",
         type: "string",
         demandOption: "Path to the project is required",
       }),
+
   handler: async (argv) => {
     const API_KEY = getApiKey();
     const apiClient: Client = createClient(
@@ -84,29 +103,26 @@ export const buildCommand: yargs.CommandModule<
       };
 
       const { sdk, cluster } = getSdk(argv.cluster);
-      const { hash, files: filePaths } = await hashDirectory(argv.path);
+      const { hash, files: filePaths } = await hashDirectory(argv.directory);
       spinner.succeed(`Indexed ${filePaths.length} files`);
       const shortHash = hash.slice(0, 6);
       const tag = `sha:${shortHash}-${cluster || ""}`;
 
       spinner.start(`Creating or updating sandbox...`);
-      const { alreadyExists, sandboxId, filesIncluded } = argv.fromSandbox
-        ? {
-            alreadyExists: true,
-            filesIncluded: false,
-            sandboxId: argv.fromSandbox,
-          }
-        : await createSandbox(apiClient, tag, filePaths, argv.path);
-
-      if (alreadyExists && !argv.fromSandbox) {
-        spinner.succeed("Sandbox snapshot has been created before:");
-        // eslint-disable-next-line no-console
-        console.log(sandboxId);
-        return;
-      }
+      const { sandboxId, filesIncluded } = await createSandbox(
+        apiClient,
+        tag,
+        filePaths,
+        argv.directory,
+        argv.fromSandbox,
+        argv.path,
+        argv.name
+      );
 
       if (argv.fromSandbox) {
-        spinner.succeed(`Sandbox reused: ${sandboxId}`);
+        spinner.succeed(
+          `Created sandbox from template (${argv.fromSandbox}): ${sandboxId}`
+        );
       } else {
         spinner.succeed(`Sandbox created: ${sandboxId}`);
       }
@@ -119,6 +135,7 @@ export const buildCommand: yargs.CommandModule<
 
       const sandbox = await sdk.sandbox.open(sandboxId, {
         ipcountry: argv.ipCountry,
+        vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
       });
       spinner.succeed("Sandbox opened");
 
@@ -128,7 +145,7 @@ export const buildCommand: yargs.CommandModule<
         for (const filePath of filePaths) {
           i++;
           spinner.start(`Writing file ${i} of ${filePaths.length}...`);
-          const fullPath = path.join(argv.path, filePath);
+          const fullPath = path.join(argv.directory, filePath);
           const content = await fs.readFile(fullPath);
           const dirname = path.dirname(filePath);
           await sandbox.fs.mkdir(dirname, true);
@@ -298,23 +315,55 @@ async function createSandbox(
   apiClient: Client,
   shaTag: string,
   filePaths: string[],
-  rootPath: string
+  rootPath: string,
+  fromSandbox?: string,
+  collectionPath?: string,
+  name?: string
 ): Promise<{
-  alreadyExists: boolean;
   sandboxId: string;
   filesIncluded: boolean;
 }> {
   // Include the files in the sandbox if there are no binary files and there are 30 or less files
   const files = await getFiles(filePaths, rootPath);
 
+  const sanitizedCollectionPath = collectionPath
+    ? collectionPath.startsWith("/")
+      ? collectionPath
+      : `/${collectionPath}`
+    : "/SDK-Templates";
+
+  if (fromSandbox) {
+    const sandbox = handleResponse(
+      await sandboxFork({
+        client: apiClient,
+        path: {
+          id: fromSandbox,
+        },
+        body: {
+          title: name,
+          privacy: 1,
+          tags: ["sdk", shaTag],
+          path: sanitizedCollectionPath,
+        },
+      }),
+      "Failed to fork sandbox"
+    );
+
+    return {
+      sandboxId: sandbox.id,
+      filesIncluded: false,
+    };
+  }
+
   const sandbox = handleResponse(
     await sandboxCreate({
       client: apiClient,
       body: {
+        title: name,
         files,
         privacy: 1,
         tags: ["sdk", shaTag],
-        path: "/SDK-Templates",
+        path: sanitizedCollectionPath,
         runtime: "vm",
         is_frozen: true,
       },
@@ -323,7 +372,6 @@ async function createSandbox(
   );
 
   return {
-    alreadyExists: false,
     sandboxId: sandbox.id,
     filesIncluded: Object.keys(files).length > 0,
   };

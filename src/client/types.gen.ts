@@ -23,8 +23,21 @@ export type MetaInformation = {
 };
 
 export type Response = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
+};
+
+export type Sandbox = {
+    created_at: string;
+    description?: string | null;
+    id: string;
+    is_frozen: boolean;
+    privacy: number;
+    tags: Array<string>;
+    title?: string | null;
+    updated_at: string;
 };
 
 export type SandboxCreateRequest = {
@@ -96,7 +109,9 @@ export type SandboxCreateRequest = {
 };
 
 export type SandboxCreateResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -159,7 +174,9 @@ export type SandboxForkRequest = {
 };
 
 export type SandboxForkResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -186,23 +203,18 @@ export type SandboxForkResponse = {
 };
 
 export type SandboxGetResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
-    data?: {
-        created_at: string;
-        description?: string | null;
-        id: string;
-        is_frozen: boolean;
-        privacy: number;
-        tags: Array<string>;
-        title?: string | null;
-        updated_at: string;
-    };
+    data?: Sandbox;
 };
 
 export type SandboxListResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -214,16 +226,7 @@ export type SandboxListResponse = {
             next_page: number | null;
             total_records: number;
         };
-        sandboxes: Array<{
-            created_at: string;
-            description?: string | null;
-            id: string;
-            is_frozen: boolean;
-            privacy: number;
-            tags: Array<string>;
-            title?: string | null;
-            updated_at: string;
-        }>;
+        sandboxes: Array<Sandbox>;
     };
 };
 
@@ -247,7 +250,9 @@ export type TokenCreateRequest = {
 };
 
 export type TokenCreateResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -283,7 +288,9 @@ export type TokenUpdateRequest = {
 };
 
 export type TokenUpdateResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -307,7 +314,9 @@ export type VmCreateSessionRequest = {
 };
 
 export type VmCreateSessionResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -345,7 +354,9 @@ export type VmHibernateRequest = {
 };
 
 export type VmHibernateResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -358,7 +369,9 @@ export type VmShutdownRequest = {
 };
 
 export type VmShutdownResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -390,7 +403,9 @@ export type VmStartRequest = {
 };
 
 export type VmStartResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -419,7 +434,9 @@ export type VmUpdateHibernationTimeoutRequest = {
 };
 
 export type VmUpdateHibernationTimeoutResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -439,7 +456,9 @@ export type VmUpdateSpecsRequest = {
 };
 
 export type VmUpdateSpecsResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -456,7 +475,9 @@ export type WorkspaceCreateRequest = {
 };
 
 export type WorkspaceCreateResponse = {
-    errors?: Array<unknown>;
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
     success?: boolean;
 } & {
     data?: {
@@ -505,7 +526,12 @@ export type TokenCreateData = {
      * Token Create Request
      */
     body?: TokenCreateRequest;
-    path?: never;
+    path: {
+        /**
+         * ID of the workspace to create the token in
+         */
+        team_id: string;
+    };
     query?: never;
     url: '/org/workspace/{team_id}/tokens';
 };
@@ -524,7 +550,16 @@ export type TokenUpdateData = {
      * Token Update Request
      */
     body?: TokenUpdateRequest;
-    path?: never;
+    path: {
+        /**
+         * ID of the workspace the token belongs to
+         */
+        team_id: string;
+        /**
+         * ID of token to update
+         */
+        token_id: string;
+    };
     query?: never;
     url: '/org/workspace/{team_id}/tokens/{token_id}';
 };

@@ -38,20 +38,40 @@
       "Response": {
         "properties": {
           "errors": {
-            "items": [
-              {
-                "oneOf": [
-                  { "type": "string" },
-                  { "additionalProperties": true, "type": "object" }
-                ],
-                "title": "Error"
-              }
-            ],
+            "items": {
+              "oneOf": [
+                { "type": "string" },
+                { "additionalProperties": true, "type": "object" }
+              ],
+              "title": "Error"
+            },
             "type": "array"
           },
           "success": { "type": "boolean" }
         },
         "title": "Response",
+        "type": "object"
+      },
+      "Sandbox": {
+        "properties": {
+          "created_at": { "format": "date-time", "type": "string" },
+          "description": { "nullable": true, "type": "string" },
+          "id": { "type": "string" },
+          "is_frozen": { "type": "boolean" },
+          "privacy": { "type": "integer" },
+          "tags": { "items": { "type": "string" }, "type": "array" },
+          "title": { "nullable": true, "type": "string" },
+          "updated_at": { "format": "date-time", "type": "string" }
+        },
+        "required": [
+          "id",
+          "privacy",
+          "is_frozen",
+          "created_at",
+          "updated_at",
+          "tags"
+        ],
+        "title": "Sandbox",
         "type": "object"
       },
       "SandboxCreateRequest": {
@@ -144,15 +164,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -175,7 +193,8 @@
             "type": "object"
           }
         ],
-        "title": "SandboxCreateResponse"
+        "title": "SandboxCreateResponse",
+        "type": "object"
       },
       "SandboxForkRequest": {
         "properties": {
@@ -253,15 +272,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -315,22 +332,21 @@
             "type": "object"
           }
         ],
-        "title": "SandboxForkResponse"
+        "title": "SandboxForkResponse",
+        "type": "object"
       },
       "SandboxGetResponse": {
         "allOf": [
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -340,47 +356,26 @@
           },
           {
             "properties": {
-              "data": {
-                "properties": {
-                  "created_at": { "format": "date-time", "type": "string" },
-                  "description": { "nullable": true, "type": "string" },
-                  "id": { "type": "string" },
-                  "is_frozen": { "type": "boolean" },
-                  "privacy": { "type": "integer" },
-                  "tags": { "items": { "type": "string" }, "type": "array" },
-                  "title": { "nullable": true, "type": "string" },
-                  "updated_at": { "format": "date-time", "type": "string" }
-                },
-                "required": [
-                  "id",
-                  "privacy",
-                  "is_frozen",
-                  "created_at",
-                  "updated_at",
-                  "tags"
-                ],
-                "type": "object"
-              }
+              "data": { "$ref": "#/components/schemas/Sandbox" }
             },
             "type": "object"
           }
         ],
-        "title": "SandboxGetResponse"
+        "title": "SandboxGetResponse",
+        "type": "object"
       },
       "SandboxListResponse": {
         "allOf": [
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -406,36 +401,7 @@
                     "type": "object"
                   },
                   "sandboxes": {
-                    "items": {
-                      "properties": {
-                        "created_at": {
-                          "format": "date-time",
-                          "type": "string"
-                        },
-                        "description": { "nullable": true, "type": "string" },
-                        "id": { "type": "string" },
-                        "is_frozen": { "type": "boolean" },
-                        "privacy": { "type": "integer" },
-                        "tags": {
-                          "items": { "type": "string" },
-                          "type": "array"
-                        },
-                        "title": { "nullable": true, "type": "string" },
-                        "updated_at": {
-                          "format": "date-time",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "privacy",
-                        "is_frozen",
-                        "created_at",
-                        "updated_at",
-                        "tags"
-                      ],
-                      "type": "object"
-                    },
+                    "items": { "$ref": "#/components/schemas/Sandbox" },
                     "type": "array"
                   }
                 },
@@ -446,7 +412,8 @@
             "type": "object"
           }
         ],
-        "title": "SandboxListResponse"
+        "title": "SandboxListResponse",
+        "type": "object"
       },
       "TokenCreateRequest": {
         "properties": {
@@ -488,15 +455,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -529,7 +494,8 @@
             "type": "object"
           }
         ],
-        "title": "TokenCreateResponse"
+        "title": "TokenCreateResponse",
+        "type": "object"
       },
       "TokenUpdateRequest": {
         "description": "Updateable fields for API Tokens. Omitting a field will not update it; explicitly passing null or an empty list will clear the value.",
@@ -573,15 +539,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -610,7 +574,8 @@
             "type": "object"
           }
         ],
-        "title": "TokenUpdateResponse"
+        "title": "TokenUpdateResponse",
+        "type": "object"
       },
       "VMCreateSessionRequest": {
         "properties": {
@@ -636,15 +601,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -696,7 +659,8 @@
             "type": "object"
           }
         ],
-        "title": "VMCreateSessionResponse"
+        "title": "VMCreateSessionResponse",
+        "type": "object"
       },
       "VMHibernateRequest": { "properties": {}, "title": "VMHibernateRequest" },
       "VMHibernateResponse": {
@@ -704,15 +668,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -725,7 +687,8 @@
             "type": "object"
           }
         ],
-        "title": "VMHibernateResponse"
+        "title": "VMHibernateResponse",
+        "type": "object"
       },
       "VMShutdownRequest": { "properties": {}, "title": "VMShutdownRequest" },
       "VMShutdownResponse": {
@@ -733,15 +696,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -754,7 +715,8 @@
             "type": "object"
           }
         ],
-        "title": "VMShutdownResponse"
+        "title": "VMShutdownResponse",
+        "type": "object"
       },
       "VMStartRequest": {
         "properties": {
@@ -793,15 +755,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -844,7 +804,8 @@
             "type": "object"
           }
         ],
-        "title": "VMStartResponse"
+        "title": "VMStartResponse",
+        "type": "object"
       },
       "VMUpdateHibernationTimeoutRequest": {
         "properties": {
@@ -865,15 +826,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -895,7 +854,8 @@
             "type": "object"
           }
         ],
-        "title": "VMUpdateHibernationTimeoutResponse"
+        "title": "VMUpdateHibernationTimeoutResponse",
+        "type": "object"
       },
       "VMUpdateSpecsRequest": {
         "properties": {
@@ -922,15 +882,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -952,7 +910,8 @@
             "type": "object"
           }
         ],
-        "title": "VMUpdateSpecsResponse"
+        "title": "VMUpdateSpecsResponse",
+        "type": "object"
       },
       "WorkspaceCreateRequest": {
         "properties": {
@@ -971,15 +930,13 @@
           {
             "properties": {
               "errors": {
-                "items": [
-                  {
-                    "oneOf": [
-                      { "type": "string" },
-                      { "additionalProperties": true, "type": "object" }
-                    ],
-                    "title": "Error"
-                  }
-                ],
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
                 "type": "array"
               },
               "success": { "type": "boolean" }
@@ -1001,7 +958,8 @@
             "type": "object"
           }
         ],
-        "title": "WorkspaceCreateResponse"
+        "title": "WorkspaceCreateResponse",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -1070,7 +1028,16 @@
         "callbacks": {},
         "description": "Create a new API token for a workspace that is part of the current organization.\n",
         "operationId": "token/create",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "ID of the workspace to create the token in",
+            "example": "ws_123abcdef",
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1100,7 +1067,24 @@
         "callbacks": {},
         "description": "Update an API token for a workspace that is part of the current organization.\n",
         "operationId": "token/update",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "ID of the workspace the token belongs to",
+            "example": "ws_123abcdef",
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "description": "ID of token to update",
+            "example": "tok_123abcdef",
+            "in": "path",
+            "name": "token_id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1586,6 +1570,6 @@
     }
   },
   "security": [],
-  "servers": [{ "url": "https://api.codesandbox.stream", "variables": {} }],
+  "servers": [{ "url": "https://api.codesandbox.io", "variables": {} }],
   "tags": []
 }
