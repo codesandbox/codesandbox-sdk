@@ -154,6 +154,16 @@ export class VMTier {
   /** 64 CPU, 128GiB RAM */
   public static readonly XLarge = new VMTier("XLarge", 64, 128, 50);
 
+  public static readonly All = [
+    VMTier.Pico,
+    VMTier.Nano,
+    VMTier.Micro,
+    VMTier.Small,
+    VMTier.Medium,
+    VMTier.Large,
+    VMTier.XLarge,
+  ];
+
   private constructor(
     public readonly name: VmUpdateSpecsRequest["tier"],
     public readonly cpuCores: number,

@@ -50,8 +50,8 @@ export const workspaceCreate = <ThrowOnError extends boolean = false>(options?: 
  * Create a new API token for a workspace that is part of the current organization.
  *
  */
-export const tokenCreate = <ThrowOnError extends boolean = false>(options?: Options<TokenCreateData, ThrowOnError>) => {
-    return (options?.client ?? _heyApiClient).post<TokenCreateResponse2, unknown, ThrowOnError>({
+export const tokenCreate = <ThrowOnError extends boolean = false>(options: Options<TokenCreateData, ThrowOnError>) => {
+    return (options.client ?? _heyApiClient).post<TokenCreateResponse2, unknown, ThrowOnError>({
         security: [
             {
                 scheme: 'bearer',
@@ -72,8 +72,8 @@ export const tokenCreate = <ThrowOnError extends boolean = false>(options?: Opti
  * Update an API token for a workspace that is part of the current organization.
  *
  */
-export const tokenUpdate = <ThrowOnError extends boolean = false>(options?: Options<TokenUpdateData, ThrowOnError>) => {
-    return (options?.client ?? _heyApiClient).patch<TokenUpdateResponse2, unknown, ThrowOnError>({
+export const tokenUpdate = <ThrowOnError extends boolean = false>(options: Options<TokenUpdateData, ThrowOnError>) => {
+    return (options.client ?? _heyApiClient).patch<TokenUpdateResponse2, unknown, ThrowOnError>({
         security: [
             {
                 scheme: 'bearer',
