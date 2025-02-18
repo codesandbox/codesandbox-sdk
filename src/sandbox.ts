@@ -13,6 +13,7 @@ import { Tasks } from "./tasks";
 
 import type { SandboxClient, VMTier } from ".";
 import { Sessions } from "./sessions";
+import { PreviewTokens } from "./preview-tokens";
 export { SessionConnectInfo } from "./sessions";
 
 export {
@@ -185,8 +186,28 @@ export class SandboxSession extends Disposable {
 }
 
 export class Sandbox extends SandboxSession {
+  /**
+   * Provider for creating new sessions inside the sandbox. These sessions have their own
+   * filesystem, shells, tasks and permissions. You can read more about sessions in the
+   * [CodeSandbox docs](https://codesandbox.io/docs/sdk/sessions).
+   */
   public readonly sessions = this.addDisposable(
     new Sessions(this.id, this.sandboxClient)
+  );
+
+  /**
+   * Provider for generating preview tokens. These tokens can be used to generate signed
+   * preview URLs for private sandboxes.
+   *
+   * @example
+   * ```ts
+   * const sandbox = await sdk.sandbox.create();
+   * const previewToken = await sandbox.previewTokens.createToken();
+   * const url = sandbox.ports.getSignedPreviewUrl(8080, previewToken.token);
+   * ```
+   */
+  public readonly previewTokens = this.addDisposable(
+    new PreviewTokens(this.id, this.sandboxClient)
   );
 
   constructor(
