@@ -9,6 +9,19 @@ export class PortInfo {
   getPreviewUrl(protocol = "https://"): string {
     return `${protocol}${this.hostname}`;
   }
+
+  /**
+   * Get a signed preview URL using a preview token. Private sandbox previews are inaccessible
+   * unless a preview token is provided in the URL (or as a header `csb-preview-token` or cookie
+   * `csb_preview_token`).
+   *
+   * @param token - The preview token to sign the URL with
+   * @param protocol - The protocol to use for the preview URL, defaults to `https://`
+   * @returns The signed preview URL
+   */
+  getSignedPreviewUrl(token: string, protocol = "https://"): string {
+    return `${this.getPreviewUrl(protocol)}?preview_token=${token}`;
+  }
 }
 
 export class Ports extends Disposable {
@@ -101,5 +114,26 @@ export class Ports extends Disposable {
         })
       );
     });
+  }
+
+  /**
+   * Get a signed preview URL for a port using a preview token.
+   *
+   * @param port - The port to get a signed preview URL for
+   * @param token - The preview token to sign the URL with
+   * @returns The signed preview URL, or undefined if the port is not open
+   * @throws {Error} If the port is not open
+   */
+  getSignedPreviewUrl(
+    port: number,
+    token: string,
+    protocol = "https://"
+  ): string {
+    const portInfo = this.getOpenedPort(port);
+    if (!portInfo) {
+      throw new Error("Port is not open");
+    }
+
+    return portInfo.getSignedPreviewUrl(token, protocol);
   }
 }

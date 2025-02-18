@@ -2,66 +2,236 @@
   "components": {
     "responses": {},
     "schemas": {
-      "Error": {
-        "oneOf": [
-          { "type": "string" },
-          { "additionalProperties": true, "type": "object" }
-        ],
-        "title": "Error"
-      },
-      "MetaInformation": {
-        "properties": {
-          "api": {
-            "description": "Meta information about the CodeSandbox API",
-            "properties": {
-              "latest_version": { "type": "string" },
-              "name": { "type": "string" }
-            },
-            "required": ["name", "latest_version"],
-            "type": "object"
-          },
-          "auth": {
-            "description": "Meta information about the current authentication context",
-            "properties": {
-              "scopes": { "items": { "type": "string" }, "type": "array" },
-              "team": { "format": "uuid", "nullable": true, "type": "string" },
-              "version": { "type": "string" }
-            },
-            "required": ["scopes", "team", "version"],
-            "type": "object"
-          }
-        },
-        "required": ["api"],
-        "title": "MetaInformation",
-        "type": "object"
-      },
       "Response": {
         "properties": {
           "errors": {
             "items": {
               "oneOf": [
-                { "type": "string" },
-                { "additionalProperties": true, "type": "object" }
+                {
+                  "type": "string"
+                },
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
               ],
               "title": "Error"
             },
             "type": "array"
           },
-          "success": { "type": "boolean" }
+          "success": {
+            "type": "boolean"
+          }
         },
         "title": "Response",
         "type": "object"
       },
+      "PreviewTokenListResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "sandbox_id": {
+                    "type": "string"
+                  },
+                  "tokens": {
+                    "items": {
+                      "$ref": "#/components/schemas/PreviewToken"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "tokens",
+                  "sandbox_id"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "PreviewTokenListResponse",
+        "type": "object"
+      },
+      "VMUpdateHibernationTimeoutRequest": {
+        "properties": {
+          "hibernation_timeout_seconds": {
+            "description": "The new hibernation timeout in seconds.\n\nMust be greater than 0 and less than or equal to 86400 (24 hours).\n",
+            "example": 300,
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hibernation_timeout_seconds"
+        ],
+        "title": "VMUpdateHibernationTimeoutRequest",
+        "type": "object"
+      },
+      "PreviewToken": {
+        "properties": {
+          "expires_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "last_used_at": {
+            "nullable": true,
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "token_prefix": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expires_at",
+          "last_used_at",
+          "token_id",
+          "token_prefix"
+        ],
+        "title": "PreviewToken",
+        "type": "object"
+      },
+      "VMShutdownResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {},
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMShutdownResponse",
+        "type": "object"
+      },
+      "PreviewTokenRevokeAllResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {},
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "PreviewTokenRevokeAllResponse",
+        "type": "object"
+      },
       "Sandbox": {
         "properties": {
-          "created_at": { "format": "date-time", "type": "string" },
-          "description": { "nullable": true, "type": "string" },
-          "id": { "type": "string" },
-          "is_frozen": { "type": "boolean" },
-          "privacy": { "type": "integer" },
-          "tags": { "items": { "type": "string" }, "type": "array" },
-          "title": { "nullable": true, "type": "string" },
-          "updated_at": { "format": "date-time", "type": "string" }
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_frozen": {
+            "type": "boolean"
+          },
+          "privacy": {
+            "type": "integer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "nullable": true,
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
         },
         "required": [
           "id",
@@ -74,106 +244,56 @@
         "title": "Sandbox",
         "type": "object"
       },
-      "SandboxCreateRequest": {
+      "Error": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "additionalProperties": true,
+            "type": "object"
+          }
+        ],
+        "title": "Error"
+      },
+      "VMHibernateRequest": {
+        "properties": {},
+        "title": "VMHibernateRequest"
+      },
+      "PreviewTokenCreateRequest": {
         "properties": {
-          "description": {
-            "description": "Optional text description of the sandbox. Defaults to no description.",
-            "type": "string"
-          },
-          "entry": {
-            "description": "Filename of the entrypoint of the sandbox.",
-            "type": "string"
-          },
-          "external_resources": {
-            "description": "Array of strings with external resources to load.",
-            "items": { "type": "string" },
-            "type": "array"
-          },
-          "files": {
-            "additionalProperties": {
-              "properties": {
-                "binary_content": {
-                  "description": "If the file has binary (non plain-text) contents, place the base-64 encoded contents in this key. Should be empty or missing if `is_binary` is `false`.",
-                  "type": "string"
-                },
-                "code": {
-                  "description": "If the file is non-binary in nature, place the (escaped) plain text contents in this key. Should be empty or missing if `is_binary` is `true`.",
-                  "type": "string"
-                },
-                "is_binary": {
-                  "default": false,
-                  "description": "Whether the file contains binary contents.",
-                  "type": "boolean"
-                }
-              },
-              "type": "object"
-            },
-            "description": "Map of `path => file` where each file is a map.",
-            "type": "object"
-          },
-          "is_frozen": {
-            "default": false,
-            "description": "Whether changes to the sandbox are disallowed. Defaults to `false`.",
-            "type": "boolean"
-          },
-          "npm_dependencies": {
-            "additionalProperties": { "type": "string" },
-            "description": "Map of dependencies and their version specifications.",
-            "type": "object"
-          },
-          "path": {
-            "default": "/",
-            "description": "Path to the collection where the new sandbox should be stored. Defaults to \"/\". If no collection exists at the given path, it will be created.",
-            "type": "string"
-          },
-          "privacy": {
-            "default": 0,
-            "description": "0 for public, 1 for unlisted, and 2 for private. Privacy is subject to certain restrictions (team minimum setting, drafts must be private, etc.). Defaults to public.",
-            "maximum": 2,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "runtime": {
-            "default": "browser",
-            "description": "Runtime to use for the sandbox. Defaults to `\"browser\"`.",
-            "enum": ["browser", "vm"],
-            "type": "string"
-          },
-          "tags": {
-            "default": [],
-            "description": "List of string tags to apply to the sandbox. Only the first ten will be used. Defaults to no tags.",
-            "items": { "type": "string" },
-            "type": "array"
-          },
-          "template": {
-            "description": "Name of the template from which the sandbox is derived (for example, `\"static\"`).",
-            "type": "string"
-          },
-          "title": {
-            "default": "",
-            "description": "Sandbox title. Maximum 255 characters. Defaults to no title.",
-            "maxLength": 255,
+          "expires_at": {
+            "description": "UTC Timestamp until when this token is valid. Omitting this field will create a token without an expiry.",
+            "format": "date-time",
+            "nullable": true,
             "type": "string"
           }
         },
-        "required": ["files"],
-        "title": "SandboxCreateRequest"
+        "title": "PreviewTokenCreateRequest",
+        "type": "object"
       },
-      "SandboxCreateResponse": {
+      "SandboxGetResponse": {
         "allOf": [
           {
             "properties": {
               "errors": {
                 "items": {
                   "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": { "type": "boolean" }
+              "success": {
+                "type": "boolean"
+              }
             },
             "title": "Response",
             "type": "object"
@@ -181,19 +301,13 @@
           {
             "properties": {
               "data": {
-                "properties": {
-                  "alias": { "type": "string" },
-                  "id": { "type": "string" },
-                  "title": { "nullable": true, "type": "string" }
-                },
-                "required": ["alias", "id", "title"],
-                "type": "object"
+                "$ref": "#/components/schemas/Sandbox"
               }
             },
             "type": "object"
           }
         ],
-        "title": "SandboxCreateResponse",
+        "title": "SandboxGetResponse",
         "type": "object"
       },
       "SandboxForkRequest": {
@@ -254,7 +368,9 @@
           "tags": {
             "default": [],
             "description": "Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "type": "array"
           },
           "title": {
@@ -267,103 +383,6 @@
         "title": "SandboxForkRequest",
         "type": "object"
       },
-      "SandboxForkResponse": {
-        "allOf": [
-          {
-            "properties": {
-              "errors": {
-                "items": {
-                  "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
-                  ],
-                  "title": "Error"
-                },
-                "type": "array"
-              },
-              "success": { "type": "boolean" }
-            },
-            "title": "Response",
-            "type": "object"
-          },
-          {
-            "properties": {
-              "data": {
-                "properties": {
-                  "alias": { "type": "string" },
-                  "id": { "type": "string" },
-                  "start_response": {
-                    "description": "VM start response. Only present when start_options were provided in the request.",
-                    "nullable": true,
-                    "properties": {
-                      "bootup_type": { "type": "string" },
-                      "cluster": { "type": "string" },
-                      "id": { "type": "string" },
-                      "latest_pitcher_version": { "type": "string" },
-                      "pitcher_manager_version": { "type": "string" },
-                      "pitcher_token": { "type": "string" },
-                      "pitcher_url": { "type": "string" },
-                      "pitcher_version": { "type": "string" },
-                      "reconnect_token": { "type": "string" },
-                      "user_workspace_path": { "type": "string" },
-                      "workspace_path": { "type": "string" }
-                    },
-                    "required": [
-                      "bootup_type",
-                      "cluster",
-                      "id",
-                      "latest_pitcher_version",
-                      "pitcher_manager_version",
-                      "pitcher_token",
-                      "pitcher_url",
-                      "pitcher_version",
-                      "reconnect_token",
-                      "user_workspace_path",
-                      "workspace_path"
-                    ],
-                    "type": "object"
-                  },
-                  "title": { "nullable": true, "type": "string" }
-                },
-                "required": ["alias", "id", "title"],
-                "type": "object"
-              }
-            },
-            "type": "object"
-          }
-        ],
-        "title": "SandboxForkResponse",
-        "type": "object"
-      },
-      "SandboxGetResponse": {
-        "allOf": [
-          {
-            "properties": {
-              "errors": {
-                "items": {
-                  "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
-                  ],
-                  "title": "Error"
-                },
-                "type": "array"
-              },
-              "success": { "type": "boolean" }
-            },
-            "title": "Response",
-            "type": "object"
-          },
-          {
-            "properties": {
-              "data": { "$ref": "#/components/schemas/Sandbox" }
-            },
-            "type": "object"
-          }
-        ],
-        "title": "SandboxGetResponse",
-        "type": "object"
-      },
       "SandboxListResponse": {
         "allOf": [
           {
@@ -371,14 +390,21 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": { "type": "boolean" }
+              "success": {
+                "type": "boolean"
+              }
             },
             "title": "Response",
             "type": "object"
@@ -389,23 +415,36 @@
                 "properties": {
                   "pagination": {
                     "properties": {
-                      "current_page": { "type": "integer" },
+                      "current_page": {
+                        "type": "integer"
+                      },
                       "next_page": {
                         "description": "The number of the next page, if any. If `null`, the current page is the last page of records.",
                         "nullable": true,
                         "type": "integer"
                       },
-                      "total_records": { "type": "integer" }
+                      "total_records": {
+                        "type": "integer"
+                      }
                     },
-                    "required": ["total_records", "current_page", "next_page"],
+                    "required": [
+                      "total_records",
+                      "current_page",
+                      "next_page"
+                    ],
                     "type": "object"
                   },
                   "sandboxes": {
-                    "items": { "$ref": "#/components/schemas/Sandbox" },
+                    "items": {
+                      "$ref": "#/components/schemas/Sandbox"
+                    },
                     "type": "array"
                   }
                 },
-                "required": ["sandboxes", "pagination"],
+                "required": [
+                  "sandboxes",
+                  "pagination"
+                ],
                 "type": "object"
               }
             },
@@ -415,86 +454,54 @@
         "title": "SandboxListResponse",
         "type": "object"
       },
-      "TokenCreateRequest": {
+      "MetaInformation": {
         "properties": {
-          "default_version": {
-            "description": "API Version to use, formatted as YYYY-MM-DD. Defaults to the latest version at time of creation.",
-            "format": "date",
-            "nullable": true,
-            "type": "string"
-          },
-          "description": {
-            "description": "Description of this token, for instance where it will be used.",
-            "maxLength": 255,
-            "type": "string"
-          },
-          "expires_at": {
-            "description": "UTC Timestamp until when this token is valid. Omitting this field will create a token without an expiry.",
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "scopes": {
-            "description": "Which scopes to grant this token. The given scopes will replace the current scopes, revoking any that are no longer present in the list.",
-            "items": {
-              "enum": [
-                "sandbox_create",
-                "sandbox_edit_code",
-                "sandbox_read",
-                "vm_manage"
-              ]
-            },
-            "type": "array"
-          }
-        },
-        "title": "TokenCreateRequest",
-        "type": "object"
-      },
-      "TokenCreateResponse": {
-        "allOf": [
-          {
+          "api": {
+            "description": "Meta information about the CodeSandbox API",
             "properties": {
-              "errors": {
+              "latest_version": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "latest_version"
+            ],
+            "type": "object"
+          },
+          "auth": {
+            "description": "Meta information about the current authentication context",
+            "properties": {
+              "scopes": {
                 "items": {
-                  "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
-                  ],
-                  "title": "Error"
+                  "type": "string"
                 },
                 "type": "array"
               },
-              "success": { "type": "boolean" }
-            },
-            "title": "Response",
-            "type": "object"
-          },
-          {
-            "properties": {
-              "data": {
-                "properties": {
-                  "description": { "nullable": true, "type": "string" },
-                  "expires_at": { "nullable": true, "type": "string" },
-                  "scopes": { "items": { "type": "string" }, "type": "array" },
-                  "team_id": { "type": "string" },
-                  "token": { "type": "string" },
-                  "token_id": { "type": "string" }
-                },
-                "required": [
-                  "description",
-                  "expires_at",
-                  "scopes",
-                  "team_id",
-                  "token",
-                  "token_id"
-                ],
-                "type": "object"
+              "team": {
+                "format": "uuid",
+                "nullable": true,
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
               }
             },
+            "required": [
+              "scopes",
+              "team",
+              "version"
+            ],
             "type": "object"
           }
+        },
+        "required": [
+          "api"
         ],
-        "title": "TokenCreateResponse",
+        "title": "MetaInformation",
         "type": "object"
       },
       "TokenUpdateRequest": {
@@ -534,21 +541,67 @@
         "title": "TokenUpdateRequest",
         "type": "object"
       },
-      "TokenUpdateResponse": {
+      "VMHibernateResponse": {
         "allOf": [
           {
             "properties": {
               "errors": {
                 "items": {
                   "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": { "type": "boolean" }
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {},
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMHibernateResponse",
+        "type": "object"
+      },
+      "PreviewTokenUpdateResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": {
+                "type": "boolean"
+              }
             },
             "title": "Response",
             "type": "object"
@@ -557,17 +610,455 @@
             "properties": {
               "data": {
                 "properties": {
-                  "description": { "nullable": true, "type": "string" },
+                  "sandbox_id": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "$ref": "#/components/schemas/PreviewToken"
+                  }
+                },
+                "required": [
+                  "sandbox_id",
+                  "token"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "PreviewTokenUpdateResponse",
+        "type": "object"
+      },
+      "SandboxCreateResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "alias": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "alias",
+                  "id",
+                  "title"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "SandboxCreateResponse",
+        "type": "object"
+      },
+      "VMStartRequest": {
+        "properties": {
+          "hibernation_timeout_seconds": {
+            "description": "The time in seconds after which the VM will hibernate due to inactivity.\nMust be a positive integer between 1 and 86400 (24 hours).\nDefaults to 300 seconds (5 minutes) if not specified.\n",
+            "example": 300,
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "ipcountry": {
+            "description": "This determines in which cluster, closest to the given country the VM will be started in. The format is ISO-3166-1 alpha-2. If not set, the VM will be started closest to the caller of this API. This will only be applied when a VM is run for the first time, and will only serve as a hint (e.g. if the template of this sandbox runs in EU cluster, this sandbox will also run in the EU cluster).",
+            "example": "NL",
+            "pattern": "^[A-Z]{2}$",
+            "type": "string"
+          },
+          "tier": {
+            "description": "Determines which specs to start the VM with. If not specified, the VM will start with the default specs for the workspace.\n\nYou can only specify a VM tier when starting a VM that is inside your workspace. Specifying a VM tier for someone else's sandbox will return an error.\n\nNot all tiers will be available depending on the workspace subscription status, and higher tiers incur higher costs. Please see codesandbox.io/pricing for details on specs and costs.\n",
+            "enum": [
+              "Pico",
+              "Nano",
+              "Micro",
+              "Small",
+              "Medium",
+              "Large",
+              "XLarge"
+            ],
+            "example": "Micro"
+          }
+        },
+        "title": "VMStartRequest",
+        "type": "object"
+      },
+      "PreviewTokenUpdateRequest": {
+        "properties": {
+          "expires_at": {
+            "description": "UTC Timestamp until when this token is valid. Omitting this field will create a token without an expiry.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "title": "PreviewTokenUpdateRequest",
+        "type": "object"
+      },
+      "VMShutdownRequest": {
+        "properties": {},
+        "title": "VMShutdownRequest"
+      },
+      "VMUpdateSpecsRequest": {
+        "properties": {
+          "tier": {
+            "description": "Determines which specs to update the VM with.\n\nNot all tiers will be available depending on the workspace subscription status, and higher tiers incur higher costs. Please see codesandbox.io/pricing for details on specs and costs.\n",
+            "enum": [
+              "Pico",
+              "Nano",
+              "Micro",
+              "Small",
+              "Medium",
+              "Large",
+              "XLarge"
+            ],
+            "example": "Micro"
+          }
+        },
+        "required": [
+          "tier"
+        ],
+        "title": "VMUpdateSpecsRequest",
+        "type": "object"
+      },
+      "WorkspaceCreateRequest": {
+        "properties": {
+          "name": {
+            "description": "Name for the new workspace. Maximum length 64 characters.",
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "WorkspaceCreateRequest",
+        "type": "object"
+      },
+      "VMStartResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "bootup_type": {
+                    "type": "string"
+                  },
+                  "cluster": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "latest_pitcher_version": {
+                    "type": "string"
+                  },
+                  "pitcher_manager_version": {
+                    "type": "string"
+                  },
+                  "pitcher_token": {
+                    "type": "string"
+                  },
+                  "pitcher_url": {
+                    "type": "string"
+                  },
+                  "pitcher_version": {
+                    "type": "string"
+                  },
+                  "reconnect_token": {
+                    "type": "string"
+                  },
+                  "user_workspace_path": {
+                    "type": "string"
+                  },
+                  "workspace_path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "bootup_type",
+                  "cluster",
+                  "id",
+                  "latest_pitcher_version",
+                  "pitcher_manager_version",
+                  "pitcher_token",
+                  "pitcher_url",
+                  "pitcher_version",
+                  "reconnect_token",
+                  "user_workspace_path",
+                  "workspace_path"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMStartResponse",
+        "type": "object"
+      },
+      "VMUpdateSpecsResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "tier": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "tier"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMUpdateSpecsResponse",
+        "type": "object"
+      },
+      "SandboxCreateRequest": {
+        "properties": {
+          "description": {
+            "description": "Optional text description of the sandbox. Defaults to no description.",
+            "type": "string"
+          },
+          "entry": {
+            "description": "Filename of the entrypoint of the sandbox.",
+            "type": "string"
+          },
+          "external_resources": {
+            "description": "Array of strings with external resources to load.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "files": {
+            "additionalProperties": {
+              "properties": {
+                "binary_content": {
+                  "description": "If the file has binary (non plain-text) contents, place the base-64 encoded contents in this key. Should be empty or missing if `is_binary` is `false`.",
+                  "type": "string"
+                },
+                "code": {
+                  "description": "If the file is non-binary in nature, place the (escaped) plain text contents in this key. Should be empty or missing if `is_binary` is `true`.",
+                  "type": "string"
+                },
+                "is_binary": {
+                  "default": false,
+                  "description": "Whether the file contains binary contents.",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "description": "Map of `path => file` where each file is a map.",
+            "type": "object"
+          },
+          "is_frozen": {
+            "default": false,
+            "description": "Whether changes to the sandbox are disallowed. Defaults to `false`.",
+            "type": "boolean"
+          },
+          "npm_dependencies": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Map of dependencies and their version specifications.",
+            "type": "object"
+          },
+          "path": {
+            "default": "/",
+            "description": "Path to the collection where the new sandbox should be stored. Defaults to \"/\". If no collection exists at the given path, it will be created.",
+            "type": "string"
+          },
+          "privacy": {
+            "default": 0,
+            "description": "0 for public, 1 for unlisted, and 2 for private. Privacy is subject to certain restrictions (team minimum setting, drafts must be private, etc.). Defaults to public.",
+            "maximum": 2,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "runtime": {
+            "default": "browser",
+            "description": "Runtime to use for the sandbox. Defaults to `\"browser\"`.",
+            "enum": [
+              "browser",
+              "vm"
+            ],
+            "type": "string"
+          },
+          "tags": {
+            "default": [],
+            "description": "List of string tags to apply to the sandbox. Only the first ten will be used. Defaults to no tags.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "template": {
+            "description": "Name of the template from which the sandbox is derived (for example, `\"static\"`).",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "description": "Sandbox title. Maximum 255 characters. Defaults to no title.",
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "title": "SandboxCreateRequest"
+      },
+      "TokenUpdateResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "description": {
+                    "nullable": true,
+                    "type": "string"
+                  },
                   "expires_at": {
                     "format": "date-time",
                     "nullable": true,
                     "type": "string"
                   },
-                  "scopes": { "items": { "type": "string" }, "type": "array" },
-                  "team_id": { "type": "string" },
-                  "token_id": { "type": "string" }
+                  "scopes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "team_id": {
+                    "type": "string"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  }
                 },
-                "required": ["description", "scopes", "team_id", "token_id"],
+                "required": [
+                  "description",
+                  "scopes",
+                  "team_id",
+                  "token_id"
+                ],
                 "type": "object"
               }
             },
@@ -577,11 +1068,120 @@
         "title": "TokenUpdateResponse",
         "type": "object"
       },
+      "TokenCreateResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": {
+                "type": "boolean"
+              }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "description": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "expires_at": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "scopes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "team_id": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "type": "string"
+                  },
+                  "token_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "description",
+                  "expires_at",
+                  "scopes",
+                  "team_id",
+                  "token",
+                  "token_id"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "TokenCreateResponse",
+        "type": "object"
+      },
+      "TokenCreateRequest": {
+        "properties": {
+          "default_version": {
+            "description": "API Version to use, formatted as YYYY-MM-DD. Defaults to the latest version at time of creation.",
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of this token, for instance where it will be used.",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "UTC Timestamp until when this token is valid. Omitting this field will create a token without an expiry.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "scopes": {
+            "description": "Which scopes to grant this token. The given scopes will replace the current scopes, revoking any that are no longer present in the list.",
+            "items": {
+              "enum": [
+                "sandbox_create",
+                "sandbox_edit_code",
+                "sandbox_read",
+                "vm_manage"
+              ]
+            },
+            "type": "array"
+          }
+        },
+        "title": "TokenCreateRequest",
+        "type": "object"
+      },
       "VMCreateSessionRequest": {
         "properties": {
           "permission": {
             "description": "Permission level for the session",
-            "enum": ["read", "write"],
+            "enum": [
+              "read",
+              "write"
+            ],
             "example": "write",
             "type": "string"
           },
@@ -592,7 +1192,10 @@
             "type": "string"
           }
         },
-        "required": ["session_id", "permission"],
+        "required": [
+          "session_id",
+          "permission"
+        ],
         "title": "VMCreateSessionRequest",
         "type": "object"
       },
@@ -603,14 +1206,21 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": { "type": "boolean" }
+              "success": {
+                "type": "boolean"
+              }
             },
             "title": "Response",
             "type": "object"
@@ -621,7 +1231,9 @@
                 "properties": {
                   "capabilities": {
                     "description": "List of capabilities that Pitcher has",
-                    "items": { "type": "string" },
+                    "items": {
+                      "type": "string"
+                    },
                     "type": "array"
                   },
                   "permissions": {
@@ -662,109 +1274,28 @@
         "title": "VMCreateSessionResponse",
         "type": "object"
       },
-      "VMHibernateRequest": { "properties": {}, "title": "VMHibernateRequest" },
-      "VMHibernateResponse": {
+      "WorkspaceCreateResponse": {
         "allOf": [
           {
             "properties": {
               "errors": {
                 "items": {
                   "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": { "type": "boolean" }
-            },
-            "title": "Response",
-            "type": "object"
-          },
-          {
-            "properties": { "data": { "properties": {}, "type": "object" } },
-            "type": "object"
-          }
-        ],
-        "title": "VMHibernateResponse",
-        "type": "object"
-      },
-      "VMShutdownRequest": { "properties": {}, "title": "VMShutdownRequest" },
-      "VMShutdownResponse": {
-        "allOf": [
-          {
-            "properties": {
-              "errors": {
-                "items": {
-                  "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
-                  ],
-                  "title": "Error"
-                },
-                "type": "array"
-              },
-              "success": { "type": "boolean" }
-            },
-            "title": "Response",
-            "type": "object"
-          },
-          {
-            "properties": { "data": { "properties": {}, "type": "object" } },
-            "type": "object"
-          }
-        ],
-        "title": "VMShutdownResponse",
-        "type": "object"
-      },
-      "VMStartRequest": {
-        "properties": {
-          "hibernation_timeout_seconds": {
-            "description": "The time in seconds after which the VM will hibernate due to inactivity.\nMust be a positive integer between 1 and 86400 (24 hours).\nDefaults to 300 seconds (5 minutes) if not specified.\n",
-            "example": 300,
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "ipcountry": {
-            "description": "This determines in which cluster, closest to the given country the VM will be started in. The format is ISO-3166-1 alpha-2. If not set, the VM will be started closest to the caller of this API. This will only be applied when a VM is run for the first time, and will only serve as a hint (e.g. if the template of this sandbox runs in EU cluster, this sandbox will also run in the EU cluster).",
-            "example": "NL",
-            "pattern": "^[A-Z]{2}$",
-            "type": "string"
-          },
-          "tier": {
-            "description": "Determines which specs to start the VM with. If not specified, the VM will start with the default specs for the workspace.\n\nYou can only specify a VM tier when starting a VM that is inside your workspace. Specifying a VM tier for someone else's sandbox will return an error.\n\nNot all tiers will be available depending on the workspace subscription status, and higher tiers incur higher costs. Please see codesandbox.io/pricing for details on specs and costs.\n",
-            "enum": [
-              "Pico",
-              "Nano",
-              "Micro",
-              "Small",
-              "Medium",
-              "Large",
-              "XLarge"
-            ],
-            "example": "Micro"
-          }
-        },
-        "title": "VMStartRequest",
-        "type": "object"
-      },
-      "VMStartResponse": {
-        "allOf": [
-          {
-            "properties": {
-              "errors": {
-                "items": {
-                  "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
-                  ],
-                  "title": "Error"
-                },
-                "type": "array"
-              },
-              "success": { "type": "boolean" }
+              "success": {
+                "type": "boolean"
+              }
             },
             "title": "Response",
             "type": "object"
@@ -773,30 +1304,16 @@
             "properties": {
               "data": {
                 "properties": {
-                  "bootup_type": { "type": "string" },
-                  "cluster": { "type": "string" },
-                  "id": { "type": "string" },
-                  "latest_pitcher_version": { "type": "string" },
-                  "pitcher_manager_version": { "type": "string" },
-                  "pitcher_token": { "type": "string" },
-                  "pitcher_url": { "type": "string" },
-                  "pitcher_version": { "type": "string" },
-                  "reconnect_token": { "type": "string" },
-                  "user_workspace_path": { "type": "string" },
-                  "workspace_path": { "type": "string" }
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
                 },
                 "required": [
-                  "bootup_type",
-                  "cluster",
                   "id",
-                  "latest_pitcher_version",
-                  "pitcher_manager_version",
-                  "pitcher_token",
-                  "pitcher_url",
-                  "pitcher_version",
-                  "reconnect_token",
-                  "user_workspace_path",
-                  "workspace_path"
+                  "name"
                 ],
                 "type": "object"
               }
@@ -804,21 +1321,7 @@
             "type": "object"
           }
         ],
-        "title": "VMStartResponse",
-        "type": "object"
-      },
-      "VMUpdateHibernationTimeoutRequest": {
-        "properties": {
-          "hibernation_timeout_seconds": {
-            "description": "The new hibernation timeout in seconds.\n\nMust be greater than 0 and less than or equal to 86400 (24 hours).\n",
-            "example": 300,
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": ["hibernation_timeout_seconds"],
-        "title": "VMUpdateHibernationTimeoutRequest",
+        "title": "WorkspaceCreateResponse",
         "type": "object"
       },
       "VMUpdateHibernationTimeoutResponse": {
@@ -828,14 +1331,21 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": { "type": "boolean" }
+              "success": {
+                "type": "boolean"
+              }
             },
             "title": "Response",
             "type": "object"
@@ -844,10 +1354,17 @@
             "properties": {
               "data": {
                 "properties": {
-                  "hibernation_timeout_seconds": { "type": "integer" },
-                  "id": { "type": "string" }
+                  "hibernation_timeout_seconds": {
+                    "type": "integer"
+                  },
+                  "id": {
+                    "type": "string"
+                  }
                 },
-                "required": ["id", "hibernation_timeout_seconds"],
+                "required": [
+                  "id",
+                  "hibernation_timeout_seconds"
+                ],
                 "type": "object"
               }
             },
@@ -857,41 +1374,28 @@
         "title": "VMUpdateHibernationTimeoutResponse",
         "type": "object"
       },
-      "VMUpdateSpecsRequest": {
-        "properties": {
-          "tier": {
-            "description": "Determines which specs to update the VM with.\n\nNot all tiers will be available depending on the workspace subscription status, and higher tiers incur higher costs. Please see codesandbox.io/pricing for details on specs and costs.\n",
-            "enum": [
-              "Pico",
-              "Nano",
-              "Micro",
-              "Small",
-              "Medium",
-              "Large",
-              "XLarge"
-            ],
-            "example": "Micro"
-          }
-        },
-        "required": ["tier"],
-        "title": "VMUpdateSpecsRequest",
-        "type": "object"
-      },
-      "VMUpdateSpecsResponse": {
+      "SandboxForkResponse": {
         "allOf": [
           {
             "properties": {
               "errors": {
                 "items": {
                   "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": { "type": "boolean" }
+              "success": {
+                "type": "boolean"
+              }
             },
             "title": "Response",
             "type": "object"
@@ -900,46 +1404,106 @@
             "properties": {
               "data": {
                 "properties": {
-                  "id": { "type": "string" },
-                  "tier": { "type": "string" }
+                  "alias": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "start_response": {
+                    "description": "VM start response. Only present when start_options were provided in the request.",
+                    "nullable": true,
+                    "properties": {
+                      "bootup_type": {
+                        "type": "string"
+                      },
+                      "cluster": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "latest_pitcher_version": {
+                        "type": "string"
+                      },
+                      "pitcher_manager_version": {
+                        "type": "string"
+                      },
+                      "pitcher_token": {
+                        "type": "string"
+                      },
+                      "pitcher_url": {
+                        "type": "string"
+                      },
+                      "pitcher_version": {
+                        "type": "string"
+                      },
+                      "reconnect_token": {
+                        "type": "string"
+                      },
+                      "user_workspace_path": {
+                        "type": "string"
+                      },
+                      "workspace_path": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "bootup_type",
+                      "cluster",
+                      "id",
+                      "latest_pitcher_version",
+                      "pitcher_manager_version",
+                      "pitcher_token",
+                      "pitcher_url",
+                      "pitcher_version",
+                      "reconnect_token",
+                      "user_workspace_path",
+                      "workspace_path"
+                    ],
+                    "type": "object"
+                  },
+                  "title": {
+                    "nullable": true,
+                    "type": "string"
+                  }
                 },
-                "required": ["id", "tier"],
+                "required": [
+                  "alias",
+                  "id",
+                  "title"
+                ],
                 "type": "object"
               }
             },
             "type": "object"
           }
         ],
-        "title": "VMUpdateSpecsResponse",
+        "title": "SandboxForkResponse",
         "type": "object"
       },
-      "WorkspaceCreateRequest": {
-        "properties": {
-          "name": {
-            "description": "Name for the new workspace. Maximum length 64 characters.",
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": ["name"],
-        "title": "WorkspaceCreateRequest",
-        "type": "object"
-      },
-      "WorkspaceCreateResponse": {
+      "PreviewTokenCreateResponse": {
         "allOf": [
           {
             "properties": {
               "errors": {
                 "items": {
                   "oneOf": [
-                    { "type": "string" },
-                    { "additionalProperties": true, "type": "object" }
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": { "type": "boolean" }
+              "success": {
+                "type": "boolean"
+              }
             },
             "title": "Response",
             "type": "object"
@@ -948,25 +1512,77 @@
             "properties": {
               "data": {
                 "properties": {
-                  "id": { "type": "string" },
-                  "name": { "type": "string" }
+                  "sandbox_id": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "allOf": [
+                      {
+                        "properties": {
+                          "expires_at": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "last_used_at": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "token_id": {
+                            "type": "string"
+                          },
+                          "token_prefix": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "expires_at",
+                          "last_used_at",
+                          "token_id",
+                          "token_prefix"
+                        ],
+                        "title": "PreviewToken",
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "token": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "token"
+                        ],
+                        "type": "object"
+                      }
+                    ],
+                    "type": "object"
+                  }
                 },
-                "required": ["id", "name"],
+                "required": [
+                  "sandbox_id",
+                  "token"
+                ],
                 "type": "object"
               }
             },
             "type": "object"
           }
         ],
-        "title": "WorkspaceCreateResponse",
+        "title": "PreviewTokenCreateResponse",
         "type": "object"
       }
     },
     "securitySchemes": {
-      "authorization": { "scheme": "bearer", "type": "http" }
+      "authorization": {
+        "scheme": "bearer",
+        "type": "http"
+      }
     }
   },
-  "info": { "title": "CodeSandbox API", "version": "2023-07-01" },
+  "info": {
+    "title": "CodeSandbox API",
+    "version": "2023-07-01"
+  },
   "openapi": "3.0.0",
   "paths": {
     "/meta/info": {
@@ -978,15 +1594,21 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MetaInformation" }
+                "schema": {
+                  "$ref": "#/components/schemas/MetaInformation"
+                }
               }
             },
             "description": "Meta Info Response"
           }
         },
-        "security": [{}],
+        "security": [
+          {}
+        ],
         "summary": "Metadata about the API",
-        "tags": ["meta"]
+        "tags": [
+          "meta"
+        ]
       }
     },
     "/org/workspace": {
@@ -1018,7 +1640,13 @@
             "description": "Workspace Create Response"
           }
         },
-        "security": [{ "authorization": ["workspace:create"] }],
+        "security": [
+          {
+            "authorization": [
+              "workspace:create"
+            ]
+          }
+        ],
         "summary": "Create a Workspace",
         "tags": []
       }
@@ -1035,13 +1663,17 @@
             "in": "path",
             "name": "team_id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/TokenCreateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/TokenCreateRequest"
+              }
             }
           },
           "description": "Token Create Request",
@@ -1051,13 +1683,21 @@
           "201": {
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/TokenCreateResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/TokenCreateResponse"
+                }
               }
             },
             "description": "Token Create Response"
           }
         },
-        "security": [{ "authorization": ["token:manage"] }],
+        "security": [
+          {
+            "authorization": [
+              "token:manage"
+            ]
+          }
+        ],
         "summary": "Create an API Token",
         "tags": []
       }
@@ -1074,7 +1714,9 @@
             "in": "path",
             "name": "team_id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "description": "ID of token to update",
@@ -1082,13 +1724,17 @@
             "in": "path",
             "name": "token_id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/TokenUpdateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/TokenUpdateRequest"
+              }
             }
           },
           "description": "Token Update Request",
@@ -1098,13 +1744,21 @@
           "201": {
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/TokenUpdateResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/TokenUpdateResponse"
+                }
               }
             },
             "description": "Token Update Response"
           }
         },
-        "security": [{ "authorization": ["token:manage"] }],
+        "security": [
+          {
+            "authorization": [
+              "token:manage"
+            ]
+          }
+        ],
         "summary": "Update an API Token",
         "tags": []
       }
@@ -1121,7 +1775,9 @@
             "in": "query",
             "name": "tags",
             "required": false,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "description": "Field to order results by",
@@ -1131,7 +1787,10 @@
             "required": false,
             "schema": {
               "default": "updated_at",
-              "enum": ["inserted_at", "updated_at"]
+              "enum": [
+                "inserted_at",
+                "updated_at"
+              ]
             }
           },
           {
@@ -1140,7 +1799,13 @@
             "in": "query",
             "name": "direction",
             "required": false,
-            "schema": { "default": "desc", "enum": ["asc", "desc"] }
+            "schema": {
+              "default": "desc",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
           },
           {
             "description": "Maximum number of sandboxes to return in a single response",
@@ -1159,29 +1824,47 @@
             "in": "query",
             "name": "page",
             "required": false,
-            "schema": { "default": 1, "minimum": 1, "type": "integer" }
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "integer"
+            }
           },
           {
             "description": "If true, only returns VMs for which a heartbeat was received in the last 30 seconds.",
             "in": "query",
             "name": "status",
             "required": false,
-            "schema": { "enum": ["running"] }
+            "schema": {
+              "enum": [
+                "running"
+              ]
+            }
           }
         ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SandboxListResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxListResponse"
+                }
               }
             },
             "description": "Sandbox List Response"
           }
         },
-        "security": [{ "authorization": ["sandbox:read"] }],
+        "security": [
+          {
+            "authorization": [
+              "sandbox:read"
+            ]
+          }
+        ],
         "summary": "List Sandboxes",
-        "tags": ["sandbox"]
+        "tags": [
+          "sandbox"
+        ]
       },
       "post": {
         "callbacks": {},
@@ -1191,7 +1874,9 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/SandboxCreateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/SandboxCreateRequest"
+              }
             }
           },
           "description": "Sandbox Create Request",
@@ -1209,9 +1894,17 @@
             "description": "Sandbox Create Response"
           }
         },
-        "security": [{ "authorization": ["sandbox:create"] }],
+        "security": [
+          {
+            "authorization": [
+              "sandbox:create"
+            ]
+          }
+        ],
         "summary": "Create a Sandbox",
-        "tags": ["sandbox"]
+        "tags": [
+          "sandbox"
+        ]
       }
     },
     "/sandbox/{id}": {
@@ -1226,22 +1919,34 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SandboxGetResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxGetResponse"
+                }
               }
             },
             "description": "Sandbox Get Response"
           }
         },
-        "security": [{ "authorization": ["sandbox:read"] }],
+        "security": [
+          {
+            "authorization": [
+              "sandbox:read"
+            ]
+          }
+        ],
         "summary": "Get a Sandbox",
-        "tags": ["sandbox"]
+        "tags": [
+          "sandbox"
+        ]
       }
     },
     "/sandbox/{id}/fork": {
@@ -1256,13 +1961,17 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/SandboxForkRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/SandboxForkRequest"
+              }
             }
           },
           "description": "Sandbox Fork Request",
@@ -1272,15 +1981,213 @@
           "201": {
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SandboxForkResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxForkResponse"
+                }
               }
             },
             "description": "Sandbox Fork Response"
           }
         },
-        "security": [{ "authorization": ["sandbox:create"] }],
+        "security": [
+          {
+            "authorization": [
+              "sandbox:create"
+            ]
+          }
+        ],
         "summary": "Fork a Sandbox",
-        "tags": ["sandbox"]
+        "tags": [
+          "sandbox"
+        ]
+      }
+    },
+    "/sandbox/{id}/tokens": {
+      "delete": {
+        "callbacks": {},
+        "description": "Immediately expires all active preview tokens associated with this sandbox\n",
+        "operationId": "preview_token/revoke_all",
+        "parameters": [
+          {
+            "description": "Shortid of the sandbox to revoke tokens for",
+            "example": "1ab3c",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewTokenRevokeAllResponse"
+                }
+              }
+            },
+            "description": "RevokeALlPreviewTokensResponse"
+          }
+        },
+        "security": [
+          {
+            "authorization": [
+              "preview_token:manage"
+            ]
+          }
+        ],
+        "summary": "Revoke preview tokens",
+        "tags": []
+      },
+      "get": {
+        "callbacks": {},
+        "description": "List information about the preview tokens associated with the current sandbox\n",
+        "operationId": "preview_token/list",
+        "parameters": [
+          {
+            "description": "Shortid of the sandbox to list the tokens for",
+            "example": "1ab3c",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewTokenListResponse"
+                }
+              }
+            },
+            "description": "Token List Response"
+          }
+        },
+        "security": [
+          {
+            "authorization": [
+              "preview_token:manage"
+            ]
+          }
+        ],
+        "summary": "List Preview Tokens",
+        "tags": []
+      },
+      "post": {
+        "callbacks": {},
+        "description": "Create a new Preview token that allow access to a private sandbox\n",
+        "operationId": "preview_token/create",
+        "parameters": [
+          {
+            "description": "Shortid of the sandbox to create the token for",
+            "example": "1ab3c",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewTokenCreateRequest"
+              }
+            }
+          },
+          "description": "Token Create Request",
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewTokenCreateResponse"
+                }
+              }
+            },
+            "description": "Token Create Response"
+          }
+        },
+        "security": [
+          {
+            "authorization": [
+              "preview_token:manage"
+            ]
+          }
+        ],
+        "summary": "Create a Preview Token",
+        "tags": []
+      }
+    },
+    "/sandbox/{id}/tokens/{token_id}": {
+      "patch": {
+        "callbacks": {},
+        "description": "Update a Preview token that allow access to a private sandbox\n",
+        "operationId": "preview_token/update",
+        "parameters": [
+          {
+            "description": "Shortid of the sandbox to create the token for",
+            "example": "1ab3c",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "ID of the token to update. Does not accept the token itself.",
+            "example": "prv_abcd12345",
+            "in": "path",
+            "name": "token_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewTokenUpdateRequest"
+              }
+            }
+          },
+          "description": "Token Update Request",
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewTokenUpdateResponse"
+                }
+              }
+            },
+            "description": "Token Update Response"
+          }
+        },
+        "security": [
+          {
+            "authorization": [
+              "preview_token:manage"
+            ]
+          }
+        ],
+        "summary": "Update a Preview Token",
+        "tags": []
       }
     },
     "/vm/{id}/hibernate": {
@@ -1295,13 +2202,17 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/VMHibernateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/VMHibernateRequest"
+              }
             }
           },
           "description": "VM Hibernate Request",
@@ -1311,15 +2222,25 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/VMHibernateResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/VMHibernateResponse"
+                }
               }
             },
             "description": "VM Hibernate Response"
           }
         },
-        "security": [{ "authorization": ["vm:manage"] }],
+        "security": [
+          {
+            "authorization": [
+              "vm:manage"
+            ]
+          }
+        ],
         "summary": "Hibernate a VM",
-        "tags": ["vm"]
+        "tags": [
+          "vm"
+        ]
       }
     },
     "/vm/{id}/hibernation_timeout": {
@@ -1334,7 +2255,9 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1360,9 +2283,17 @@
             "description": "VM Update Hibernation Timeout Response"
           }
         },
-        "security": [{ "authorization": ["vm:manage"] }],
+        "security": [
+          {
+            "authorization": [
+              "vm:manage"
+            ]
+          }
+        ],
         "summary": "Update VM Hibernation Timeout",
-        "tags": ["vm"]
+        "tags": [
+          "vm"
+        ]
       }
     },
     "/vm/{id}/sessions": {
@@ -1377,7 +2308,9 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1403,9 +2336,17 @@
             "description": "VM Create Session Response"
           }
         },
-        "security": [{ "authorization": ["vm:manage"] }],
+        "security": [
+          {
+            "authorization": [
+              "vm:manage"
+            ]
+          }
+        ],
         "summary": "Create a new session on a VM",
-        "tags": ["vm"]
+        "tags": [
+          "vm"
+        ]
       }
     },
     "/vm/{id}/shutdown": {
@@ -1420,13 +2361,17 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/VMShutdownRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/VMShutdownRequest"
+              }
             }
           },
           "description": "VM Shutdown Request",
@@ -1436,15 +2381,25 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/VMShutdownResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/VMShutdownResponse"
+                }
               }
             },
             "description": "VM Shutdown Response"
           }
         },
-        "security": [{ "authorization": ["vm:manage"] }],
+        "security": [
+          {
+            "authorization": [
+              "vm:manage"
+            ]
+          }
+        ],
         "summary": "Shutdown a VM",
-        "tags": ["vm"]
+        "tags": [
+          "vm"
+        ]
       }
     },
     "/vm/{id}/specs": {
@@ -1459,13 +2414,17 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/VMUpdateSpecsRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/VMUpdateSpecsRequest"
+              }
             }
           },
           "description": "VM Update Specs Request",
@@ -1483,9 +2442,17 @@
             "description": "VM Update Specs Response"
           }
         },
-        "security": [{ "authorization": ["vm:manage"] }],
+        "security": [
+          {
+            "authorization": [
+              "vm:manage"
+            ]
+          }
+        ],
         "summary": "Update VM Specs",
-        "tags": ["vm"]
+        "tags": [
+          "vm"
+        ]
       }
     },
     "/vm/{id}/start": {
@@ -1500,13 +2467,17 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/VMStartRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/VMStartRequest"
+              }
             }
           },
           "description": "VM Start Request",
@@ -1516,15 +2487,26 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/VMStartResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/VMStartResponse"
+                }
               }
             },
             "description": "VM Start Response"
           }
         },
-        "security": [{ "authorization": ["sandbox:read", "vm:manage"] }],
+        "security": [
+          {
+            "authorization": [
+              "sandbox:read",
+              "vm:manage"
+            ]
+          }
+        ],
         "summary": "Start a VM",
-        "tags": ["vm"]
+        "tags": [
+          "vm"
+        ]
       }
     },
     "/vm/{id}/update_specs": {
@@ -1539,13 +2521,17 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/VMUpdateSpecsRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/VMUpdateSpecsRequest"
+              }
             }
           },
           "description": "VM Update Specs Request",
@@ -1563,13 +2549,26 @@
             "description": "VM Update Specs Response"
           }
         },
-        "security": [{ "authorization": ["vm:manage"] }],
+        "security": [
+          {
+            "authorization": [
+              "vm:manage"
+            ]
+          }
+        ],
         "summary": "Update VM Specs",
-        "tags": ["vm"]
+        "tags": [
+          "vm"
+        ]
       }
     }
   },
   "security": [],
-  "servers": [{ "url": "https://api.codesandbox.io", "variables": {} }],
+  "servers": [
+    {
+      "url": "https://api.codesandbox.stream",
+      "variables": {}
+    }
+  ],
   "tags": []
 }

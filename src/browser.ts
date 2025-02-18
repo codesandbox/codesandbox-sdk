@@ -24,8 +24,8 @@ function isStartData(
  * requires your CodeSandbox API token to be sent with every request. This makes it
  * unsafe to use from the browser, where you don't want to expose your API token.
  *
- * With this helper function, you can create a connection to a sandbox without
- * exposing your API token.
+ * With this helper function, you can generate a sandbox on the server, and then share a single-use
+ * token that can be used to create a connection to that sandbox from the browser.
  *
  * ## Example
  *
