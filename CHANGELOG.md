@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.7.0...v0.8.0) (2025-02-18)
+
+
+### Features
+
+* support for private previews and preview tokens ([#63](https://github.com/codesandbox/codesandbox-sdk/issues/63)) ([993e509](https://github.com/codesandbox/codesandbox-sdk/commit/993e50981f907f3a2ccf7421a2fd8e4aba96e9cf))
+
 ## [0.7.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.6.2...v0.7.0) (2025-02-15)
 
 
