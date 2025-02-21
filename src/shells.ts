@@ -305,9 +305,11 @@ function runCommandAsUser(
     }
 
     // TODO: use a new shell API that natively supports cwd & env
-    let commandWithEnv = `env ${Object.entries(env ?? {})
-      .map(([key, value]) => `${key}=${value}`)
-      .join(" ")} ${command}`;
+    let commandWithEnv = Object.keys(env ?? {}).length
+      ? `env ${Object.entries(env ?? {})
+          .map(([key, value]) => `${key}=${value}`)
+          .join(" ")} ${command}`
+      : command;
 
     if (cwd) {
       commandWithEnv = `cd ${cwd} && ${commandWithEnv}`;
