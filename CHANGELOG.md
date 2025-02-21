@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/codesandbox/codesandbox-sdk/compare/v0.8.0...v0.8.1) (2025-02-21)
+
+
+### Bug Fixes
+
+* don't use env if not env vars are set ([#66](https://github.com/codesandbox/codesandbox-sdk/issues/66)) ([7b61dcc](https://github.com/codesandbox/codesandbox-sdk/commit/7b61dcc2ba6aa183fb2597674bccd264dbb8615c))
+
 ## [0.8.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.7.0...v0.8.0) (2025-02-18)
 
 
