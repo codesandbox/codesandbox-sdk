@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.8.1...v0.9.0) (2025-02-26)
+
+
+### Features
+
+* add support for `--since` when listing sandboxes ([#68](https://github.com/codesandbox/codesandbox-sdk/issues/68)) ([f054205](https://github.com/codesandbox/codesandbox-sdk/commit/f0542057345aa0d11251bba24b9420f1b7ae2574))
+
 ## [0.8.1](https://github.com/codesandbox/codesandbox-sdk/compare/v0.8.0...v0.8.1) (2025-02-21)
 
 
