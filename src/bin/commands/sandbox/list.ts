@@ -43,9 +43,12 @@ function formatAge(date: Date): string {
 
 export async function listSandboxes(
   outputFields?: string,
-  listOpts: SandboxListOpts & { pagination?: PaginationOpts } = {},
+  listOpts: SandboxListOpts & {
+    pagination?: PaginationOpts;
+    since?: string;
+  } = {},
   showHeaders = true,
-  limit = 100
+  limit?: number
 ) {
   const sdk = new CodeSandbox();
   const spinner = ora("Fetching sandboxes...").start();
@@ -55,6 +58,25 @@ export async function listSandboxes(
     let totalCount = 0;
     let currentPage = 1;
     const pageSize = 50; // API's maximum page size
+
+    // Default limit to 100 if not specified, unless since is provided
+    if (limit === undefined) {
+      limit = listOpts.since ? Infinity : 100;
+    }
+
+    // If since is provided, ensure we're ordering by inserted_at desc
+    if (listOpts.since) {
+      listOpts.orderBy = "inserted_at";
+      listOpts.direction = "desc";
+    }
+
+    // Parse the since date if provided
+    const sinceDate = listOpts.since ? new Date(listOpts.since) : null;
+    if (sinceDate && isNaN(sinceDate.getTime())) {
+      throw new Error(
+        `Invalid date format for 'since': ${listOpts.since}. Use ISO format (e.g., '2023-01-01T00:00:00Z').`
+      );
+    }
 
     while (true) {
       const {
@@ -74,17 +96,44 @@ export async function listSandboxes(
       }
 
       totalCount = total;
-      const newSandboxes = sandboxes.filter(
+
+      // Filter sandboxes by the since date if provided
+      const filteredSandboxes = sinceDate
+        ? sandboxes.filter(
+            (sandbox) => new Date(sandbox.createdAt) >= sinceDate
+          )
+        : sandboxes;
+
+      // If we're using since and ordering by inserted_at desc, we can stop fetching
+      // once we encounter a sandbox older than the since date
+      if (
+        sinceDate &&
+        listOpts.orderBy === "inserted_at" &&
+        listOpts.direction === "desc" &&
+        sandboxes.some((sandbox) => new Date(sandbox.createdAt) < sinceDate)
+      ) {
+        // Add only the filtered sandboxes that match our criteria
+        const newSandboxes = filteredSandboxes.filter(
+          (sandbox) =>
+            !allSandboxes.some((existing) => existing.id === sandbox.id)
+        );
+        allSandboxes = [...allSandboxes, ...newSandboxes];
+        break;
+      }
+
+      const newSandboxes = filteredSandboxes.filter(
         (sandbox) =>
           !allSandboxes.some((existing) => existing.id === sandbox.id)
       );
       allSandboxes = [...allSandboxes, ...newSandboxes];
 
       spinner.text = `Fetching sandboxes... (${allSandboxes.length}${
-        limit ? `/${Math.min(limit, totalCount)}` : `/${totalCount}`
+        limit !== Infinity
+          ? `/${Math.min(limit, totalCount)}`
+          : `/${totalCount}`
       })`;
 
-      // Stop if we've reached the total count
+      // Stop if we've reached the total count or the limit
       if (allSandboxes.length >= limit || pagination.nextPage == null) {
         break;
       }
@@ -93,7 +142,7 @@ export async function listSandboxes(
     }
 
     // Apply limit after fetching all sandboxes
-    if (limit) {
+    if (limit !== Infinity) {
       allSandboxes = allSandboxes.slice(0, limit);
     }
 
@@ -125,7 +174,9 @@ export async function listSandboxes(
 
       // eslint-disable-next-line no-console
       console.error(
-        `\nShowing ${allSandboxes.length} of ${totalCount} sandboxes`
+        listOpts.since
+          ? `\nShowing ${allSandboxes.length} sandboxes created since ${listOpts.since}`
+          : `\nShowing ${allSandboxes.length} of ${totalCount} sandboxes`
       );
 
       return;
@@ -175,10 +226,12 @@ export async function listSandboxes(
     // eslint-disable-next-line no-console
     console.log(table.toString());
 
-    if (limit && totalCount > allSandboxes.length) {
+    if (limit !== Infinity && totalCount > allSandboxes.length) {
       // eslint-disable-next-line no-console
       console.error(
-        `\nShowing ${allSandboxes.length} of ${totalCount} sandboxes`
+        listOpts.since
+          ? `\nShowing ${allSandboxes.length} sandboxes created since ${listOpts.since}`
+          : `\nShowing ${allSandboxes.length} of ${totalCount} sandboxes`
       );
     }
   } catch (error) {

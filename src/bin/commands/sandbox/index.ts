@@ -54,6 +54,10 @@ export const sandboxCommand: CommandModule = {
               describe: "Number of items per page",
               type: "number",
             })
+            .option("since", {
+              describe: "Filter by creation date",
+              type: "string",
+            })
             .option("order-by", {
               describe: "Order results by field",
               choices: ["inserted_at", "updated_at"],
@@ -66,12 +70,19 @@ export const sandboxCommand: CommandModule = {
             })
             .option("limit", {
               alias: "l",
-              describe: `Maximum number of sandboxes to list (default: ${DEFAULT_LIMIT})`,
+              describe: `Maximum number of sandboxes to list (default: ${DEFAULT_LIMIT}, no limit when --since is used)`,
               type: "number",
-              default: DEFAULT_LIMIT,
             });
         },
         handler: async (argv) => {
+          // Only set the default limit if --since is not provided
+          const limit =
+            argv.limit !== undefined
+              ? argv.limit
+              : argv.since
+              ? undefined
+              : DEFAULT_LIMIT;
+
           await listSandboxes(
             argv.output as string | undefined,
             {
@@ -89,9 +100,10 @@ export const sandboxCommand: CommandModule = {
                       pageSize: argv["page-size"],
                     }
                   : undefined,
+              since: argv.since,
             },
             argv["headers"] as boolean,
-            argv.limit as number | undefined
+            limit as number | undefined
           );
         },
       })
