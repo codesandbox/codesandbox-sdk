@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.9.0...v0.10.0) (2025-02-28)
+
+
+### Features
+
+* allow defining timeout when waiting for port ([#70](https://github.com/codesandbox/codesandbox-sdk/issues/70)) ([27c559c](https://github.com/codesandbox/codesandbox-sdk/commit/27c559cb36839ba08b8a2518a45a5ede26b44f8b))
+
 ## [0.9.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.8.1...v0.9.0) (2025-02-26)
 
 
