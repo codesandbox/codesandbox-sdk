@@ -93,21 +93,44 @@ export class Ports extends Disposable {
    * Wait for a port to be opened.
    *
    * @param port - The port to wait for.
+   * @param options - Additional options
+   * @param options.timeoutMs - Optional timeout in milliseconds. If specified, the promise will reject after this time if the port hasn't opened.
    * @returns A promise that resolves when the port is opened.
+   * @throws {Error} If the timeout is reached before the port opens
    */
-  async waitForPort(port: number): Promise<PortInfo> {
+  async waitForPort(
+    port: number,
+    options?: { timeoutMs?: number }
+  ): Promise<PortInfo> {
     await this.pitcherClient.clients.port.readyPromise;
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      // Check if port is already open
       const portInfo = this.getOpenedPorts().find((p) => p.port === port);
       if (portInfo) {
         resolve(portInfo);
         return;
       }
 
+      // Set up timeout if specified
+      let timeoutId: NodeJS.Timeout | undefined;
+      if (options?.timeoutMs !== undefined) {
+        timeoutId = setTimeout(() => {
+          reject(
+            new Error(
+              `Timeout of ${options.timeoutMs}ms exceeded waiting for port ${port} to open`
+            )
+          );
+        }, options.timeoutMs);
+      }
+
+      // Listen for port open events
       const disposable = this.addDisposable(
         this.onDidPortOpen((portInfo) => {
           if (portInfo.port === port) {
+            if (timeoutId !== undefined) {
+              clearTimeout(timeoutId);
+            }
             resolve(portInfo);
             disposable.dispose();
           }
