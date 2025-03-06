@@ -3,6 +3,7 @@
 # Generated stuff
 dist
 tests
+test.ts
 
 ### macOS ###
 *.DS_Store
