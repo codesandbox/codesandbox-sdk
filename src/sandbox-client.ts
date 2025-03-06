@@ -24,6 +24,10 @@ import { Sandbox, SandboxSession } from "./sandbox";
 import { handleResponse } from "./utils/handle-response";
 import { SessionCreateOptions, SessionData } from "./sessions";
 
+type SandboxForkResponseWithSession = SandboxForkResponse["data"] & {
+  start_response: Required<VmStartResponse>["data"];
+};
+
 export type SandboxPrivacy = "public" | "unlisted" | "private";
 
 export type SandboxInfo = {
@@ -247,63 +251,15 @@ export type HandledResponse<D, E> = {
   response: Response;
 };
 
-function getDefaultTemplate(client: Client) {
-  if (client.getConfig().baseUrl?.includes("codesandbox.stream")) {
-    return "7ngcrf";
-  }
-
-  return "pcz35m";
-}
-
-export async function createSandbox(
-  client: Client,
-  startVM: true,
-  opts?: CreateSandboxOpts
-): Promise<
-  SandboxForkResponse["data"] & {
-    start_response: Required<VmStartResponse>["data"];
-  }
->;
-export async function createSandbox(
-  client: Client,
-  startVM: false,
-  opts?: CreateSandboxOpts
-): Promise<SandboxForkResponse["data"]>;
-export async function createSandbox(
-  client: Client,
-  startVM: boolean,
-  opts?: CreateSandboxOpts
-): Promise<SandboxForkResponse["data"]> {
-  const templateId = opts?.template || getDefaultTemplate(client);
-  const privacy = opts?.privacy || "public";
-  const tags = opts?.tags || ["sdk"];
-  const path = opts?.path || "/SDK";
-
-  // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
-  const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
-  // An empty object will still start the VM, but with server defaults
-  const startOptions = startOptionsFromOpts(opts) || {};
-
-  const result = await sandboxFork({
-    client,
-    body: {
-      privacy: privacyToNumber(privacy),
-      title: opts?.title,
-      description: opts?.description,
-      tags: tagsWithSdk,
-      path,
-      // We only pass start options if we want to start the VM immediately
-      start_options: startVM ? startOptions : undefined,
-    },
-    path: {
-      id: typeof templateId === "string" ? templateId : templateId.id,
-    },
-  });
-
-  return handleResponse(result, "Failed to create sandbox");
-}
-
 export class SandboxClient {
+  get defaultTemplate() {
+    if (this.apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
+      return "7ngcrf";
+    }
+
+    return "pcz35m";
+  }
+
   constructor(private readonly apiClient: Client) {}
 
   /**
@@ -369,9 +325,39 @@ export class SandboxClient {
   ): Promise<Sandbox>;
   async create(opts?: CreateSandboxOpts): Promise<Sandbox>;
   async create(opts?: CreateSandboxOpts): Promise<Sandbox | SessionData> {
-    // We always want to start the VM in this context as our intention it to connect immediately,
+    const templateId = opts?.template || this.defaultTemplate;
+    const privacy = opts?.privacy || "public";
+    const tags = opts?.tags || ["sdk"];
+    const path = opts?.path || "/SDK";
+
+    // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
+    const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
+
+    // We always want to start the VM in this context as our intention is to connect immediately
     // or return the session data to manually connect, for example in browser
-    const sandbox = await createSandbox(this.apiClient, true, opts);
+    const startOptions = startOptionsFromOpts(opts) || {};
+
+    const result = await sandboxFork({
+      client: this.apiClient,
+      body: {
+        privacy: privacyToNumber(privacy),
+        title: opts?.title,
+        description: opts?.description,
+        tags: tagsWithSdk,
+        path,
+        start_options: startOptions,
+      },
+      path: {
+        id: typeof templateId === "string" ? templateId : templateId.id,
+      },
+    });
+
+    const sandbox = handleResponse(
+      result,
+      "Failed to create sandbox"
+      // We currently always pass "start_options" to create a session
+    ) as SandboxForkResponseWithSession;
+
     const shouldReturnSessionOnly = opts?.autoConnect === false;
     const session: SessionData = {
       id: sandbox.id,
