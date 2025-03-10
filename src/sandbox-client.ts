@@ -205,6 +205,7 @@ function startOptionsFromOpts(opts: StartSandboxOpts | undefined) {
     ipcountry: opts.ipcountry,
     tier: opts.vmTier?.name,
     hibernation_timeout_seconds: opts.hibernationTimeoutSeconds,
+    automatic_wakeup_config: opts.automaticWakeupConfig,
   };
 }
 
@@ -233,6 +234,25 @@ export interface StartSandboxOpts {
    * Defaults to 300 seconds for free users, 1800 seconds for pro users. Maximum is 86400 seconds (1 day).
    */
   hibernationTimeoutSeconds?: number;
+
+  /**
+   * Configuration for when the VM should automatically wake up from hibernation.
+   */
+  automaticWakeupConfig?: {
+    /**
+     * Whether the VM should automatically wake up on HTTP requests to preview URLs (excludes WebSocket requests)
+     *
+     * @default true
+     */
+    http: boolean;
+
+    /**
+     * Whether the VM should automatically wake up on WebSocket connections to preview URLs
+     *
+     * @default false
+     */
+    websocket: boolean;
+  };
 }
 
 export type HandledResponse<D, E> = {
