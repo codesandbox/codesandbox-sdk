@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.10.0...v0.11.0) (2025-03-11)
+
+
+### Features
+
+* add support for configuring auto-wake behaviour ([#79](https://github.com/codesandbox/codesandbox-sdk/issues/79)) ([8c2ef89](https://github.com/codesandbox/codesandbox-sdk/commit/8c2ef897b03ce2d3f4865f6e68e2c2f07824852c))
+
 ## [0.10.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.9.0...v0.10.0) (2025-02-28)
 
 
