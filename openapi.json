@@ -7,21 +7,14 @@
           "errors": {
             "items": {
               "oneOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
+                { "type": "string" },
+                { "additionalProperties": true, "type": "object" }
               ],
               "title": "Error"
             },
             "type": "array"
           },
-          "success": {
-            "type": "boolean"
-          }
+          "success": { "type": "boolean" }
         },
         "title": "Response",
         "type": "object"
@@ -33,21 +26,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -56,20 +42,13 @@
             "properties": {
               "data": {
                 "properties": {
-                  "sandbox_id": {
-                    "type": "string"
-                  },
+                  "sandbox_id": { "type": "string" },
                   "tokens": {
-                    "items": {
-                      "$ref": "#/components/schemas/PreviewToken"
-                    },
+                    "items": { "$ref": "#/components/schemas/PreviewToken" },
                     "type": "array"
                   }
                 },
-                "required": [
-                  "tokens",
-                  "sandbox_id"
-                ],
+                "required": ["tokens", "sandbox_id"],
                 "type": "object"
               }
             },
@@ -89,35 +68,18 @@
             "type": "integer"
           }
         },
-        "required": [
-          "hibernation_timeout_seconds"
-        ],
+        "required": ["hibernation_timeout_seconds"],
         "title": "VMUpdateHibernationTimeoutRequest",
         "type": "object"
       },
       "PreviewToken": {
         "properties": {
-          "expires_at": {
-            "nullable": true,
-            "type": "string"
-          },
-          "last_used_at": {
-            "nullable": true,
-            "type": "string"
-          },
-          "token_id": {
-            "type": "string"
-          },
-          "token_prefix": {
-            "type": "string"
-          }
+          "expires_at": { "nullable": true, "type": "string" },
+          "last_used_at": { "nullable": true, "type": "string" },
+          "token_id": { "type": "string" },
+          "token_prefix": { "type": "string" }
         },
-        "required": [
-          "expires_at",
-          "last_used_at",
-          "token_id",
-          "token_prefix"
-        ],
+        "required": ["expires_at", "last_used_at", "token_id", "token_prefix"],
         "title": "PreviewToken",
         "type": "object"
       },
@@ -128,32 +90,20 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
           },
           {
-            "properties": {
-              "data": {
-                "properties": {},
-                "type": "object"
-              }
-            },
+            "properties": { "data": { "properties": {}, "type": "object" } },
             "type": "object"
           }
         ],
@@ -167,32 +117,20 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
           },
           {
-            "properties": {
-              "data": {
-                "properties": {},
-                "type": "object"
-              }
-            },
+            "properties": { "data": { "properties": {}, "type": "object" } },
             "type": "object"
           }
         ],
@@ -201,37 +139,14 @@
       },
       "Sandbox": {
         "properties": {
-          "created_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "description": {
-            "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "is_frozen": {
-            "type": "boolean"
-          },
-          "privacy": {
-            "type": "integer"
-          },
-          "tags": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "title": {
-            "nullable": true,
-            "type": "string"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "type": "string"
-          }
+          "created_at": { "format": "date-time", "type": "string" },
+          "description": { "nullable": true, "type": "string" },
+          "id": { "type": "string" },
+          "is_frozen": { "type": "boolean" },
+          "privacy": { "type": "integer" },
+          "tags": { "items": { "type": "string" }, "type": "array" },
+          "title": { "nullable": true, "type": "string" },
+          "updated_at": { "format": "date-time", "type": "string" }
         },
         "required": [
           "id",
@@ -246,20 +161,12 @@
       },
       "Error": {
         "oneOf": [
-          {
-            "type": "string"
-          },
-          {
-            "additionalProperties": true,
-            "type": "object"
-          }
+          { "type": "string" },
+          { "additionalProperties": true, "type": "object" }
         ],
         "title": "Error"
       },
-      "VMHibernateRequest": {
-        "properties": {},
-        "title": "VMHibernateRequest"
-      },
+      "VMHibernateRequest": { "properties": {}, "title": "VMHibernateRequest" },
       "PreviewTokenCreateRequest": {
         "properties": {
           "expires_at": {
@@ -279,30 +186,21 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
           },
           {
             "properties": {
-              "data": {
-                "$ref": "#/components/schemas/Sandbox"
-              }
+              "data": { "$ref": "#/components/schemas/Sandbox" }
             },
             "type": "object"
           }
@@ -336,6 +234,22 @@
           "start_options": {
             "description": "Optional VM start configuration. If provided, the sandbox VM will be started immediately after creation.",
             "properties": {
+              "automatic_wakeup_config": {
+                "description": "Configuration for when the VM should automatically wake up from hibernation",
+                "properties": {
+                  "http": {
+                    "default": true,
+                    "description": "Whether the VM should automatically wake up on HTTP requests (excludes WebSocket requests)",
+                    "type": "boolean"
+                  },
+                  "websocket": {
+                    "default": true,
+                    "description": "Whether the VM should automatically wake up on WebSocket connections",
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              },
               "hibernation_timeout_seconds": {
                 "description": "The time in seconds after which the VM will hibernate due to inactivity.\nMust be a positive integer between 1 and 86400 (24 hours).\nDefaults to 300 seconds (5 minutes) if not specified.\n",
                 "example": 300,
@@ -368,9 +282,7 @@
           "tags": {
             "default": [],
             "description": "Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.",
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "type": "array"
           },
           "title": {
@@ -390,21 +302,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -415,36 +320,23 @@
                 "properties": {
                   "pagination": {
                     "properties": {
-                      "current_page": {
-                        "type": "integer"
-                      },
+                      "current_page": { "type": "integer" },
                       "next_page": {
                         "description": "The number of the next page, if any. If `null`, the current page is the last page of records.",
                         "nullable": true,
                         "type": "integer"
                       },
-                      "total_records": {
-                        "type": "integer"
-                      }
+                      "total_records": { "type": "integer" }
                     },
-                    "required": [
-                      "total_records",
-                      "current_page",
-                      "next_page"
-                    ],
+                    "required": ["total_records", "current_page", "next_page"],
                     "type": "object"
                   },
                   "sandboxes": {
-                    "items": {
-                      "$ref": "#/components/schemas/Sandbox"
-                    },
+                    "items": { "$ref": "#/components/schemas/Sandbox" },
                     "type": "array"
                   }
                 },
-                "required": [
-                  "sandboxes",
-                  "pagination"
-                ],
+                "required": ["sandboxes", "pagination"],
                 "type": "object"
               }
             },
@@ -459,48 +351,24 @@
           "api": {
             "description": "Meta information about the CodeSandbox API",
             "properties": {
-              "latest_version": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              }
+              "latest_version": { "type": "string" },
+              "name": { "type": "string" }
             },
-            "required": [
-              "name",
-              "latest_version"
-            ],
+            "required": ["name", "latest_version"],
             "type": "object"
           },
           "auth": {
             "description": "Meta information about the current authentication context",
             "properties": {
-              "scopes": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "team": {
-                "format": "uuid",
-                "nullable": true,
-                "type": "string"
-              },
-              "version": {
-                "type": "string"
-              }
+              "scopes": { "items": { "type": "string" }, "type": "array" },
+              "team": { "format": "uuid", "nullable": true, "type": "string" },
+              "version": { "type": "string" }
             },
-            "required": [
-              "scopes",
-              "team",
-              "version"
-            ],
+            "required": ["scopes", "team", "version"],
             "type": "object"
           }
         },
-        "required": [
-          "api"
-        ],
+        "required": ["api"],
         "title": "MetaInformation",
         "type": "object"
       },
@@ -548,32 +416,20 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
           },
           {
-            "properties": {
-              "data": {
-                "properties": {},
-                "type": "object"
-              }
-            },
+            "properties": { "data": { "properties": {}, "type": "object" } },
             "type": "object"
           }
         ],
@@ -587,21 +443,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -610,17 +459,10 @@
             "properties": {
               "data": {
                 "properties": {
-                  "sandbox_id": {
-                    "type": "string"
-                  },
-                  "token": {
-                    "$ref": "#/components/schemas/PreviewToken"
-                  }
+                  "sandbox_id": { "type": "string" },
+                  "token": { "$ref": "#/components/schemas/PreviewToken" }
                 },
-                "required": [
-                  "sandbox_id",
-                  "token"
-                ],
+                "required": ["sandbox_id", "token"],
                 "type": "object"
               }
             },
@@ -637,21 +479,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -660,22 +495,11 @@
             "properties": {
               "data": {
                 "properties": {
-                  "alias": {
-                    "type": "string"
-                  },
-                  "id": {
-                    "type": "string"
-                  },
-                  "title": {
-                    "nullable": true,
-                    "type": "string"
-                  }
+                  "alias": { "type": "string" },
+                  "id": { "type": "string" },
+                  "title": { "nullable": true, "type": "string" }
                 },
-                "required": [
-                  "alias",
-                  "id",
-                  "title"
-                ],
+                "required": ["alias", "id", "title"],
                 "type": "object"
               }
             },
@@ -687,6 +511,22 @@
       },
       "VMStartRequest": {
         "properties": {
+          "automatic_wakeup_config": {
+            "description": "Configuration for when the VM should automatically wake up from hibernation",
+            "properties": {
+              "http": {
+                "default": true,
+                "description": "Whether the VM should automatically wake up on HTTP requests (excludes WebSocket requests)",
+                "type": "boolean"
+              },
+              "websocket": {
+                "default": true,
+                "description": "Whether the VM should automatically wake up on WebSocket connections",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
           "hibernation_timeout_seconds": {
             "description": "The time in seconds after which the VM will hibernate due to inactivity.\nMust be a positive integer between 1 and 86400 (24 hours).\nDefaults to 300 seconds (5 minutes) if not specified.\n",
             "example": 300,
@@ -729,10 +569,7 @@
         "title": "PreviewTokenUpdateRequest",
         "type": "object"
       },
-      "VMShutdownRequest": {
-        "properties": {},
-        "title": "VMShutdownRequest"
-      },
+      "VMShutdownRequest": { "properties": {}, "title": "VMShutdownRequest" },
       "VMUpdateSpecsRequest": {
         "properties": {
           "tier": {
@@ -749,9 +586,7 @@
             "example": "Micro"
           }
         },
-        "required": [
-          "tier"
-        ],
+        "required": ["tier"],
         "title": "VMUpdateSpecsRequest",
         "type": "object"
       },
@@ -763,9 +598,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "title": "WorkspaceCreateRequest",
         "type": "object"
       },
@@ -776,21 +609,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -799,39 +625,17 @@
             "properties": {
               "data": {
                 "properties": {
-                  "bootup_type": {
-                    "type": "string"
-                  },
-                  "cluster": {
-                    "type": "string"
-                  },
-                  "id": {
-                    "type": "string"
-                  },
-                  "latest_pitcher_version": {
-                    "type": "string"
-                  },
-                  "pitcher_manager_version": {
-                    "type": "string"
-                  },
-                  "pitcher_token": {
-                    "type": "string"
-                  },
-                  "pitcher_url": {
-                    "type": "string"
-                  },
-                  "pitcher_version": {
-                    "type": "string"
-                  },
-                  "reconnect_token": {
-                    "type": "string"
-                  },
-                  "user_workspace_path": {
-                    "type": "string"
-                  },
-                  "workspace_path": {
-                    "type": "string"
-                  }
+                  "bootup_type": { "type": "string" },
+                  "cluster": { "type": "string" },
+                  "id": { "type": "string" },
+                  "latest_pitcher_version": { "type": "string" },
+                  "pitcher_manager_version": { "type": "string" },
+                  "pitcher_token": { "type": "string" },
+                  "pitcher_url": { "type": "string" },
+                  "pitcher_version": { "type": "string" },
+                  "reconnect_token": { "type": "string" },
+                  "user_workspace_path": { "type": "string" },
+                  "workspace_path": { "type": "string" }
                 },
                 "required": [
                   "bootup_type",
@@ -862,21 +666,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -885,17 +682,10 @@
             "properties": {
               "data": {
                 "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "tier": {
-                    "type": "string"
-                  }
+                  "id": { "type": "string" },
+                  "tier": { "type": "string" }
                 },
-                "required": [
-                  "id",
-                  "tier"
-                ],
+                "required": ["id", "tier"],
                 "type": "object"
               }
             },
@@ -917,9 +707,7 @@
           },
           "external_resources": {
             "description": "Array of strings with external resources to load.",
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "type": "array"
           },
           "files": {
@@ -950,9 +738,7 @@
             "type": "boolean"
           },
           "npm_dependencies": {
-            "additionalProperties": {
-              "type": "string"
-            },
+            "additionalProperties": { "type": "string" },
             "description": "Map of dependencies and their version specifications.",
             "type": "object"
           },
@@ -971,18 +757,13 @@
           "runtime": {
             "default": "browser",
             "description": "Runtime to use for the sandbox. Defaults to `\"browser\"`.",
-            "enum": [
-              "browser",
-              "vm"
-            ],
+            "enum": ["browser", "vm"],
             "type": "string"
           },
           "tags": {
             "default": [],
             "description": "List of string tags to apply to the sandbox. Only the first ten will be used. Defaults to no tags.",
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "type": "array"
           },
           "template": {
@@ -996,9 +777,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "files"
-        ],
+        "required": ["files"],
         "title": "SandboxCreateRequest"
       },
       "TokenUpdateResponse": {
@@ -1008,21 +787,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -1031,34 +803,17 @@
             "properties": {
               "data": {
                 "properties": {
-                  "description": {
-                    "nullable": true,
-                    "type": "string"
-                  },
+                  "description": { "nullable": true, "type": "string" },
                   "expires_at": {
                     "format": "date-time",
                     "nullable": true,
                     "type": "string"
                   },
-                  "scopes": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  },
-                  "team_id": {
-                    "type": "string"
-                  },
-                  "token_id": {
-                    "type": "string"
-                  }
+                  "scopes": { "items": { "type": "string" }, "type": "array" },
+                  "team_id": { "type": "string" },
+                  "token_id": { "type": "string" }
                 },
-                "required": [
-                  "description",
-                  "scopes",
-                  "team_id",
-                  "token_id"
-                ],
+                "required": ["description", "scopes", "team_id", "token_id"],
                 "type": "object"
               }
             },
@@ -1075,21 +830,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -1098,29 +846,12 @@
             "properties": {
               "data": {
                 "properties": {
-                  "description": {
-                    "nullable": true,
-                    "type": "string"
-                  },
-                  "expires_at": {
-                    "nullable": true,
-                    "type": "string"
-                  },
-                  "scopes": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  },
-                  "team_id": {
-                    "type": "string"
-                  },
-                  "token": {
-                    "type": "string"
-                  },
-                  "token_id": {
-                    "type": "string"
-                  }
+                  "description": { "nullable": true, "type": "string" },
+                  "expires_at": { "nullable": true, "type": "string" },
+                  "scopes": { "items": { "type": "string" }, "type": "array" },
+                  "team_id": { "type": "string" },
+                  "token": { "type": "string" },
+                  "token_id": { "type": "string" }
                 },
                 "required": [
                   "description",
@@ -1178,10 +909,7 @@
         "properties": {
           "permission": {
             "description": "Permission level for the session",
-            "enum": [
-              "read",
-              "write"
-            ],
+            "enum": ["read", "write"],
             "example": "write",
             "type": "string"
           },
@@ -1192,10 +920,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "session_id",
-          "permission"
-        ],
+        "required": ["session_id", "permission"],
         "title": "VMCreateSessionRequest",
         "type": "object"
       },
@@ -1206,21 +931,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -1231,9 +949,7 @@
                 "properties": {
                   "capabilities": {
                     "description": "List of capabilities that Pitcher has",
-                    "items": {
-                      "type": "string"
-                    },
+                    "items": { "type": "string" },
                     "type": "array"
                   },
                   "permissions": {
@@ -1281,21 +997,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -1304,17 +1013,10 @@
             "properties": {
               "data": {
                 "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  }
+                  "id": { "type": "string" },
+                  "name": { "type": "string" }
                 },
-                "required": [
-                  "id",
-                  "name"
-                ],
+                "required": ["id", "name"],
                 "type": "object"
               }
             },
@@ -1331,21 +1033,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -1354,17 +1049,10 @@
             "properties": {
               "data": {
                 "properties": {
-                  "hibernation_timeout_seconds": {
-                    "type": "integer"
-                  },
-                  "id": {
-                    "type": "string"
-                  }
+                  "hibernation_timeout_seconds": { "type": "integer" },
+                  "id": { "type": "string" }
                 },
-                "required": [
-                  "id",
-                  "hibernation_timeout_seconds"
-                ],
+                "required": ["id", "hibernation_timeout_seconds"],
                 "type": "object"
               }
             },
@@ -1381,21 +1069,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -1404,49 +1085,23 @@
             "properties": {
               "data": {
                 "properties": {
-                  "alias": {
-                    "type": "string"
-                  },
-                  "id": {
-                    "type": "string"
-                  },
+                  "alias": { "type": "string" },
+                  "id": { "type": "string" },
                   "start_response": {
                     "description": "VM start response. Only present when start_options were provided in the request.",
                     "nullable": true,
                     "properties": {
-                      "bootup_type": {
-                        "type": "string"
-                      },
-                      "cluster": {
-                        "type": "string"
-                      },
-                      "id": {
-                        "type": "string"
-                      },
-                      "latest_pitcher_version": {
-                        "type": "string"
-                      },
-                      "pitcher_manager_version": {
-                        "type": "string"
-                      },
-                      "pitcher_token": {
-                        "type": "string"
-                      },
-                      "pitcher_url": {
-                        "type": "string"
-                      },
-                      "pitcher_version": {
-                        "type": "string"
-                      },
-                      "reconnect_token": {
-                        "type": "string"
-                      },
-                      "user_workspace_path": {
-                        "type": "string"
-                      },
-                      "workspace_path": {
-                        "type": "string"
-                      }
+                      "bootup_type": { "type": "string" },
+                      "cluster": { "type": "string" },
+                      "id": { "type": "string" },
+                      "latest_pitcher_version": { "type": "string" },
+                      "pitcher_manager_version": { "type": "string" },
+                      "pitcher_token": { "type": "string" },
+                      "pitcher_url": { "type": "string" },
+                      "pitcher_version": { "type": "string" },
+                      "reconnect_token": { "type": "string" },
+                      "user_workspace_path": { "type": "string" },
+                      "workspace_path": { "type": "string" }
                     },
                     "required": [
                       "bootup_type",
@@ -1463,16 +1118,9 @@
                     ],
                     "type": "object"
                   },
-                  "title": {
-                    "nullable": true,
-                    "type": "string"
-                  }
+                  "title": { "nullable": true, "type": "string" }
                 },
-                "required": [
-                  "alias",
-                  "id",
-                  "title"
-                ],
+                "required": ["alias", "id", "title"],
                 "type": "object"
               }
             },
@@ -1489,21 +1137,14 @@
               "errors": {
                 "items": {
                   "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    }
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
                   ],
                   "title": "Error"
                 },
                 "type": "array"
               },
-              "success": {
-                "type": "boolean"
-              }
+              "success": { "type": "boolean" }
             },
             "title": "Response",
             "type": "object"
@@ -1512,27 +1153,18 @@
             "properties": {
               "data": {
                 "properties": {
-                  "sandbox_id": {
-                    "type": "string"
-                  },
+                  "sandbox_id": { "type": "string" },
                   "token": {
                     "allOf": [
                       {
                         "properties": {
-                          "expires_at": {
-                            "nullable": true,
-                            "type": "string"
-                          },
+                          "expires_at": { "nullable": true, "type": "string" },
                           "last_used_at": {
                             "nullable": true,
                             "type": "string"
                           },
-                          "token_id": {
-                            "type": "string"
-                          },
-                          "token_prefix": {
-                            "type": "string"
-                          }
+                          "token_id": { "type": "string" },
+                          "token_prefix": { "type": "string" }
                         },
                         "required": [
                           "expires_at",
@@ -1544,24 +1176,15 @@
                         "type": "object"
                       },
                       {
-                        "properties": {
-                          "token": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "token"
-                        ],
+                        "properties": { "token": { "type": "string" } },
+                        "required": ["token"],
                         "type": "object"
                       }
                     ],
                     "type": "object"
                   }
                 },
-                "required": [
-                  "sandbox_id",
-                  "token"
-                ],
+                "required": ["sandbox_id", "token"],
                 "type": "object"
               }
             },
@@ -1573,16 +1196,10 @@
       }
     },
     "securitySchemes": {
-      "authorization": {
-        "scheme": "bearer",
-        "type": "http"
-      }
+      "authorization": { "scheme": "bearer", "type": "http" }
     }
   },
-  "info": {
-    "title": "CodeSandbox API",
-    "version": "2023-07-01"
-  },
+  "info": { "title": "CodeSandbox API", "version": "2023-07-01" },
   "openapi": "3.0.0",
   "paths": {
     "/meta/info": {
@@ -1594,21 +1211,15 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MetaInformation"
-                }
+                "schema": { "$ref": "#/components/schemas/MetaInformation" }
               }
             },
             "description": "Meta Info Response"
           }
         },
-        "security": [
-          {}
-        ],
+        "security": [{}],
         "summary": "Metadata about the API",
-        "tags": [
-          "meta"
-        ]
+        "tags": ["meta"]
       }
     },
     "/org/workspace": {
@@ -1640,13 +1251,7 @@
             "description": "Workspace Create Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "workspace:create"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["workspace:create"] }],
         "summary": "Create a Workspace",
         "tags": []
       }
@@ -1663,17 +1268,13 @@
             "in": "path",
             "name": "team_id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TokenCreateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/TokenCreateRequest" }
             }
           },
           "description": "Token Create Request",
@@ -1683,21 +1284,13 @@
           "201": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenCreateResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/TokenCreateResponse" }
               }
             },
             "description": "Token Create Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "token:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["token:manage"] }],
         "summary": "Create an API Token",
         "tags": []
       }
@@ -1714,9 +1307,7 @@
             "in": "path",
             "name": "team_id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           },
           {
             "description": "ID of token to update",
@@ -1724,17 +1315,13 @@
             "in": "path",
             "name": "token_id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TokenUpdateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/TokenUpdateRequest" }
             }
           },
           "description": "Token Update Request",
@@ -1744,21 +1331,13 @@
           "201": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenUpdateResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/TokenUpdateResponse" }
               }
             },
             "description": "Token Update Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "token:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["token:manage"] }],
         "summary": "Update an API Token",
         "tags": []
       }
@@ -1775,9 +1354,7 @@
             "in": "query",
             "name": "tags",
             "required": false,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           },
           {
             "description": "Field to order results by",
@@ -1787,10 +1364,7 @@
             "required": false,
             "schema": {
               "default": "updated_at",
-              "enum": [
-                "inserted_at",
-                "updated_at"
-              ]
+              "enum": ["inserted_at", "updated_at"]
             }
           },
           {
@@ -1799,13 +1373,7 @@
             "in": "query",
             "name": "direction",
             "required": false,
-            "schema": {
-              "default": "desc",
-              "enum": [
-                "asc",
-                "desc"
-              ]
-            }
+            "schema": { "default": "desc", "enum": ["asc", "desc"] }
           },
           {
             "description": "Maximum number of sandboxes to return in a single response",
@@ -1824,47 +1392,29 @@
             "in": "query",
             "name": "page",
             "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "integer"
-            }
+            "schema": { "default": 1, "minimum": 1, "type": "integer" }
           },
           {
             "description": "If true, only returns VMs for which a heartbeat was received in the last 30 seconds.",
             "in": "query",
             "name": "status",
             "required": false,
-            "schema": {
-              "enum": [
-                "running"
-              ]
-            }
+            "schema": { "enum": ["running"] }
           }
         ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SandboxListResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/SandboxListResponse" }
               }
             },
             "description": "Sandbox List Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "sandbox:read"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["sandbox:read"] }],
         "summary": "List Sandboxes",
-        "tags": [
-          "sandbox"
-        ]
+        "tags": ["sandbox"]
       },
       "post": {
         "callbacks": {},
@@ -1874,9 +1424,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SandboxCreateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/SandboxCreateRequest" }
             }
           },
           "description": "Sandbox Create Request",
@@ -1894,17 +1442,9 @@
             "description": "Sandbox Create Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "sandbox:create"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["sandbox:create"] }],
         "summary": "Create a Sandbox",
-        "tags": [
-          "sandbox"
-        ]
+        "tags": ["sandbox"]
       }
     },
     "/sandbox/{id}": {
@@ -1919,34 +1459,22 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SandboxGetResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/SandboxGetResponse" }
               }
             },
             "description": "Sandbox Get Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "sandbox:read"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["sandbox:read"] }],
         "summary": "Get a Sandbox",
-        "tags": [
-          "sandbox"
-        ]
+        "tags": ["sandbox"]
       }
     },
     "/sandbox/{id}/fork": {
@@ -1961,17 +1489,13 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SandboxForkRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/SandboxForkRequest" }
             }
           },
           "description": "Sandbox Fork Request",
@@ -1981,25 +1505,15 @@
           "201": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SandboxForkResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/SandboxForkResponse" }
               }
             },
             "description": "Sandbox Fork Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "sandbox:create"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["sandbox:create"] }],
         "summary": "Fork a Sandbox",
-        "tags": [
-          "sandbox"
-        ]
+        "tags": ["sandbox"]
       }
     },
     "/sandbox/{id}/tokens": {
@@ -2014,9 +1528,7 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
@@ -2028,16 +1540,10 @@
                 }
               }
             },
-            "description": "RevokeALlPreviewTokensResponse"
+            "description": "RevokeAllPreviewTokensResponse"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "preview_token:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["preview_token:manage"] }],
         "summary": "Revoke preview tokens",
         "tags": []
       },
@@ -2052,9 +1558,7 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
@@ -2069,13 +1573,7 @@
             "description": "Token List Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "preview_token:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["preview_token:manage"] }],
         "summary": "List Preview Tokens",
         "tags": []
       },
@@ -2090,9 +1588,7 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
@@ -2118,13 +1614,7 @@
             "description": "Token Create Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "preview_token:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["preview_token:manage"] }],
         "summary": "Create a Preview Token",
         "tags": []
       }
@@ -2141,9 +1631,7 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           },
           {
             "description": "ID of the token to update. Does not accept the token itself.",
@@ -2151,9 +1639,7 @@
             "in": "path",
             "name": "token_id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
@@ -2179,13 +1665,7 @@
             "description": "Token Update Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "preview_token:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["preview_token:manage"] }],
         "summary": "Update a Preview Token",
         "tags": []
       }
@@ -2202,17 +1682,13 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VMHibernateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/VMHibernateRequest" }
             }
           },
           "description": "VM Hibernate Request",
@@ -2222,25 +1698,15 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VMHibernateResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/VMHibernateResponse" }
               }
             },
             "description": "VM Hibernate Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "vm:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Hibernate a VM",
-        "tags": [
-          "vm"
-        ]
+        "tags": ["vm"]
       }
     },
     "/vm/{id}/hibernation_timeout": {
@@ -2255,9 +1721,7 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
@@ -2283,17 +1747,9 @@
             "description": "VM Update Hibernation Timeout Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "vm:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Update VM Hibernation Timeout",
-        "tags": [
-          "vm"
-        ]
+        "tags": ["vm"]
       }
     },
     "/vm/{id}/sessions": {
@@ -2308,9 +1764,7 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
@@ -2336,17 +1790,9 @@
             "description": "VM Create Session Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "vm:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Create a new session on a VM",
-        "tags": [
-          "vm"
-        ]
+        "tags": ["vm"]
       }
     },
     "/vm/{id}/shutdown": {
@@ -2361,17 +1807,13 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VMShutdownRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/VMShutdownRequest" }
             }
           },
           "description": "VM Shutdown Request",
@@ -2381,25 +1823,15 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VMShutdownResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/VMShutdownResponse" }
               }
             },
             "description": "VM Shutdown Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "vm:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Shutdown a VM",
-        "tags": [
-          "vm"
-        ]
+        "tags": ["vm"]
       }
     },
     "/vm/{id}/specs": {
@@ -2414,17 +1846,13 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VMUpdateSpecsRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/VMUpdateSpecsRequest" }
             }
           },
           "description": "VM Update Specs Request",
@@ -2442,17 +1870,9 @@
             "description": "VM Update Specs Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "vm:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Update VM Specs",
-        "tags": [
-          "vm"
-        ]
+        "tags": ["vm"]
       }
     },
     "/vm/{id}/start": {
@@ -2467,17 +1887,13 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VMStartRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/VMStartRequest" }
             }
           },
           "description": "VM Start Request",
@@ -2487,26 +1903,15 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VMStartResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/VMStartResponse" }
               }
             },
             "description": "VM Start Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "sandbox:read",
-              "vm:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["sandbox:read", "vm:manage"] }],
         "summary": "Start a VM",
-        "tags": [
-          "vm"
-        ]
+        "tags": ["vm"]
       }
     },
     "/vm/{id}/update_specs": {
@@ -2521,17 +1926,13 @@
             "in": "path",
             "name": "id",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VMUpdateSpecsRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/VMUpdateSpecsRequest" }
             }
           },
           "description": "VM Update Specs Request",
@@ -2549,26 +1950,13 @@
             "description": "VM Update Specs Response"
           }
         },
-        "security": [
-          {
-            "authorization": [
-              "vm:manage"
-            ]
-          }
-        ],
+        "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Update VM Specs",
-        "tags": [
-          "vm"
-        ]
+        "tags": ["vm"]
       }
     }
   },
   "security": [],
-  "servers": [
-    {
-      "url": "https://api.codesandbox.stream",
-      "variables": {}
-    }
-  ],
+  "servers": [{ "url": "https://api.codesandbox.stream", "variables": {} }],
   "tags": []
 }

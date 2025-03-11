@@ -115,6 +115,19 @@ export type SandboxForkRequest = {
      */
     start_options?: {
         /**
+         * Configuration for when the VM should automatically wake up from hibernation
+         */
+        automatic_wakeup_config?: {
+            /**
+             * Whether the VM should automatically wake up on HTTP requests (excludes WebSocket requests)
+             */
+            http?: boolean;
+            /**
+             * Whether the VM should automatically wake up on WebSocket connections
+             */
+            websocket?: boolean;
+        };
+        /**
          * The time in seconds after which the VM will hibernate due to inactivity.
          * Must be a positive integer between 1 and 86400 (24 hours).
          * Defaults to 300 seconds (5 minutes) if not specified.
@@ -241,6 +254,19 @@ export type SandboxCreateResponse = {
 };
 
 export type VmStartRequest = {
+    /**
+     * Configuration for when the VM should automatically wake up from hibernation
+     */
+    automatic_wakeup_config?: {
+        /**
+         * Whether the VM should automatically wake up on HTTP requests (excludes WebSocket requests)
+         */
+        http?: boolean;
+        /**
+         * Whether the VM should automatically wake up on WebSocket connections
+         */
+        websocket?: boolean;
+    };
     /**
      * The time in seconds after which the VM will hibernate due to inactivity.
      * Must be a positive integer between 1 and 86400 (24 hours).
@@ -556,7 +582,7 @@ export type PreviewTokenCreateResponse = {
             token_id: string;
             token_prefix: string;
         } & {
-            token?: string;
+            token: string;
         };
     };
 };
@@ -767,7 +793,7 @@ export type PreviewTokenRevokeAllData = {
 
 export type PreviewTokenRevokeAllResponses = {
     /**
-     * RevokeALlPreviewTokensResponse
+     * RevokeAllPreviewTokensResponse
      */
     200: PreviewTokenRevokeAllResponse;
 };
