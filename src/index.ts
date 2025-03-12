@@ -3,7 +3,6 @@ import { createClient, createConfig } from "@hey-api/client-fetch";
 
 import {
   SandboxClient,
-  SandboxStartData,
   CreateSandboxOpts,
   VMTier,
   SandboxListOpts,
@@ -13,7 +12,6 @@ import {
 
 export {
   SandboxClient,
-  SandboxStartData,
   CreateSandboxOpts,
   VMTier,
   SandboxListOpts,
@@ -55,14 +53,15 @@ function getBaseUrl(token: string) {
   return "https://api.together.ai/csb/sdk";
 }
 
+export { RestClient } from "./rest-client";
+
 export class CodeSandbox {
   private baseUrl: string;
   private apiToken: string;
   public readonly apiClient: Client;
-
   public readonly sandbox: SandboxClient;
 
-  constructor(apiToken?: string, private readonly opts: ClientOpts = {}) {
+  constructor(apiToken?: string, readonly opts: ClientOpts = {}) {
     this.apiToken =
       apiToken ||
       ensure(
