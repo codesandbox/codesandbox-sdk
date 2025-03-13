@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/codesandbox/codesandbox-sdk/compare/v0.11.0...v0.11.1) (2025-03-13)
+
+
+### Bug Fixes
+
+* support `keepActiveWhileConnected` for browser sessions ([#81](https://github.com/codesandbox/codesandbox-sdk/issues/81)) ([ca1f825](https://github.com/codesandbox/codesandbox-sdk/commit/ca1f82582d2f12b84cdf379902c596e6d5bfed52))
+
 ## [0.11.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.10.0...v0.11.0) (2025-03-11)
 
 
