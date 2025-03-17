@@ -7,7 +7,7 @@ export interface SessionCreateOptions {
   autoConnect?: boolean;
 }
 
-export type SessionConnectInfo = {
+export type SessionData = {
   id: string;
   pitcher_token: string;
   pitcher_url: string;
