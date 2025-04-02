@@ -1,5 +1,6 @@
 import { initPitcherClient } from "@codesandbox/pitcher-client";
 import type { Client } from "@hey-api/client-fetch";
+import { createClient, createConfig } from "@hey-api/client-fetch";
 
 import type {
   SandboxForkResponse,
@@ -23,6 +24,9 @@ import {
 import { Sandbox, SandboxSession } from "./sandbox";
 import { handleResponse } from "./utils/handle-response";
 import { SessionCreateOptions, SessionData } from "./sessions";
+import { SandboxRestClient } from "./sandbox-rest-client";
+import { SandboxRestFileSystem } from "./sandbox-rest-filesystem";
+import { ClientOpts } from ".";
 
 type SandboxForkResponseWithSession = SandboxForkResponse["data"] & {
   start_response: Required<VmStartResponse>["data"];
@@ -251,7 +255,18 @@ export type HandledResponse<D, E> = {
   response: Response;
 };
 
+function getBaseUrl(token: string) {
+  if (token.startsWith("csb_")) {
+    return "https://api.codesandbox.io";
+  }
+
+  return "https://api.together.ai/csb/sdk";
+}
+
 export class SandboxClient {
+  private apiClient: Client;
+  private sandboxRestClient: SandboxRestClient;
+
   get defaultTemplate() {
     if (this.apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
       return "7ngcrf";
@@ -260,7 +275,26 @@ export class SandboxClient {
     return "pcz35m";
   }
 
-  constructor(private readonly apiClient: Client) {}
+  get fs() {
+    return this.sandboxRestClient.fs;
+  }
+
+  constructor(apiToken: string, opts: ClientOpts) {
+    const baseUrl =
+      process.env.CSB_BASE_URL ?? opts.baseUrl ?? getBaseUrl(apiToken);
+
+    this.sandboxRestClient = new SandboxRestClient(opts);
+    this.apiClient = this.apiClient = createClient(
+      createConfig({
+        baseUrl,
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          ...(opts.headers ?? {}),
+        },
+        fetch: opts.fetch ?? fetch,
+      })
+    );
+  }
 
   /**
    * Open, start & connect to a sandbox that already exists
@@ -310,7 +344,7 @@ export class SandboxClient {
    * any sandbox/template created on codesandbox.io, even your own templates) or don't pass
    * in anything and we'll use the default universal template.
    *
-   * This function will also start & connect to the VM of the created sandbox as a ROOT session, and return a {@link Sandbox}
+   * This function will also start & connect to the VM of the created sandbox with a global session, and return a {@link Sandbox}
    * that allows you to control the VM. Pass "autoConnect: false" to only return the session data.
    *
    * @param opts Additional options for creating the sandbox
@@ -335,7 +369,8 @@ export class SandboxClient {
 
     // We always want to start the VM in this context as our intention is to connect immediately
     // or return the session data to manually connect, for example in browser
-    const startOptions = startOptionsFromOpts(opts) || {};
+    const startOptions =
+      opts?.autoConnect === false ? undefined : startOptionsFromOpts(opts);
 
     const result = await sandboxFork({
       client: this.apiClient,
@@ -356,9 +391,17 @@ export class SandboxClient {
       result,
       "Failed to create sandbox"
       // We currently always pass "start_options" to create a session
-    ) as SandboxForkResponseWithSession;
+    );
 
     const shouldReturnSessionOnly = opts?.autoConnect === false;
+
+    // HACK: We need to start the sandbox on the correct cluster, which means we can not
+    // start the sandbox during `sandboxFork`. Normally we would always get a `start_response` here,
+    // directly from fork endpoint
+    if (shouldReturnSessionOnly || !sandbox.start_response) {
+      return this.start(sandbox.id, startOptions);
+    }
+
     const session: SessionData = {
       id: sandbox.id,
       pitcher_token: sandbox.start_response.pitcher_token,
