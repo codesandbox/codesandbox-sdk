@@ -8,8 +8,6 @@ import {
   SandboxInfo,
   PaginationOpts,
 } from "./sandbox-client";
-import { SandboxRestFileSystem } from "./sandbox-rest-filesystem";
-import { SandboxRestClient } from "./sandbox-rest-client";
 
 export {
   SandboxClient,

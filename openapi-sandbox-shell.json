@@ -1,0 +1,916 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Sandbox Shell API",
+    "description": "API for managing terminal and command shells in the sandbox",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/shell/create": {
+      "post": {
+        "summary": "Create a new shell",
+        "description": "Creates a new terminal or command shell",
+        "operationId": "shellCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "Command to execute in the shell"
+                  },
+                  "cwd": {
+                    "type": "string",
+                    "description": "Working directory for the shell"
+                  },
+                  "size": {
+                    "$ref": "#/components/schemas/ShellSize",
+                    "description": "Terminal size dimensions"
+                  },
+                  "type": {
+                    "$ref": "#/components/schemas/ShellProcessType",
+                    "description": "Type of shell to create"
+                  },
+                  "isSystemShell": {
+                    "type": "boolean",
+                    "description": "Whether this shell is started by the editor itself to run a specific process"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/OpenShellDTO"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error creating shell",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shell/in": {
+      "post": {
+        "summary": "Send input to shell",
+        "description": "Sends user input to an active shell",
+        "operationId": "shellIn",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shellId": {
+                    "$ref": "#/components/schemas/ShellId",
+                    "description": "ID of the target shell"
+                  },
+                  "input": {
+                    "type": "string",
+                    "description": "Input to send to the shell"
+                  },
+                  "size": {
+                    "$ref": "#/components/schemas/ShellSize",
+                    "description": "Current terminal dimensions"
+                  }
+                },
+                "required": ["shellId", "input", "size"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error sending input to shell",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shell/list": {
+      "post": {
+        "summary": "List all shells",
+        "description": "Retrieves a list of all available shells",
+        "operationId": "shellList",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "object",
+                          "properties": {
+                            "shells": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/ShellDTO"
+                              }
+                            }
+                          },
+                          "required": ["shells"]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error listing shells",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shell/open": {
+      "post": {
+        "summary": "Open an existing shell",
+        "description": "Opens an existing shell and retrieves its buffer",
+        "operationId": "shellOpen",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shellId": {
+                    "$ref": "#/components/schemas/ShellId",
+                    "description": "ID of the shell to open"
+                  },
+                  "size": {
+                    "$ref": "#/components/schemas/ShellSize",
+                    "description": "Terminal dimensions"
+                  }
+                },
+                "required": ["shellId", "size"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/OpenShellDTO"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error opening shell",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shell/close": {
+      "post": {
+        "summary": "Close a shell",
+        "description": "Closes a shell without terminating the underlying process",
+        "operationId": "shellClose",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shellId": {
+                    "$ref": "#/components/schemas/ShellId",
+                    "description": "ID of the shell to close"
+                  }
+                },
+                "required": ["shellId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error closing shell",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shell/restart": {
+      "post": {
+        "summary": "Restart a shell",
+        "description": "Restarts an existing shell process",
+        "operationId": "shellRestart",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shellId": {
+                    "$ref": "#/components/schemas/ShellId",
+                    "description": "ID of the shell to restart"
+                  }
+                },
+                "required": ["shellId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error restarting shell",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shell/terminate": {
+      "post": {
+        "summary": "Terminate a shell",
+        "description": "Terminates a shell and its underlying process",
+        "operationId": "shellTerminate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shellId": {
+                    "$ref": "#/components/schemas/ShellId",
+                    "description": "ID of the shell to terminate"
+                  }
+                },
+                "required": ["shellId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/ShellDTO"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error terminating shell",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shell/resize": {
+      "post": {
+        "summary": "Resize a shell",
+        "description": "Updates the dimensions of a shell",
+        "operationId": "shellResize",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shellId": {
+                    "$ref": "#/components/schemas/ShellId",
+                    "description": "ID of the shell to resize"
+                  },
+                  "size": {
+                    "$ref": "#/components/schemas/ShellSize",
+                    "description": "New terminal dimensions"
+                  }
+                },
+                "required": ["shellId", "size"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error resizing shell",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shell/rename": {
+      "post": {
+        "summary": "Rename a shell",
+        "description": "Updates the name of a shell",
+        "operationId": "shellRename",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shellId": {
+                    "$ref": "#/components/schemas/ShellId",
+                    "description": "ID of the shell to rename"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "New name for the shell"
+                  }
+                },
+                "required": ["shellId", "name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error renaming shell",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number",
+            "enum": [0],
+            "description": "Status code for successful operations"
+          },
+          "result": {
+            "type": "object",
+            "description": "Result payload for the operation"
+          }
+        },
+        "required": ["status", "result"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number",
+            "enum": [1],
+            "description": "Status code for error operations"
+          },
+          "error": {
+            "type": "object",
+            "description": "Error details"
+          }
+        },
+        "required": ["status", "error"]
+      },
+      "ShellId": {
+        "type": "string",
+        "description": "Unique identifier for a shell"
+      },
+      "ShellSize": {
+        "type": "object",
+        "properties": {
+          "cols": {
+            "type": "number",
+            "description": "Number of columns in the terminal"
+          },
+          "rows": {
+            "type": "number",
+            "description": "Number of rows in the terminal"
+          }
+        },
+        "required": ["cols", "rows"]
+      },
+      "ShellProcessType": {
+        "type": "string",
+        "enum": ["TERMINAL", "COMMAND"],
+        "description": "Type of shell process"
+      },
+      "ShellProcessStatus": {
+        "type": "string",
+        "enum": ["RUNNING", "FINISHED", "ERROR", "KILLED", "RESTARTING"],
+        "description": "Current status of the shell process"
+      },
+      "BaseShellDTO": {
+        "type": "object",
+        "properties": {
+          "shellId": {
+            "$ref": "#/components/schemas/ShellId"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the shell"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ShellProcessStatus"
+          },
+          "exitCode": {
+            "type": "number",
+            "description": "Exit code of the process if it has finished",
+            "nullable": true
+          }
+        },
+        "required": ["shellId", "name", "status"]
+      },
+      "CommandShellDTO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseShellDTO"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "shellType": {
+                "type": "string",
+                "enum": ["COMMAND"],
+                "description": "Indicates this is a command shell"
+              },
+              "startCommand": {
+                "type": "string",
+                "description": "The command that was executed to start this shell"
+              }
+            },
+            "required": ["shellType", "startCommand"]
+          }
+        ]
+      },
+      "TerminalShellDTO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseShellDTO"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "shellType": {
+                "type": "string",
+                "enum": ["TERMINAL"],
+                "description": "Indicates this is a terminal shell"
+              },
+              "ownerUsername": {
+                "type": "string",
+                "description": "Username of the shell owner"
+              },
+              "isSystemShell": {
+                "type": "boolean",
+                "description": "Whether this is a system shell"
+              }
+            },
+            "required": ["shellType", "ownerUsername", "isSystemShell"]
+          }
+        ]
+      },
+      "ShellDTO": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CommandShellDTO"
+          },
+          {
+            "$ref": "#/components/schemas/TerminalShellDTO"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "shellType",
+          "mapping": {
+            "COMMAND": "#/components/schemas/CommandShellDTO",
+            "TERMINAL": "#/components/schemas/TerminalShellDTO"
+          }
+        }
+      },
+      "OpenCommandShellDTO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommandShellDTO"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "buffer": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Content buffer of the shell"
+              }
+            },
+            "required": ["buffer"]
+          }
+        ]
+      },
+      "OpenTerminalShellDTO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TerminalShellDTO"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "buffer": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Content buffer of the shell"
+              }
+            },
+            "required": ["buffer"]
+          }
+        ]
+      },
+      "OpenShellDTO": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OpenCommandShellDTO"
+          },
+          {
+            "$ref": "#/components/schemas/OpenTerminalShellDTO"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "shellType",
+          "mapping": {
+            "COMMAND": "#/components/schemas/OpenCommandShellDTO",
+            "TERMINAL": "#/components/schemas/OpenTerminalShellDTO"
+          }
+        }
+      },
+      "CommonError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": ["SHELL_NOT_ACCESSIBLE"],
+                "description": "Error code indicating the shell is not accessible"
+              },
+              "message": {
+                "type": "string",
+                "description": "Error message"
+              }
+            },
+            "required": ["code", "message"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Protocol error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Error message"
+              }
+            },
+            "required": ["code", "message"]
+          }
+        ]
+      }
+    }
+  }
+}
