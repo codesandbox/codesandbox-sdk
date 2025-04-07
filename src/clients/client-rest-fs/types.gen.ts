@@ -436,7 +436,7 @@ export type WriteFileData = {
     body: WriteFileRequest;
     path?: never;
     query?: never;
-    url: '/fs/writefile';
+    url: '/fs/writeFile';
 };
 
 export type WriteFileErrors = {

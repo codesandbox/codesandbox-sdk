@@ -6,7 +6,7 @@ import type {
   SandboxForkResponse,
   VmStartResponse,
   VmUpdateSpecsRequest,
-} from "./client";
+} from "./clients/client";
 import {
   sandboxFork,
   vmCreateSession,
@@ -20,17 +20,12 @@ import {
   previewTokenList,
   previewTokenRevokeAll,
   previewTokenUpdate,
-} from "./client";
+} from "./clients/client";
 import { Sandbox, SandboxSession } from "./sandbox";
 import { handleResponse } from "./utils/handle-response";
 import { SessionCreateOptions, SessionData } from "./sessions";
 import { SandboxRestClient } from "./sandbox-rest-client";
-import { SandboxRestFileSystem } from "./sandbox-rest-filesystem";
 import { ClientOpts } from ".";
-
-type SandboxForkResponseWithSession = SandboxForkResponse["data"] & {
-  start_response: Required<VmStartResponse>["data"];
-};
 
 export type SandboxPrivacy = "public" | "unlisted" | "private";
 

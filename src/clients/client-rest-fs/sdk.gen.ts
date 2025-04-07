@@ -19,7 +19,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  */
 export const writeFile = <ThrowOnError extends boolean = false>(options: Options<WriteFileData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).post<WriteFileResponse, WriteFileError, ThrowOnError>({
-        url: '/fs/writefile',
+        url: '/fs/writeFile',
         ...options,
         headers: {
             'Content-Type': 'application/json',
