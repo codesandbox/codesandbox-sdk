@@ -108,7 +108,7 @@ export class Shells extends Disposable {
    * ## Example
    *
    * ```ts
-   * const shell = await sandbox.shell.runCommand("echo 'Hello, world!'");
+   * const shell = sandbox.shell.run("echo 'Hello, world!'");
    *
    * shell.onOutput((data) => {
    *   console.log(data);

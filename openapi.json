@@ -243,7 +243,7 @@
                     "type": "boolean"
                   },
                   "websocket": {
-                    "default": false,
+                    "default": true,
                     "description": "Whether the VM should automatically wake up on WebSocket connections",
                     "type": "boolean"
                   }
@@ -520,7 +520,7 @@
                 "type": "boolean"
               },
               "websocket": {
-                "default": false,
+                "default": true,
                 "description": "Whether the VM should automatically wake up on WebSocket connections",
                 "type": "boolean"
               }
@@ -1957,6 +1957,6 @@
     }
   },
   "security": [],
-  "servers": [{ "url": "https://api.codesandbox.io", "variables": {} }],
+  "servers": [{ "url": "https://api.codesandbox.stream", "variables": {} }],
   "tags": []
 }
