@@ -270,15 +270,15 @@ export const buildCommand: yargs.CommandModule<
             // eslint-disable-next-line no-constant-condition
             while (true) {
               const res = await fetch(portInfo.getPreviewUrl());
-              if (res.status < 400) {
+              if (res.status !== 502 && res.status !== 503) {
                 spinner.succeed(`Port ${port} is open (status ${res.status})`);
                 break;
-              } else {
-                spinner.fail(
-                  `Port ${port} is not open yet (status ${res.status}), retrying in 1 second...`
-                );
-                await new Promise((resolve) => setTimeout(resolve, 1000));
               }
+
+              spinner.fail(
+                `Port ${port} is not open yet (status ${res.status}), retrying in 1 second...`
+              );
+              await new Promise((resolve) => setTimeout(resolve, 1000));
             }
 
             tasksWithPorts = tasksWithPorts.filter((t) => t.id !== task.id);
