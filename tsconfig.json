@@ -18,5 +18,13 @@
     "strict": true
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "es", "lib", "cjs", "src/bin"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "es",
+    "lib",
+    "cjs",
+    "src/bin",
+    "src/clients"
+  ]
 }

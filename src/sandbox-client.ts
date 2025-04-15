@@ -1,7 +1,12 @@
 import { initPitcherClient } from "@codesandbox/pitcher-client";
 import type { Client } from "@hey-api/client-fetch";
+import { createClient, createConfig } from "@hey-api/client-fetch";
 
-import type { VmStartResponse, VmUpdateSpecsRequest } from "./client";
+import type {
+  SandboxForkResponse,
+  VmStartResponse,
+  VmUpdateSpecsRequest,
+} from "./clients/client";
 import {
   sandboxFork,
   vmCreateSession,
@@ -15,13 +20,14 @@ import {
   previewTokenList,
   previewTokenRevokeAll,
   previewTokenUpdate,
-} from "./client";
+} from "./clients/client";
 import { Sandbox, SandboxSession } from "./sandbox";
 import { handleResponse } from "./utils/handle-response";
-import { SessionCreateOptions, SessionConnectInfo } from "./sessions";
+import { SessionCreateOptions, SessionData } from "./sessions";
+import { SandboxRestClient } from "./sandbox-rest-client";
+import { ClientOpts } from ".";
 
 export type SandboxPrivacy = "public" | "unlisted" | "private";
-export type SandboxStartData = Required<VmStartResponse>["data"];
 
 export type SandboxInfo = {
   id: string;
@@ -201,6 +207,7 @@ export class VMTier {
 
 function startOptionsFromOpts(opts: StartSandboxOpts | undefined) {
   if (!opts) return undefined;
+
   return {
     ipcountry: opts.ipcountry,
     tier: opts.vmTier?.name,
@@ -263,15 +270,45 @@ export type HandledResponse<D, E> = {
   response: Response;
 };
 
-export class SandboxClient {
-  constructor(private readonly apiClient: Client) {}
+function getBaseUrl(token: string) {
+  if (token.startsWith("csb_")) {
+    return "https://api.codesandbox.io";
+  }
 
-  private get defaultTemplate(): string {
+  return "https://api.together.ai/csb/sdk";
+}
+
+export class SandboxClient {
+  private apiClient: Client;
+  private sandboxRestClient: SandboxRestClient;
+
+  get defaultTemplate() {
     if (this.apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
       return "7ngcrf";
     }
 
     return "pcz35m";
+  }
+
+  get fs() {
+    return this.sandboxRestClient.fs;
+  }
+
+  constructor(apiToken: string, opts: ClientOpts) {
+    const baseUrl =
+      process.env.CSB_BASE_URL ?? opts.baseUrl ?? getBaseUrl(apiToken);
+
+    this.sandboxRestClient = new SandboxRestClient(opts);
+    this.apiClient = this.apiClient = createClient(
+      createConfig({
+        baseUrl,
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          ...(opts.headers ?? {}),
+        },
+        fetch: opts.fetch ?? fetch,
+      })
+    );
   }
 
   /**
@@ -281,7 +318,15 @@ export class SandboxClient {
     id: string,
     startOpts?: StartSandboxOpts
   ): Promise<Sandbox> {
-    return this.connectToSandbox(id, () => this.start(id, startOpts));
+    const sandbox = await this.start(id, startOpts);
+    const session: SessionData = {
+      id: sandbox.id,
+      pitcher_token: sandbox.pitcher_token,
+      pitcher_url: sandbox.pitcher_url,
+      user_workspace_path: sandbox.user_workspace_path,
+    };
+
+    return this.connectToSandbox(session);
   }
 
   /**
@@ -295,7 +340,7 @@ export class SandboxClient {
   public async start(
     id: string,
     opts?: StartSandboxOpts
-  ): Promise<SandboxStartData> {
+  ): Promise<SessionData> {
     const startResult = await vmStart({
       client: this.apiClient,
       body: startOptionsFromOpts(opts),
@@ -314,8 +359,8 @@ export class SandboxClient {
    * any sandbox/template created on codesandbox.io, even your own templates) or don't pass
    * in anything and we'll use the default universal template.
    *
-   * This function will also start & connect to the VM of the created sandbox, and return a {@link Sandbox}
-   * that allows you to control the VM.
+   * This function will also start & connect to the VM of the created sandbox with a global session, and return a {@link Sandbox}
+   * that allows you to control the VM. Pass "autoConnect: false" to only return the session data.
    *
    * @param opts Additional options for creating the sandbox
    *
@@ -323,12 +368,12 @@ export class SandboxClient {
    */
   async create(
     opts: { autoConnect: false } & CreateSandboxOpts
-  ): Promise<SandboxStartData>;
+  ): Promise<SessionData>;
   async create(
     opts?: { autoConnect?: true } & CreateSandboxOpts
   ): Promise<Sandbox>;
   async create(opts?: CreateSandboxOpts): Promise<Sandbox>;
-  async create(opts?: CreateSandboxOpts): Promise<Sandbox | SandboxStartData> {
+  async create(opts?: CreateSandboxOpts): Promise<Sandbox | SessionData> {
     const templateId = opts?.template || this.defaultTemplate;
     const privacy = opts?.privacy || "public";
     const tags = opts?.tags || ["sdk"];
@@ -336,6 +381,11 @@ export class SandboxClient {
 
     // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
     const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
+
+    // We always want to start the VM in this context as our intention is to connect immediately
+    // or return the session data to manually connect, for example in browser
+    const startOptions =
+      opts?.autoConnect === false ? undefined : startOptionsFromOpts(opts);
 
     const result = await sandboxFork({
       client: this.apiClient,
@@ -345,47 +395,60 @@ export class SandboxClient {
         description: opts?.description,
         tags: tagsWithSdk,
         path,
-        start_options:
-          opts?.autoConnect === false
-            ? undefined
-            : startOptionsFromOpts(opts || {}),
+        start_options: startOptions,
       },
       path: {
         id: typeof templateId === "string" ? templateId : templateId.id,
       },
     });
 
-    const sandbox = handleResponse(result, "Failed to create sandbox");
+    const sandbox = handleResponse(
+      result,
+      "Failed to create sandbox"
+      // We currently always pass "start_options" to create a session
+    );
 
-    return this.connectToSandbox(sandbox.id, () => {
-      if (sandbox.start_response) {
-        return Promise.resolve(sandbox.start_response);
-      }
+    const shouldReturnSessionOnly = opts?.autoConnect === false;
 
-      return this.start(sandbox.id, opts);
-    });
+    // HACK: We need to start the sandbox on the correct cluster, which means we can not
+    // start the sandbox during `sandboxFork`. Normally we would always get a `start_response` here,
+    // directly from fork endpoint
+    if (shouldReturnSessionOnly || !sandbox.start_response) {
+      return this.start(sandbox.id, startOptions);
+    }
+
+    const session: SessionData = {
+      id: sandbox.id,
+      pitcher_token: sandbox.start_response.pitcher_token,
+      pitcher_url: sandbox.start_response.pitcher_url,
+      user_workspace_path: sandbox.start_response.user_workspace_path,
+    };
+
+    return shouldReturnSessionOnly ? session : this.connectToSandbox(session);
   }
 
   /**
-   * This is the same functionality as {@link SandboxClient.create}, but added to make forking more
-   * discoverable.
+   * Creates a sandbox by forking an existing sandbox reference.
+   *
+   * This function will also start & connect to the VM of the created sandbox as a ROOT session, and return a {@link Sandbox}
+   * that allows you to control the VM. Pass "autoConnect: false" to only return the session data.
+   *
+   * @param opts Additional options for creating the sandbox
+   *
+   * @returns A promise that resolves to a {@link Sandbox}, which you can use to control the VM
    */
   async fork(
     id: string,
     opts: { autoConnect: false } & Omit<CreateSandboxOpts, "template">
-  ): Promise<SandboxStartData>;
+  ): Promise<SessionData>;
   async fork(
     id: string,
-    opts?: { autoConnect?: true } & Omit<CreateSandboxOpts, "template">
+    opts: { autoConnect: true } & Omit<CreateSandboxOpts, "template">
   ): Promise<Sandbox>;
   async fork(
     id: string,
     opts?: Omit<CreateSandboxOpts, "template">
-  ): Promise<Sandbox>;
-  async fork(
-    id: string,
-    opts: Omit<CreateSandboxOpts, "template"> = {}
-  ): Promise<Sandbox | SandboxStartData> {
+  ): Promise<Sandbox | SessionData> {
     return this.create({ ...opts, template: id });
   }
 
@@ -559,25 +622,15 @@ export class SandboxClient {
     );
   }
 
-  private async connectToSandbox(
-    id: string,
-    startVm: () => Promise<
-      Required<
-        Required<
-          Required<HandledResponse<VmStartResponse, unknown>>["data"]
-        >["data"]
-      >["data"]
-    >
-  ): Promise<Sandbox> {
+  private async connectToSandbox(session: SessionData): Promise<Sandbox> {
     const pitcherClient = await initPitcherClient(
       {
         appId: "sdk",
-        instanceId: id,
+        instanceId: session.id,
         onFocusChange() {
           return () => {};
         },
         requestPitcherInstance: async () => {
-          const data = await startVm();
           const headers = this.apiClient.getConfig().headers as Headers;
 
           if (headers.get("x-pitcher-manager-url")) {
@@ -593,24 +646,20 @@ export class SandboxClient {
               .baseUrl?.replace("api", "global-scheduler");
 
             await fetch(
-              `${baseUrl}/api/v1/cluster/${data.id}?preferredManager=${preferredManager}`
+              `${baseUrl}/api/v1/cluster/${session.id}?preferredManager=${preferredManager}`
             ).then((res) => res.json());
           }
 
           return {
-            bootupType: data.bootup_type as
-              | "RUNNING"
-              | "CLEAN"
-              | "RESUME"
-              | "FORK",
-            pitcherURL: data.pitcher_url,
-            workspacePath: data.workspace_path,
-            userWorkspacePath: data.user_workspace_path,
-            pitcherManagerVersion: data.pitcher_manager_version,
-            pitcherVersion: data.pitcher_version,
-            latestPitcherVersion: data.latest_pitcher_version,
-            pitcherToken: data.pitcher_token,
-            cluster: data.cluster,
+            bootupType: "RESUME",
+            pitcherURL: session.pitcher_url,
+            workspacePath: session.user_workspace_path,
+            userWorkspacePath: session.user_workspace_path,
+            pitcherManagerVersion: "1.0.0-session",
+            pitcherVersion: "1.0.0-session",
+            latestPitcherVersion: "1.0.0-session",
+            pitcherToken: session.pitcher_token,
+            cluster: "session",
           };
         },
         subscriptions: DEFAULT_SUBSCRIPTIONS,
@@ -625,11 +674,11 @@ export class SandboxClient {
     sandboxId: string,
     sessionId: string,
     options: SessionCreateOptions & { autoConnect: false }
-  ): Promise<SessionConnectInfo>;
+  ): Promise<SessionData>;
   public async createSession(
     sandboxId: string,
     sessionId: string,
-    options?: SessionCreateOptions & { autoConnect?: true }
+    options: SessionCreateOptions & { autoConnect: true }
   ): Promise<SandboxSession>;
   public async createSession(
     sandboxId: string,
@@ -640,7 +689,7 @@ export class SandboxClient {
     sandboxId: string,
     sessionId: string,
     options: SessionCreateOptions = {}
-  ): Promise<SandboxSession | SessionConnectInfo> {
+  ): Promise<SandboxSession | SessionData> {
     const response = await vmCreateSession({
       client: this.apiClient,
       body: {
@@ -657,32 +706,18 @@ export class SandboxClient {
       `Failed to create session ${sessionId}`
     );
 
+    const session: SessionData = {
+      id: sandboxId,
+      pitcher_token: handledResponse.pitcher_token,
+      pitcher_url: handledResponse.pitcher_url,
+      user_workspace_path: handledResponse.user_workspace_path,
+    };
+
     if (options.autoConnect === false) {
-      return {
-        id: sandboxId,
-        pitcher_token: handledResponse.pitcher_token,
-        pitcher_url: handledResponse.pitcher_url,
-        user_workspace_path: handledResponse.user_workspace_path,
-      };
+      return session;
     }
 
-    const connectedSandbox = await this.connectToSandbox(sandboxId, () =>
-      Promise.resolve({
-        bootup_type: "RESUME",
-        cluster: "session",
-        id: sandboxId,
-        latest_pitcher_version: "1.0.0-session",
-        pitcher_manager_version: "1.0.0-session",
-        pitcher_token: handledResponse.pitcher_token,
-        pitcher_url: handledResponse.pitcher_url,
-        pitcher_version: "1.0.0-session",
-        reconnect_token: "",
-        user_workspace_path: handledResponse.user_workspace_path,
-        workspace_path: handledResponse.user_workspace_path,
-      })
-    );
-
-    return connectedSandbox;
+    return this.connectToSandbox(session);
   }
 
   /**

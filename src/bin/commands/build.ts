@@ -9,7 +9,11 @@ import type * as yargs from "yargs";
 
 import { SetupProgress, VMTier } from "../../";
 import { CodeSandbox, PortInfo } from "../../";
-import { sandboxCreate, sandboxFork, VmUpdateSpecsRequest } from "../../client";
+import {
+  sandboxCreate,
+  sandboxFork,
+  VmUpdateSpecsRequest,
+} from "../../clients/client";
 import { handleResponse } from "../../utils/handle-response";
 import { BASE_URL, getApiKey } from "../utils/constants";
 import { hashDirectory } from "../utils/hash";

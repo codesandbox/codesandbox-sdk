@@ -1,0 +1,179 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Sandbox Container API",
+    "description": "API for managing sandbox container operations",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/container/setup": {
+      "post": {
+        "summary": "Setup container",
+        "description": "Set up a new container based on a template",
+        "operationId": "containerSetup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "templateId": {
+                    "type": "string",
+                    "description": "Identifier of the template to use"
+                  },
+                  "templateArgs": {
+                    "type": "object",
+                    "description": "Arguments for the template",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "Feature identifier"
+                        },
+                        "options": {
+                          "type": "object",
+                          "description": "Options for the feature",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": ["id", "options"]
+                    },
+                    "nullable": true
+                  }
+                },
+                "required": ["templateId", "templateArgs"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/TaskDTO"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error setting up container",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/ProtocolError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number",
+            "enum": [0],
+            "description": "Status code for successful operations"
+          },
+          "result": {
+            "type": "object",
+            "description": "Result payload for the operation"
+          }
+        },
+        "required": ["status", "result"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number",
+            "enum": [1],
+            "description": "Status code for error operations"
+          },
+          "error": {
+            "type": "object",
+            "description": "Error details"
+          }
+        },
+        "required": ["status", "error"]
+      },
+      "ProtocolError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "data": {
+            "type": "object",
+            "description": "Additional error data",
+            "nullable": true
+          }
+        },
+        "required": ["code", "message"]
+      },
+      "TaskDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task identifier"
+          },
+          "status": {
+            "type": "string",
+            "description": "Task status"
+          },
+          "progress": {
+            "type": "number",
+            "description": "Task progress (0-100)"
+          }
+        },
+        "required": ["id", "status", "progress"]
+      }
+    }
+  }
+}
