@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.2](https://github.com/codesandbox/codesandbox-sdk/compare/v0.11.1...v0.11.2) (2025-04-15)
+
+
+### Bug Fixes
+
+* **build:** consider port opened for faulty status codes ([#84](https://github.com/codesandbox/codesandbox-sdk/issues/84)) ([c5a2469](https://github.com/codesandbox/codesandbox-sdk/commit/c5a246997a07834fe86a73e15762c1e76d552d58))
+
 ## [0.11.1](https://github.com/codesandbox/codesandbox-sdk/compare/v0.11.0...v0.11.1) (2025-03-13)
 
 
