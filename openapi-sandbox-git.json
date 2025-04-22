@@ -1,0 +1,1369 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Sandbox Git API",
+    "description": "API for managing git operations in CodeSandbox",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/git/status": {
+      "post": {
+        "summary": "Get git status",
+        "description": "Retrieve current git status including changed files, branch information, and commits",
+        "operationId": "gitStatus",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/GitStatus"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error retrieving git status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/remotes": {
+      "post": {
+        "summary": "Get git remotes",
+        "description": "Retrieve git remote information",
+        "operationId": "gitRemotes",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/GitRemotes"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error retrieving git remotes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/targetDiff": {
+      "post": {
+        "summary": "Get git target diff",
+        "description": "Retrieve diff between current branch and target branch",
+        "operationId": "gitTargetDiff",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "branch": {
+                    "type": "string",
+                    "description": "Branch to compare against"
+                  }
+                },
+                "required": ["branch"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/GitTargetDiff"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error retrieving git target diff",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/pull": {
+      "post": {
+        "summary": "Pull from remote",
+        "description": "Pull changes from remote repository",
+        "operationId": "gitPull",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "branch": {
+                    "type": "string",
+                    "description": "Branch to pull from"
+                  },
+                  "force": {
+                    "type": "boolean",
+                    "description": "Force pull even if there are conflicts"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error pulling from remote",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/discard": {
+      "post": {
+        "summary": "Discard changes",
+        "description": "Discard local changes for specified paths",
+        "operationId": "gitDiscard",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Paths of files to discard changes"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "object",
+                          "properties": {
+                            "paths": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error discarding changes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/commit": {
+      "post": {
+        "summary": "Commit changes",
+        "description": "Commit changes to the repository",
+        "operationId": "gitCommit",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Paths of files to commit"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Commit message"
+                  },
+                  "push": {
+                    "type": "boolean",
+                    "description": "Whether to push the commit immediately"
+                  }
+                },
+                "required": ["message"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "object",
+                          "properties": {
+                            "shellId": {
+                              "type": "string",
+                              "description": "ID of the shell process"
+                            }
+                          },
+                          "required": ["shellId"]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error committing changes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/push": {
+      "post": {
+        "summary": "Push changes",
+        "description": "Push local commits to remote repository",
+        "operationId": "gitPush",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error pushing changes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/pushToRemote": {
+      "post": {
+        "summary": "Push to remote",
+        "description": "Push to a specific remote repository",
+        "operationId": "gitPushToRemote",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "description": "URL of the remote repository"
+                  },
+                  "branch": {
+                    "type": "string",
+                    "description": "Branch to push to"
+                  },
+                  "squashAllCommits": {
+                    "type": "boolean",
+                    "description": "Whether to squash all commits into one"
+                  }
+                },
+                "required": ["url", "branch"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error pushing to remote",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/renameBranch": {
+      "post": {
+        "summary": "Rename branch",
+        "description": "Rename a git branch",
+        "operationId": "gitRenameBranch",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "oldBranch": {
+                    "type": "string",
+                    "description": "Current branch name"
+                  },
+                  "newBranch": {
+                    "type": "string",
+                    "description": "New branch name"
+                  }
+                },
+                "required": ["oldBranch", "newBranch"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error renaming branch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/remoteContent": {
+      "post": {
+        "summary": "Get remote content",
+        "description": "Retrieve content from a remote repository",
+        "operationId": "gitRemoteContent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GitRemoteParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "object",
+                          "properties": {
+                            "content": {
+                              "type": "string",
+                              "description": "Content of the file"
+                            }
+                          },
+                          "required": ["content"]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error retrieving remote content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/diffStatus": {
+      "post": {
+        "summary": "Get diff status",
+        "description": "Retrieve diff status between two git references",
+        "operationId": "gitDiffStatus",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GitDiffStatusParams"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/GitDiffStatusResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error retrieving diff status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/resetLocalWithRemote": {
+      "post": {
+        "summary": "Reset local with remote",
+        "description": "Reset local repository to match the remote state",
+        "operationId": "gitResetLocalWithRemote",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error resetting local with remote",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/checkoutInitialBranch": {
+      "post": {
+        "summary": "Checkout initial branch",
+        "description": "Checkout the initial branch of the repository",
+        "operationId": "gitCheckoutInitialBranch",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error checking out initial branch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/git/transposeLines": {
+      "post": {
+        "summary": "Transpose lines",
+        "description": "Transpose line numbers from one git reference to another",
+        "operationId": "gitTransposeLines",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "sha": {
+                      "type": "string",
+                      "description": "Git commit SHA"
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "Path to the file"
+                    },
+                    "line": {
+                      "type": "number",
+                      "description": "Line number to transpose"
+                    }
+                  },
+                  "required": ["sha", "path", "line"]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "result": {
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "line": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": ["path", "line"]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error transposing lines",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "$ref": "#/components/schemas/CommonError"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number",
+            "enum": [0],
+            "description": "Status code for successful operations"
+          },
+          "result": {
+            "type": "object",
+            "description": "Result payload for the operation"
+          }
+        },
+        "required": ["status", "result"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number",
+            "enum": [1],
+            "description": "Status code for error operations"
+          },
+          "error": {
+            "type": "object",
+            "description": "Error details"
+          }
+        },
+        "required": ["status", "error"]
+      },
+      "CommonError": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "GIT_OPERATION_IN_PROGRESS",
+                  "GIT_REMOTE_FILE_NOT_FOUND"
+                ],
+                "description": "Error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Error message"
+              }
+            },
+            "required": ["code", "message"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Protocol error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Error message"
+              },
+              "data": {
+                "type": "object",
+                "description": "Additional error data"
+              }
+            },
+            "required": ["code", "message"]
+          }
+        ]
+      },
+      "GitStatusShortFormat": {
+        "type": "string",
+        "enum": ["", "M", "A", "D", "R", "C", "U", "?"],
+        "description": "Git status short format codes"
+      },
+      "GitItem": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path"
+          },
+          "index": {
+            "$ref": "#/components/schemas/GitStatusShortFormat"
+          },
+          "workingTree": {
+            "$ref": "#/components/schemas/GitStatusShortFormat"
+          },
+          "isStaged": {
+            "type": "boolean",
+            "description": "Whether the file is staged"
+          },
+          "isConflicted": {
+            "type": "boolean",
+            "description": "Whether the file has conflicts"
+          },
+          "fileId": {
+            "type": "string",
+            "description": "Unique identifier for the file"
+          }
+        },
+        "required": ["path", "index", "workingTree", "isStaged", "isConflicted"]
+      },
+      "GitChangedFiles": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/GitItem"
+        },
+        "description": "Map of file IDs to Git items"
+      },
+      "GitBranchProperties": {
+        "type": "object",
+        "properties": {
+          "head": {
+            "type": ["string", "null"],
+            "description": "Current HEAD reference"
+          },
+          "branch": {
+            "type": ["string", "null"],
+            "description": "Current branch name"
+          },
+          "ahead": {
+            "type": "number",
+            "description": "Number of commits ahead of the remote"
+          },
+          "behind": {
+            "type": "number",
+            "description": "Number of commits behind the remote"
+          },
+          "safe": {
+            "type": "boolean",
+            "description": "Whether the branch is safe to operate on"
+          }
+        },
+        "required": ["ahead", "behind", "safe"]
+      },
+      "GitCommit": {
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "Commit hash"
+          },
+          "date": {
+            "type": "string",
+            "description": "Commit date"
+          },
+          "message": {
+            "type": "string",
+            "description": "Commit message"
+          },
+          "author": {
+            "type": "string",
+            "description": "Commit author"
+          }
+        },
+        "required": ["hash", "date", "message", "author"]
+      },
+      "GitStatus": {
+        "type": "object",
+        "properties": {
+          "changedFiles": {
+            "$ref": "#/components/schemas/GitChangedFiles"
+          },
+          "deletedFiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GitItem"
+            }
+          },
+          "conflicts": {
+            "type": "boolean",
+            "description": "Whether there are remote conflicts"
+          },
+          "localChanges": {
+            "type": "boolean",
+            "description": "Whether there are local changes"
+          },
+          "remote": {
+            "$ref": "#/components/schemas/GitBranchProperties"
+          },
+          "target": {
+            "$ref": "#/components/schemas/GitBranchProperties"
+          },
+          "head": {
+            "type": "string",
+            "description": "Current HEAD reference"
+          },
+          "commits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GitCommit"
+            }
+          },
+          "branch": {
+            "type": ["string", "null"],
+            "description": "Current branch name"
+          },
+          "isMerging": {
+            "type": "boolean",
+            "description": "Whether a merge is in progress"
+          }
+        },
+        "required": [
+          "changedFiles",
+          "deletedFiles",
+          "conflicts",
+          "localChanges",
+          "remote",
+          "target",
+          "commits",
+          "branch",
+          "isMerging"
+        ]
+      },
+      "GitTargetDiff": {
+        "type": "object",
+        "properties": {
+          "ahead": {
+            "type": "number",
+            "description": "Number of commits ahead of the target"
+          },
+          "behind": {
+            "type": "number",
+            "description": "Number of commits behind the target"
+          },
+          "commits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GitCommit"
+            }
+          }
+        },
+        "required": ["ahead", "behind", "commits"]
+      },
+      "GitRemotes": {
+        "type": "object",
+        "properties": {
+          "origin": {
+            "type": "string",
+            "description": "Origin remote URL"
+          },
+          "upstream": {
+            "type": "string",
+            "description": "Upstream remote URL"
+          }
+        },
+        "required": ["origin", "upstream"]
+      },
+      "GitRemoteParams": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": "string",
+            "description": "Branch or commit hash"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to the file"
+          }
+        },
+        "required": ["reference", "path"]
+      },
+      "GitDiffStatusParams": {
+        "type": "object",
+        "properties": {
+          "base": {
+            "type": "string",
+            "description": "Base reference used for diffing"
+          },
+          "head": {
+            "type": "string",
+            "description": "Head reference used for diffing"
+          }
+        },
+        "required": ["base", "head"]
+      },
+      "GitDiffStatusItem": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/GitStatusShortFormat"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to the file"
+          },
+          "oldPath": {
+            "type": "string",
+            "description": "Original path for renamed files"
+          },
+          "hunks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "original": {
+                  "type": "object",
+                  "properties": {
+                    "start": {
+                      "type": "number"
+                    },
+                    "end": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["start", "end"]
+                },
+                "modified": {
+                  "type": "object",
+                  "properties": {
+                    "start": {
+                      "type": "number"
+                    },
+                    "end": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["start", "end"]
+                }
+              },
+              "required": ["original", "modified"]
+            }
+          }
+        },
+        "required": ["status", "path", "hunks"]
+      },
+      "GitDiffStatusResult": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GitDiffStatusItem"
+            }
+          }
+        },
+        "required": ["files"]
+      }
+    }
+  }
+}

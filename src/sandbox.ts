@@ -14,7 +14,7 @@ import { Tasks } from "./tasks";
 import type { SandboxClient, VMTier } from ".";
 import { Sessions } from "./sessions";
 import { PreviewTokens } from "./preview-tokens";
-export { SessionConnectInfo } from "./sessions";
+export { SessionData } from "./sessions";
 
 export {
   FSStatResult,
