@@ -1,9 +1,7 @@
 import type { Client } from "@hey-api/client-fetch";
-import { createClient, createConfig } from "@hey-api/client-fetch";
 
 import {
   SandboxClient,
-  SandboxStartData,
   CreateSandboxOpts,
   VMTier,
   SandboxListOpts,
@@ -13,7 +11,6 @@ import {
 
 export {
   SandboxClient,
-  SandboxStartData,
   CreateSandboxOpts,
   VMTier,
   SandboxListOpts,
@@ -47,23 +44,13 @@ function ensure<T>(value: T | undefined, message: string): T {
   return value;
 }
 
-function getBaseUrl(token: string) {
-  if (token.startsWith("csb_")) {
-    return "https://api.codesandbox.io";
-  }
-
-  return "https://api.together.ai/csb/sdk";
-}
+export { SandboxRestClient as RestClient } from "./sandbox-rest-client";
 
 export class CodeSandbox {
-  private baseUrl: string;
-  private apiToken: string;
-  public readonly apiClient: Client;
-
   public readonly sandbox: SandboxClient;
 
-  constructor(apiToken?: string, private readonly opts: ClientOpts = {}) {
-    this.apiToken =
+  constructor(apiToken?: string, readonly opts: ClientOpts = {}) {
+    const evaluatedApiToken =
       apiToken ||
       ensure(
         typeof process !== "undefined"
@@ -71,20 +58,7 @@ export class CodeSandbox {
           : undefined,
         "CSB_API_KEY or TOGETHER_API_KEY is not set"
       );
-    this.baseUrl =
-      process.env.CSB_BASE_URL ?? opts.baseUrl ?? getBaseUrl(this.apiToken);
 
-    this.apiClient = createClient(
-      createConfig({
-        baseUrl: this.baseUrl,
-        headers: {
-          Authorization: `Bearer ${this.apiToken}`,
-          ...(opts.headers ?? {}),
-        },
-        fetch: opts.fetch ?? fetch,
-      })
-    );
-
-    this.sandbox = new SandboxClient(this.apiClient);
+    this.sandbox = new SandboxClient(evaluatedApiToken, opts);
   }
 }
