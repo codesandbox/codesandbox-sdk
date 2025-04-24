@@ -112,6 +112,13 @@ export class SandboxSession extends Disposable {
   }
 
   /**
+   * Check if the VM process is up to date. To update a restart is required
+   */
+  get isUpToDate() {
+    return this.pitcherClient.isUpToDate();
+  }
+
+  /**
    * The ID of the sandbox.
    */
   get id(): string {
