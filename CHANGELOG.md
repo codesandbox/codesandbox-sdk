@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.11.2...v0.12.0) (2025-04-24)
+
+
+### Features
+
+* add property to check if VM is up to date ([a44c842](https://github.com/codesandbox/codesandbox-sdk/commit/a44c8424dedee731b172ea2cdbbb6fe3ade0f2f5))
+* Rest client ([ec8f5eb](https://github.com/codesandbox/codesandbox-sdk/commit/ec8f5ebc8ab5d4e3540b1985a3a98ecfb64b0c7f))
+
 ## [0.11.2](https://github.com/codesandbox/codesandbox-sdk/compare/v0.11.1...v0.11.2) (2025-04-15)
 
 
