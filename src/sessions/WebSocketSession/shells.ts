@@ -3,8 +3,8 @@ import type { Id } from "@codesandbox/pitcher-common";
 import { Barrier, DisposableStore } from "@codesandbox/pitcher-common";
 import type { OpenShellDTO } from "@codesandbox/pitcher-protocol/dist/src/messages/shell";
 
-import { Disposable } from "./utils/disposable";
-import { Emitter, type Event } from "./utils/event";
+import { Disposable } from "../../utils/disposable";
+import { Emitter, type Event } from "../../utils/event";
 
 export interface RunningCommand
   extends Promise<{ output: string; exitCode?: number }> {
@@ -188,7 +188,7 @@ class LanguageInterpreter {
   }
 }
 
-class ShellInstance extends Disposable {
+export class ShellInstance extends Disposable {
   // TODO: differentiate between stdout and stderr, also send back bytes instead of
   // strings
   private onShellOutputEmitter = this.addDisposable(new Emitter<string>());

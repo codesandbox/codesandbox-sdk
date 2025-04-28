@@ -1,0 +1,228 @@
+import type { Client } from "@hey-api/client-fetch";
+import { createClient, createConfig } from "@hey-api/client-fetch";
+
+import { sandboxFork, sandboxList } from "./clients/client";
+import { Sandbox } from "./Sandbox";
+import { getBaseUrl, handleResponse } from "./utils/api";
+import { ClientOpts } from ".";
+import {
+  CreateSandboxOpts,
+  PaginationOpts,
+  SandboxInfo,
+  SandboxListOpts,
+  SandboxListResponse,
+  SandboxPrivacy,
+  StartSandboxOpts,
+} from "./types";
+
+export class SandboxClient {
+  private apiClient: Client;
+
+  get defaultTemplateId() {
+    if (this.apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
+      return "7ngcrf";
+    }
+
+    return "pcz35m";
+  }
+
+  constructor(apiToken: string, opts: ClientOpts) {
+    const baseUrl =
+      process.env.CSB_BASE_URL ?? opts.baseUrl ?? getBaseUrl(apiToken);
+
+    this.apiClient = this.apiClient = createClient(
+      createConfig({
+        baseUrl,
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          ...(opts.headers ?? {}),
+        },
+        fetch: opts.fetch ?? fetch,
+      })
+    );
+  }
+
+  /**
+   *
+   */
+  ref(sandboxId: string) {
+    return new Sandbox(sandboxId, this);
+  }
+
+  /**
+   * Creates a sandbox by forking a template. You can pass in any template or sandbox id (from
+   * any sandbox/template created on codesandbox.io, even your own templates) or don't pass
+   * in anything and we'll use the default universal template.
+   *
+   * This function will also start & connect to the VM of the created sandbox with a global session, and return a {@link Sandbox}
+   * that allows you to control the VM. Pass "autoConnect: false" to only return the session data.
+   *
+   * @param opts Additional options for creating the sandbox
+   *
+   * @returns A promise that resolves to a {@link Sandbox}, which you can use to control the VM
+   */
+  async create(
+    opts: CreateSandboxOpts & StartSandboxOpts = { source: "template" }
+  ): Promise<Sandbox> {
+    switch (opts.source) {
+      case "git": {
+        throw new Error("Not implemented");
+      }
+      case "json": {
+        throw new Error("Not implemented");
+      }
+      case "template": {
+        const templateId = opts.id || this.defaultTemplateId;
+        const privacy = opts.privacy || "public";
+        const tags = opts.tags || ["sdk"];
+        const path = opts.path || "/SDK";
+
+        // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
+        const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
+
+        // We never want to start the Sandbox as part of this call. The reason is that we currently need to
+        // call an explicit START to start it in the correct cluster
+        const result = await sandboxFork({
+          client: this.apiClient,
+          body: {
+            privacy: privacyToNumber(privacy),
+            title: opts?.title,
+            description: opts?.description,
+            tags: tagsWithSdk,
+            path,
+          },
+          path: {
+            id: templateId,
+          },
+        });
+
+        const sandbox = handleResponse(
+          result,
+          "Failed to create sandbox"
+          // We currently always pass "start_options" to create a session
+        );
+
+        return new Sandbox(sandbox.id, this);
+      }
+    }
+  }
+
+  /**
+   * List sandboxes from the current workspace with optional filters.
+   *
+   * This method supports two modes of operation:
+   * 1. Simple limit-based fetching (default):
+   *    ```ts
+   *    // Get up to 50 sandboxes (default)
+   *    const { sandboxes, totalCount } = await client.list();
+   *
+   *    // Get up to 200 sandboxes
+   *    const { sandboxes, totalCount } = await client.list({ limit: 200 });
+   *    ```
+   *
+   * 2. Manual pagination:
+   *    ```ts
+   *    // Get first page
+   *    const { sandboxes, pagination } = await client.list({
+   *      pagination: { page: 1, pageSize: 50 }
+   *    });
+   *    // pagination = { currentPage: 1, nextPage: 2, pageSize: 50 }
+   *
+   *    // Get next page if available
+   *    if (pagination.nextPage) {
+   *      const { sandboxes, pagination: nextPagination } = await client.list({
+   *        pagination: { page: pagination.nextPage, pageSize: 50 }
+   *      });
+   *    }
+   *    ```
+   */
+  async list(
+    opts: SandboxListOpts & {
+      limit?: number;
+      pagination?: PaginationOpts;
+    } = {}
+  ): Promise<SandboxListResponse> {
+    const limit = opts.limit ?? 50;
+    let allSandboxes: SandboxInfo[] = [];
+    let currentPage = opts.pagination?.page ?? 1;
+    let pageSize = opts.pagination?.pageSize ?? limit;
+    let totalCount = 0;
+    let nextPage: number | null = null;
+
+    while (true) {
+      const response = await sandboxList({
+        client: this.apiClient,
+        query: {
+          tags: opts.tags?.join(","),
+          page: currentPage,
+          page_size: pageSize,
+          order_by: opts.orderBy,
+          direction: opts.direction,
+          status: opts.status,
+        },
+      });
+
+      const info = handleResponse(response, "Failed to list sandboxes");
+      totalCount = info.pagination.total_records;
+      nextPage = info.pagination.next_page;
+
+      const sandboxes = info.sandboxes.map((sandbox) => ({
+        id: sandbox.id,
+        createdAt: new Date(sandbox.created_at),
+        updatedAt: new Date(sandbox.updated_at),
+        title: sandbox.title ?? undefined,
+        description: sandbox.description ?? undefined,
+        privacy: privacyFromNumber(sandbox.privacy),
+        tags: sandbox.tags,
+      }));
+
+      const newSandboxes = sandboxes.filter(
+        (sandbox) =>
+          !allSandboxes.some((existing) => existing.id === sandbox.id)
+      );
+      allSandboxes = [...allSandboxes, ...newSandboxes];
+
+      // Stop if we've hit the limit or there are no more pages
+      if (!nextPage || allSandboxes.length >= limit) {
+        break;
+      }
+
+      currentPage = nextPage;
+    }
+
+    return {
+      sandboxes: allSandboxes,
+      hasMore: totalCount > allSandboxes.length,
+      totalCount,
+      pagination: {
+        currentPage,
+        nextPage: allSandboxes.length >= limit ? nextPage : null,
+        pageSize,
+      },
+    };
+  }
+}
+
+function privacyToNumber(privacy: SandboxPrivacy): number {
+  switch (privacy) {
+    case "public":
+      return 0;
+    case "unlisted":
+      return 1;
+    case "private":
+      return 2;
+  }
+}
+
+function privacyFromNumber(privacy: number): SandboxPrivacy {
+  switch (privacy) {
+    case 0:
+      return "public";
+    case 1:
+      return "unlisted";
+    case 2:
+      return "private";
+  }
+
+  throw new Error(`Invalid privacy number: ${privacy}`);
+}

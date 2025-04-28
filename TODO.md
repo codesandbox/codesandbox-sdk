@@ -3,41 +3,43 @@
 - Please explain again why we always start the VM from "forkSandbox", but we also handle non start_response... how do we handle actually correct cluster? Is it not by always using the `start` method?
 - You say sessions allows users to edit files without affecting each other, but above you state that all files are shared?
 - Should we really call it GIT, it only supports GitHub?
+- Can we pass custom session to `vmStart`?
+- Using start options is not reliable
+
+## TODO
 
 # 1 New API
 
 ```ts
 const sdk = new CodeSandbox(apiToken);
 
-const sandbox = sdk.sandbox.create(SandboxOption & StartOptions);
+const sandbox = sdk.sandbox.create(SandboxOptions & StartOptions);
 const sandbox = sdk.sandbox.fork(
   id,
   Omit<SandboxOptions, "template"> & StartOptions
 );
 
-sandbox.restart();
+sandbox.restart(StartOptions);
 sandbox.hibernate();
 sandbox.shutdown();
 sandbox.isUpToDate();
 sandbox.resume();
+sandbox.updateTier();
 
-sandbox.createSession({
-  type: "websocket",
+sandbox.session({
+  username: "anonymous",
+  permission: "read",
+  gitAccessToken: "",
+});
+sandbox.connect({
   username: "anonymous",
   permission: "read",
 });
-sandbox.createSession({
-  type: "browser",
+sandbox.rest({
   username: "anonymous",
   permission: "read",
 });
-sandbox.createSession({
-  type: "rest",
-  username: "anonymous",
-  permission: "read",
-});
-sandbox.createSession({
-  type: "ssh",
+sandbox.ssh({
   username: "anonymous",
   permission: "read",
 });

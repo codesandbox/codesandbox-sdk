@@ -1,7 +1,7 @@
 import type { IPitcherClient } from "@codesandbox/pitcher-client";
 
-import { Disposable } from "./utils/disposable";
-import { Emitter } from "./utils/event";
+import { Disposable } from "../../utils/disposable";
+import { Emitter } from "../../utils/event";
 
 export class PortInfo {
   constructor(public port: number, public hostname: string) {}

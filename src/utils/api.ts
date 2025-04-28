@@ -1,5 +1,21 @@
 import { RateLimitError } from "./rate-limit";
 
+export type HandledResponse<D, E> = {
+  data?: {
+    data?: D;
+  };
+  error?: E;
+  response: Response;
+};
+
+export function getBaseUrl(token: string) {
+  if (token.startsWith("csb_")) {
+    return "https://api.codesandbox.io";
+  }
+
+  return "https://api.together.ai/csb/sdk";
+}
+
 export function handleResponse<D, E>(
   result: Awaited<{ data?: { data?: D }; error?: E; response: Response }>,
   errorPrefix: string

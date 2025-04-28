@@ -1,8 +1,8 @@
 import type { Id, IPitcherClient } from "@codesandbox/pitcher-client";
 import { listenOnce } from "@codesandbox/pitcher-common/dist/event";
 
-import { Disposable } from "./utils/disposable";
-import { Emitter } from "./utils/event";
+import { Disposable } from "../../utils/disposable";
+import { Emitter } from "../../utils/event";
 
 export class Setup extends Disposable {
   private readonly onSetupProgressUpdateEmitter = this.addDisposable(
