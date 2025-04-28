@@ -1,7 +1,7 @@
 import type { IPitcherClient, protocol } from "@codesandbox/pitcher-client";
 
 import { PortInfo } from "./ports";
-import { Disposable } from "./utils/disposable";
+import { Disposable } from "../../utils/disposable";
 
 export type TaskDefinition = {
   name: string;

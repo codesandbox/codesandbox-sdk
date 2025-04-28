@@ -1,229 +1,33 @@
 import {
   Disposable,
-  type IPitcherClient,
+  initPitcherClient,
   type protocol as _protocol,
 } from "@codesandbox/pitcher-client";
+import type {
+  SandboxSession,
+  SessionCreateOptions,
+  StartSandboxOpts,
+  CreateSandboxBaseOpts,
+} from "./types";
+import { PreviewTokens } from "./PreviewTokens";
+import { Client } from "@hey-api/client-fetch";
+import {
+  vmCreateSession,
+  vmHibernate,
+  vmShutdown,
+  vmStart,
+  VmStartResponse,
+  vmUpdateHibernationTimeout,
+  vmUpdateSpecs,
+} from "./clients/client";
+import { handleResponse } from "./utils/api";
+import { SandboxClient } from "./SandboxClient";
+import { VMTier } from "./VMTier";
+import { WebSocketSession } from "./sessions/WebSocketSession";
+import { ClientOpts, RestSession } from "./sessions/RestSession";
 
-import { FileSystem } from "./filesystem";
-import { Ports } from "./ports";
-import { Setup } from "./setup";
-import { Shells } from "./shells";
-import { Tasks } from "./tasks";
-
-import type { SandboxClient, VMTier } from ".";
-import { Sessions } from "./sessions";
-import { PreviewTokens } from "./preview-tokens";
-
-export {
-  FSStatResult,
-  WriteFileOpts,
-  ReaddirEntry,
-  WatchOpts,
-  WatchEvent,
-  Watcher,
-} from "./filesystem";
-
-export { PortInfo } from "./ports";
-
-export { SetupProgress, Step, SetupShellStatus } from "./setup";
-
-export {
-  RunningCommand,
-  ShellSize,
-  ShellStatus,
-  ShellCreateOpts,
-  ShellRunOpts,
-  ShellOpenOpts,
-} from "./shells";
-
-export { Task, TaskDefinition } from "./tasks";
-
-export interface SystemMetricsStatus {
-  cpu: {
-    cores: number;
-    used: number;
-    configured: number;
-  };
-  memory: {
-    usedKiB: number;
-    totalKiB: number;
-    configuredKiB: number;
-  };
-  storage: {
-    usedKB: number;
-    totalKB: number;
-    configuredKB: number;
-  };
-}
-
-export class UniversalSandbox extends Disposable {
-  /**
-   * Namespace for all filesystem operations on this sandbox.
-   */
-  public readonly fs = this.addDisposable(new FileSystem(this.pitcherClient));
-
-  /**
-   * Namespace for running shell commands on this sandbox.
-   */
-  public readonly shells = this.addDisposable(new Shells(this.pitcherClient));
-
-  /**
-   * Namespace for detecting open ports on this sandbox, and getting preview URLs for
-   * them.
-   */
-  public readonly ports = this.addDisposable(new Ports(this.pitcherClient));
-
-  /**
-   * Namespace for all setup operations on this sandbox (installing dependencies, etc).
-   *
-   * This provider is *experimental*, it might get changes or completely be removed
-   * if it is not used.
-   */
-  public readonly setup = this.addDisposable(new Setup(this.pitcherClient));
-
-  /**
-   * Namespace for all task operations on a sandbox. This includes running tasks,
-   * getting tasks, and stopping tasks.
-   *
-   * In CodeSandbox, you can create tasks and manage them by creating a `.codesandbox/tasks.json`
-   * in the sandbox. These tasks become available under this namespace, this way you can manage
-   * tasks that you will need to run more often (like a dev server).
-   *
-   * More documentation: https://codesandbox.io/docs/learn/devboxes/task#adding-and-configuring-tasks
-   *
-   * This provider is *experimental*, it might get changes or completely be removed
-   * if it is not used.
-   */
-  public readonly tasks = this.addDisposable(new Tasks(this.pitcherClient));
-
-  constructor(protected pitcherClient: IPitcherClient) {
-    super();
-
-    // TODO: Bring this back once metrics polling does not reset inactivity
-    // const metricsDisposable = {
-    //   dispose:
-    //     this.pitcherClient.clients.system.startMetricsPollingAtInterval(5000),
-    // };
-
-    // this.addDisposable(metricsDisposable);
-    this.addDisposable(this.pitcherClient);
-  }
-
-  /**
-   * Check if the VM agent process is up to date. To update a restart is required
-   */
-  get isUpToDate() {
-    return this.pitcherClient.isUpToDate();
-  }
-
-  /**
-   * The ID of the sandbox.
-   */
-  get id(): string {
-    return this.pitcherClient.instanceId;
-  }
-
-  /**
-   * Get the URL to the editor for this sandbox. Keep in mind that this URL is not
-   * available if the sandbox is private, and the user opening this sandbox does not
-   * have access to the sandbox.
-   */
-  get editorUrl(): string {
-    return `https://codesandbox.io/p/devbox/${this.id}`;
-  }
-
-  // TODO: Bring this back once metrics polling does not reset inactivity
-  // /**
-  //  * Get the current system metrics. This return type may change in the future.
-  //  */
-  // public async getMetrics(): Promise<SystemMetricsStatus> {
-  //   await this.pitcherClient.clients.system.update();
-
-  //   const barrier = new Barrier<_protocol.system.SystemMetricsStatus>();
-  //   const initialMetrics = this.pitcherClient.clients.system.getMetrics();
-  //   if (!initialMetrics) {
-  //     const disposable = this.pitcherClient.clients.system.onMetricsUpdated(
-  //       (metrics) => {
-  //         if (metrics) {
-  //           barrier.open(metrics);
-  //         }
-  //       }
-  //     );
-  //     disposable.dispose();
-  //   } else {
-  //     barrier.open(initialMetrics);
-  //   }
-
-  //   const barrierResult = await barrier.wait();
-  //   if (barrierResult.status === "disposed") {
-  //     throw new Error("Metrics not available");
-  //   }
-
-  //   const metrics = barrierResult.value;
-
-  //   return {
-  //     cpu: {
-  //       cores: metrics.cpu.cores,
-  //       used: metrics.cpu.used / 100,
-  //       configured: metrics.cpu.configured,
-  //     },
-  //     memory: {
-  //       usedKiB: metrics.memory.used * 1024 * 1024,
-  //       totalKiB: metrics.memory.total * 1024 * 1024,
-  //       configuredKiB: metrics.memory.total * 1024 * 1024,
-  //     },
-  //     storage: {
-  //       usedKB: metrics.storage.used * 1000 * 1000,
-  //       totalKB: metrics.storage.total * 1000 * 1000,
-  //       configuredKB: metrics.storage.configured * 1000 * 1000,
-  //     },
-  //   };
-  // }
-
-  /**
-   * Disconnect from the sandbox, this does not hibernate the sandbox (but it will
-   * automatically hibernate after an inactivity timer).
-   */
-  public disconnect() {
-    this.pitcherClient.disconnect();
-    this.dispose();
-  }
-
-  private keepAliveInterval: NodeJS.Timeout | null = null;
-  /**
-   * If enabled, we will keep the sandbox from hibernating as long as the SDK is connected to it.
-   */
-  public keepActiveWhileConnected(enabled: boolean) {
-    if (enabled && !this.keepAliveInterval) {
-      this.keepAliveInterval = setInterval(() => {
-        this.pitcherClient.clients.system.update();
-      }, 1000 * 30);
-
-      this.onWillDispose(() => {
-        if (this.keepAliveInterval) {
-          clearInterval(this.keepAliveInterval);
-          this.keepAliveInterval = null;
-        }
-      });
-    } else {
-      if (this.keepAliveInterval) {
-        clearInterval(this.keepAliveInterval);
-        this.keepAliveInterval = null;
-      }
-    }
-  }
-}
-
-export class Sandbox extends UniversalSandbox {
-  /**
-   * Provider for creating new sessions inside the sandbox. These sessions have their own
-   * filesystem, shells, tasks and permissions. You can read more about sessions in the
-   * [CodeSandbox docs](https://codesandbox.io/docs/sdk/sessions).
-   */
-  public readonly sessions = this.addDisposable(
-    new Sessions(this.id, this.sandboxClient)
-  );
-
+export class Sandbox extends Disposable {
+  private apiClient: Client;
   /**
    * Provider for generating preview tokens. These tokens can be used to generate signed
    * preview URLs for private sandboxes.
@@ -235,52 +39,209 @@ export class Sandbox extends UniversalSandbox {
    * const url = sandbox.ports.getSignedPreviewUrl(8080, previewToken.token);
    * ```
    */
-  public readonly previewTokens = this.addDisposable(
-    new PreviewTokens(this.id, this.sandboxClient)
-  );
+  public readonly previewTokens: PreviewTokens;
 
-  constructor(
-    private sandboxClient: SandboxClient,
-    pitcherClient: IPitcherClient
-  ) {
-    super(pitcherClient);
+  constructor(public id: string, private sandboxClient: SandboxClient) {
+    super();
+    this.apiClient = sandboxClient["apiClient"];
+    this.previewTokens = this.addDisposable(
+      new PreviewTokens(this.id, this.apiClient)
+    );
   }
 
-  /**
-   * This creates a copy of the current sandbox, both memory and disk is copied, which means
-   * that running processes will continue to run in the forked sandbox.
-   */
-  public async fork(): Promise<Sandbox> {
-    const session = await this.sandboxClient.create({
-      template: this.id,
+  private async start(startOpts?: StartSandboxOpts) {
+    const startResult = await vmStart({
+      client: this.apiClient,
+      body: startOpts
+        ? {
+            ipcountry: startOpts.ipcountry,
+            tier: startOpts.vmTier?.name,
+            hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
+            automatic_wakeup_config: startOpts.automaticWakeupConfig,
+          }
+        : undefined,
+      path: {
+        id: this.id,
+      },
     });
 
-    return this.sandboxClient.connect(session);
+    const response = handleResponse(
+      startResult,
+      `Failed to start sandbox ${this.id}`
+    );
+
+    return response;
+  }
+
+  private async createSession(
+    options: SessionCreateOptions,
+    globalSession: SandboxSession
+  ): Promise<SandboxSession> {
+    const response = await vmCreateSession({
+      client: this.apiClient,
+      body: {
+        session_id: options.id,
+        permission: options.permission ?? "write",
+      },
+      path: {
+        id: this.id,
+      },
+    });
+
+    const handledResponse = handleResponse(
+      response,
+      `Failed to create session ${options.id}`
+    );
+
+    const session: SandboxSession = {
+      bootupType: globalSession.bootupType,
+      cluster: globalSession.cluster,
+      sandboxId: this.id,
+      pitcherToken: handledResponse.pitcher_token,
+      pitcherUrl: handledResponse.pitcher_url,
+      userWorkspacePath: handledResponse.user_workspace_path,
+    };
+
+    return session;
   }
 
   /**
-   * Hibernate the sandbox. This will snapshot the disk and memory of the sandbox, so it
-   * can be restored later from the exact current state. Will resolve once the sandbox is hibernated.
-   */
-  public async hibernate(): Promise<void> {
-    this.dispose();
-    this.pitcherClient.disconnect();
-
-    await this.sandboxClient.hibernate(this.id);
-  }
-
-  /**
-   * Shutdown the sandbox. This will stop all running processes and stop the sandbox. When you
-   * start the sandbox next time, you will still have the same files and state as when you
-   * shut down the sandbox.
+   * Creates a sandbox by forking an existing sandbox reference.
    *
-   * Will resolve once the sandbox is shutdown.
+   * This function will also start & connect to the VM of the created sandbox as a ROOT session, and return a {@link Sandbox}
+   * that allows you to control the VM. Pass "autoConnect: false" to only return the session data.
+   *
+   * @param opts Additional options for creating the sandbox
+   *
+   * @returns A promise that resolves to a {@link Sandbox}, which you can use to control the VM
    */
-  public async shutdown(): Promise<void> {
-    this.dispose();
-    this.pitcherClient.disconnect();
+  async fork(opts: CreateSandboxBaseOpts & StartSandboxOpts): Promise<Sandbox> {
+    return this.sandboxClient.create({
+      ...opts,
+      source: "template",
+      id: this.id,
+    });
+  }
 
-    await this.sandboxClient.shutdown(this.id);
+  /**
+   * Try to start a sandbox that already exists, it will return the data of the started
+   * VM, which you can pass to the browser. In the browser you can call `connectToSandbox` with this
+   * data to control the VM without sharing your CodeSandbox API token in the browser.
+   *
+   * @param id the ID of the sandbox
+   * @returns The start data, contains a single use token to connect to the VM
+   */
+  public async resume(): Promise<void> {
+    await this.start();
+  }
+
+  /**
+   * Shuts down a sandbox. Files will be saved, and the sandbox will be stopped.
+   *
+   * @param sandboxId The ID of the sandbox to shutdown
+   */
+  async shutdown(): Promise<void> {
+    this.dispose();
+    const response = await vmShutdown({
+      client: this.apiClient,
+      path: {
+        id: this.id,
+      },
+    });
+
+    handleResponse(response, `Failed to shutdown sandbox ${this.id}`);
+  }
+
+  /**
+   * Hibernates a sandbox. Files will be saved, and the sandbox will be put to sleep. Next time
+   * you start the sandbox it will be resumed from the last state it was in.
+   *
+   * @param sandboxId The ID of the sandbox to hibernate
+   */
+  async hibernate(): Promise<void> {
+    const response = await vmHibernate({
+      client: this.apiClient,
+      path: {
+        id: this.id,
+      },
+    });
+
+    handleResponse(response, `Failed to hibernate sandbox ${this.id}`);
+  }
+
+  /**
+   * Updates the specs that this sandbox runs on. It will dynamically scale the sandbox to the
+   * new specs without a reboot. Be careful when scaling specs down, if the VM is using more memory
+   * than it can scale down to, it can become very slow.
+   *
+   * @param id The ID of the sandbox to update
+   * @param tier The new VM tier
+   */
+  async updateTier(tier: VMTier): Promise<void> {
+    const response = await vmUpdateSpecs({
+      client: this.apiClient,
+      path: { id: this.id },
+      body: {
+        tier: tier.name,
+      },
+    });
+
+    handleResponse(response, `Failed to update sandbox tier ${this.id}`);
+  }
+
+  /**
+   * Updates the hibernation timeout of a sandbox.
+   *
+   * @param id The ID of the sandbox to update
+   * @param timeoutSeconds The new hibernation timeout in seconds
+   */
+  async updateHibernationTimeout(timeoutSeconds: number): Promise<void> {
+    const response = await vmUpdateHibernationTimeout({
+      client: this.apiClient,
+      path: { id: this.id },
+      body: { hibernation_timeout_seconds: timeoutSeconds },
+    });
+
+    handleResponse(
+      response,
+      `Failed to update hibernation timeout for sandbox ${this.id}`
+    );
+  }
+
+  async session(opts?: SessionCreateOptions): Promise<SandboxSession> {
+    const startData = await this.start();
+    let session: SandboxSession = {
+      bootupType: startData.bootup_type as SandboxSession["bootupType"],
+      cluster: startData.cluster,
+      sandboxId: this.id,
+      pitcherToken: startData.pitcher_token,
+      pitcherUrl: startData.pitcher_url,
+      userWorkspacePath: startData.user_workspace_path,
+    };
+
+    if (opts) {
+      session = await this.createSession(opts, session);
+    }
+
+    return session;
+  }
+
+  async connect(opts?: SessionCreateOptions): Promise<WebSocketSession> {
+    const session = await this.session(opts);
+
+    return WebSocketSession.init(session, this.apiClient);
+  }
+
+  async isUpToDate() {
+    const startData = await this.start();
+
+    return startData.latest_pitcher_version === startData.pitcher_version;
+  }
+
+  async rest(opts?: SessionCreateOptions & ClientOpts) {
+    const session = await this.session(opts);
+
+    return new RestSession(session, opts);
   }
 
   /**
@@ -291,24 +252,6 @@ export class Sandbox extends UniversalSandbox {
    */
   public async restart(): Promise<void> {
     await this.shutdown();
-    await this.sandboxClient.resume(this.id);
-  }
-
-  /**
-   * Updates the specs that this sandbox runs on. It will dynamically scale the sandbox to the
-   * new specs without a reboot. Be careful when scaling specs down, if the VM is using more memory
-   * than it can scale down to, it can become very slow.
-   */
-  public async updateTier(tier: VMTier): Promise<void> {
-    await this.sandboxClient.updateTier(this.id, tier);
-  }
-
-  /**
-   * Updates the hibernation timeout of a sandbox.
-   *
-   * @param timeoutSeconds The new hibernation timeout in seconds
-   */
-  public async updateHibernationTimeout(timeoutSeconds: number): Promise<void> {
-    await this.sandboxClient.updateHibernationTimeout(this.id, timeoutSeconds);
+    await this.resume();
   }
 }

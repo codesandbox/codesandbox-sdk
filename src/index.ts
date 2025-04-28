@@ -1,40 +1,15 @@
-import type { Client } from "@hey-api/client-fetch";
+import { SandboxClient } from "./SandboxClient";
+import { ClientOpts } from "./types";
 
-import {
-  SandboxClient,
-  CreateSandboxOpts,
-  VMTier,
-  SandboxListOpts,
-  SandboxInfo,
-  PaginationOpts,
-} from "./sandbox-client";
+export { SandboxClient };
 
-export {
-  SandboxClient,
-  CreateSandboxOpts,
-  VMTier,
-  SandboxListOpts,
-  SandboxInfo,
-  PaginationOpts,
-};
-export * from "./sandbox";
+export { VMTier } from "./VMTier";
 
-export interface ClientOpts {
-  baseUrl?: string;
-  /**
-   * Custom fetch implementation
-   *
-   * @default fetch
-   */
-  fetch?: typeof fetch;
+export * from "./Sandbox";
+export * from "./types";
+import * as WebSocketSession from "./sessions/WebSocketSession";
 
-  /**
-   * Additional headers to send with each request
-   */
-  headers?: Record<string, string>;
-}
-
-export type SandboxPrivacy = "public" | "unlisted" | "private";
+export { WebSocketSession };
 
 function ensure<T>(value: T | undefined, message: string): T {
   if (!value) {
@@ -44,7 +19,7 @@ function ensure<T>(value: T | undefined, message: string): T {
   return value;
 }
 
-export { SandboxRestClient as RestClient } from "./sandbox-rest-client";
+export { RestSession as RestClient } from "./sessions/RestSession";
 
 export class CodeSandbox {
   public readonly sandbox: SandboxClient;

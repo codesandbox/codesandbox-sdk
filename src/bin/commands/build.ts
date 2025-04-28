@@ -7,14 +7,14 @@ import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
 
-import { SetupProgress, VMTier } from "../../";
-import { CodeSandbox, PortInfo } from "../../";
+import { WebSocketSession, VMTier, CodeSandbox } from "../../";
+
 import {
   sandboxCreate,
   sandboxFork,
   VmUpdateSpecsRequest,
 } from "../../clients/client";
-import { handleResponse } from "../../utils/handle-response";
+import { handleResponse } from "../../utils/api";
 import { BASE_URL, getApiKey } from "../utils/constants";
 import { hashDirectory } from "../utils/hash";
 
@@ -113,15 +113,17 @@ export const buildCommand: yargs.CommandModule<
       const tag = `sha:${shortHash}-${cluster || ""}`;
 
       spinner.start(`Creating or updating sandbox...`);
-      const { sandboxId, filesIncluded } = await createSandbox(
+      const { sandboxId, filesIncluded } = await createSandbox({
         apiClient,
-        tag,
+        shaTag: tag,
         filePaths,
-        argv.directory,
-        argv.fromSandbox,
-        argv.path,
-        argv.name
-      );
+        rootPath: argv.directory,
+        fromSandbox: argv.fromSandbox,
+        collectionPath: argv.path,
+        name: argv.name,
+        ipcountry: argv.ipCountry,
+        vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
+      });
 
       if (argv.fromSandbox) {
         spinner.succeed(
@@ -137,10 +139,8 @@ export const buildCommand: yargs.CommandModule<
         spinner.start(`Starting sandbox...`);
       }
 
-      const sandbox = await sdk.sandbox.open(sandboxId, {
-        ipcountry: argv.ipCountry,
-        vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
-      });
+      const sandbox = sdk.sandbox.ref(sandboxId);
+      const session = await sandbox.connect();
       spinner.succeed("Sandbox opened");
 
       if (!argv.skipFiles && !filesIncluded) {
@@ -152,8 +152,8 @@ export const buildCommand: yargs.CommandModule<
           const fullPath = path.join(argv.directory, filePath);
           const content = await fs.readFile(fullPath);
           const dirname = path.dirname(filePath);
-          await sandbox.fs.mkdir(dirname, true);
-          await sandbox.fs.writeFile(filePath, content, {
+          await session.fs.mkdir(dirname, true);
+          await session.fs.writeFile(filePath, content, {
             create: true,
             overwrite: true,
           });
@@ -161,12 +161,14 @@ export const buildCommand: yargs.CommandModule<
         spinner.succeed("Files written to sandbox");
 
         spinner.start("Rebooting sandbox...");
-        await sandbox.reboot();
-        spinner.succeed("Sandbox rebooted");
+        await sandbox.restart();
+        spinner.succeed("Sandbox restarted");
       }
 
       const disposableStore = new DisposableStore();
-      const handleProgress = async (progress: SetupProgress) => {
+      const handleProgress = async (
+        progress: WebSocketSession.SetupProgress
+      ) => {
         if (progress.state === "IN_PROGRESS" && progress.steps.length > 0) {
           const step = progress.steps[progress.currentStepIndex];
           if (!step) {
@@ -181,7 +183,7 @@ export const buildCommand: yargs.CommandModule<
           const shellId = step.shellId;
 
           if (shellId) {
-            const shell = await sandbox.shells.open(shellId, {
+            const shell = await session.shells.open(shellId, {
               ptySize: {
                 cols: process.stderr.columns,
                 rows: process.stderr.rows,
@@ -209,16 +211,16 @@ export const buildCommand: yargs.CommandModule<
         }
       };
 
-      const progress = await sandbox.setup.getProgress();
+      const progress = await session.setup.getProgress();
       await handleProgress(progress);
-      disposableStore.add(sandbox.setup.onSetupProgressUpdate(handleProgress));
+      disposableStore.add(session.setup.onSetupProgressUpdate(handleProgress));
 
-      await sandbox.setup.waitForFinish();
+      await session.setup.waitForFinish();
 
       disposableStore.dispose();
       spinner.succeed("Sandbox built");
 
-      const tasksWithStart = (await sandbox.tasks.getTasks()).filter(
+      const tasksWithStart = (await session.tasks.getTasks()).filter(
         (t) => t.runAtStart === true
       );
       let tasksWithPorts = tasksWithStart.filter((t) => t.preview?.port);
@@ -251,7 +253,7 @@ export const buildCommand: yargs.CommandModule<
 
             let timeout;
             const portInfo = await Promise.race([
-              sandbox.ports.waitForPort(port),
+              session.ports.waitForPort(port),
               new Promise(
                 (_, reject) =>
                   (timeout = setTimeout(
@@ -267,7 +269,7 @@ export const buildCommand: yargs.CommandModule<
             ]);
             clearTimeout(timeout);
 
-            if (!(portInfo instanceof PortInfo)) {
+            if (!(portInfo instanceof WebSocketSession.PortInfo)) {
               throw portInfo;
             }
 
@@ -315,15 +317,27 @@ export const buildCommand: yargs.CommandModule<
   },
 };
 
-async function createSandbox(
-  apiClient: Client,
-  shaTag: string,
-  filePaths: string[],
-  rootPath: string,
-  fromSandbox?: string,
-  collectionPath?: string,
-  name?: string
-): Promise<{
+type CreateSandboxParams = {
+  apiClient: Client;
+  shaTag: string;
+  filePaths: string[];
+  rootPath: string;
+  fromSandbox?: string;
+  collectionPath?: string;
+  name?: string;
+  vmTier?: VMTier;
+  ipcountry?: string;
+};
+
+async function createSandbox({
+  apiClient,
+  filePaths,
+  rootPath,
+  shaTag,
+  collectionPath,
+  fromSandbox,
+  name,
+}: CreateSandboxParams): Promise<{
   sandboxId: string;
   filesIncluded: boolean;
 }> {
