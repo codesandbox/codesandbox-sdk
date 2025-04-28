@@ -1,17 +1,24 @@
 import { Disposable } from "./utils/disposable";
 import { SandboxClient } from "./sandbox-client";
-import { SandboxSession } from ".";
 
 export interface SessionCreateOptions {
+  id: string;
   permission?: "read" | "write";
-  autoConnect?: boolean;
+  gitAccessToken?: string;
 }
 
-export type SessionData = {
+export type SandboxSessionData = {
   id: string;
   pitcher_token: string;
   pitcher_url: string;
   user_workspace_path: string;
+};
+
+export type SandboxSession = {
+  sandboxId: string;
+  pitcherToken: string;
+  pitcherUrl: string;
+  userWorkspacePath: string;
 };
 
 export class Sessions extends Disposable {
@@ -32,40 +39,8 @@ export class Sessions extends Disposable {
    * @returns if `autoConnect` is true, returns a `SandboxSession` object (which can be used to connect), otherwise returns
    * a connected session.
    */
-  async create(
-    sessionId: string,
-    options: SessionCreateOptions & { autoConnect: false }
-  ): Promise<{
-    pitcher_token: string;
-    pitcher_url: string;
-    user_workspace_path: string;
-  }>;
-  async create(
-    sessionId: string,
-    options?: SessionCreateOptions & { autoConnect?: true }
-  ): Promise<SandboxSession>;
-  async create(
-    sessionId: string,
-    options: SessionCreateOptions = {}
-  ): Promise<
-    | SandboxSession
-    | {
-        pitcher_token: string;
-        pitcher_url: string;
-        user_workspace_path: string;
-      }
-  > {
-    const defaultOptions: SessionCreateOptions = {
-      permission: "write",
-      autoConnect: true,
-    };
-
-    const mergedOptions = {
-      ...defaultOptions,
-      ...options,
-    };
-
-    return this.apiClient.createSession(this.id, sessionId, mergedOptions);
+  async create(opts: SessionCreateOptions): Promise<SandboxSession> {
+    return this.apiClient["createSession"](this.id, opts);
   }
 
   /**
@@ -75,6 +50,6 @@ export class Sessions extends Disposable {
    * @returns The new session
    */
   async createReadOnly(): Promise<SandboxSession> {
-    return this.create("anonymous", { permission: "read" });
+    return this.create({ id: "anonymous", permission: "read" });
   }
 }

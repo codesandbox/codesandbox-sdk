@@ -1,6 +1,6 @@
-import { SessionData } from "../sessions";
+import { SandboxSessionData } from "../sessions";
 
-export function getSessionUrl(session: SessionData) {
+export function getSessionUrl(session: SandboxSessionData) {
   const url = new URL(session.pitcher_url);
 
   url.protocol = "https";
