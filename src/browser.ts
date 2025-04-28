@@ -1,11 +1,8 @@
-import {
-  initPitcherClient,
-  PitcherManagerResponse,
-} from "@codesandbox/pitcher-client";
+import { initPitcherClient } from "@codesandbox/pitcher-client";
 
-import { SandboxSession } from "./sandbox";
+import { SandboxSession } from "./sessions";
 import { DEFAULT_SUBSCRIPTIONS } from "./sandbox-client";
-import { SessionData } from "./sessions";
+import { UniversalSandbox } from ".";
 
 /**
  * With this function you can connect to a sandbox from the browser.
@@ -43,12 +40,12 @@ import { SessionData } from "./sessions";
  * ```
  */
 export async function connectToSandbox(
-  session: SessionData
-): Promise<SandboxSession> {
+  session: SandboxSession
+): Promise<UniversalSandbox> {
   const pitcherClient = await initPitcherClient(
     {
       appId: "sdk",
-      instanceId: session.id,
+      instanceId: session.sandboxId,
       onFocusChange() {
         return () => {};
       },
@@ -56,20 +53,20 @@ export async function connectToSandbox(
         Promise.resolve({
           bootupType: "RESUME",
           cluster: "session",
-          id: session.id,
+          id: session.sandboxId,
           latestPitcherVersion: "1.0.0-session",
           pitcherManagerVersion: "1.0.0-session",
-          pitcherToken: session.pitcher_token,
-          pitcherURL: session.pitcher_url,
+          pitcherToken: session.pitcherToken,
+          pitcherURL: session.pitcherUrl,
           pitcherVersion: "1.0.0-session",
           reconnectToken: "",
-          userWorkspacePath: session.user_workspace_path,
-          workspacePath: session.user_workspace_path,
+          userWorkspacePath: session.userWorkspacePath,
+          workspacePath: session.userWorkspacePath,
         }),
       subscriptions: DEFAULT_SUBSCRIPTIONS,
     },
     () => {}
   );
 
-  return new SandboxSession(pitcherClient);
+  return new UniversalSandbox(pitcherClient);
 }

@@ -1,12 +1,12 @@
 import { Client } from "@hey-api/client-fetch";
 import * as fs from "../clients/client-rest-fs";
-import { SessionData } from "../sessions";
+import { SandboxSessionData } from "../sessions";
 import { join } from "path";
 import { getSessionUrl } from "../utils/session";
 
 export class SandboxRestFS {
   constructor(private client: Client) {}
-  private createRestParams<T>(session: SessionData, body: T) {
+  private createRestParams<T>(session: SandboxSessionData, body: T) {
     return {
       baseUrl: getSessionUrl(session),
       client: this.client,
@@ -15,7 +15,7 @@ export class SandboxRestFS {
     };
   }
   writeTextFile(
-    session: SessionData,
+    session: SandboxSessionData,
     body: Omit<fs.WriteFileData["body"], "content"> & { content: string }
   ) {
     return fs.writeFile(
@@ -28,7 +28,7 @@ export class SandboxRestFS {
       })
     );
   }
-  writeFile(session: SessionData, body: fs.WriteFileData["body"]) {
+  writeFile(session: SandboxSessionData, body: fs.WriteFileData["body"]) {
     return fs.writeFile(
       this.createRestParams(session, {
         ...body,
@@ -37,7 +37,7 @@ export class SandboxRestFS {
       })
     );
   }
-  readFile(session: SessionData, body: fs.FsReadFileData["body"]) {
+  readFile(session: SandboxSessionData, body: fs.FsReadFileData["body"]) {
     return fs.fsReadFile(
       this.createRestParams(session, {
         ...body,
@@ -45,19 +45,19 @@ export class SandboxRestFS {
       })
     );
   }
-  search(session: SessionData, body: fs.FsSearchData["body"]) {
+  search(session: SandboxSessionData, body: fs.FsSearchData["body"]) {
     return fs.fsSearch(this.createRestParams(session, body));
   }
-  pathSearch(session: SessionData, body: fs.FsPathSearchData["body"]) {
+  pathSearch(session: SandboxSessionData, body: fs.FsPathSearchData["body"]) {
     return fs.fsPathSearch(this.createRestParams(session, body));
   }
-  upload(session: SessionData, body: fs.FsUploadData["body"]) {
+  upload(session: SandboxSessionData, body: fs.FsUploadData["body"]) {
     return fs.fsUpload(this.createRestParams(session, body));
   }
-  download(session: SessionData, body: fs.FsDownloadData["body"]) {
+  download(session: SandboxSessionData, body: fs.FsDownloadData["body"]) {
     return fs.fsDownload(this.createRestParams(session, body));
   }
-  readDir(session: SessionData, body: fs.FsReadDirData["body"]) {
+  readDir(session: SandboxSessionData, body: fs.FsReadDirData["body"]) {
     return fs.fsReadDir(
       this.createRestParams(session, {
         ...body,
@@ -65,7 +65,7 @@ export class SandboxRestFS {
       })
     );
   }
-  stat(session: SessionData, body: fs.FsStatData["body"]) {
+  stat(session: SandboxSessionData, body: fs.FsStatData["body"]) {
     return fs.fsStat(
       this.createRestParams(session, {
         ...body,
@@ -73,7 +73,7 @@ export class SandboxRestFS {
       })
     );
   }
-  copy(session: SessionData, body: fs.FsCopyData["body"]) {
+  copy(session: SandboxSessionData, body: fs.FsCopyData["body"]) {
     return fs.fsCopy(
       this.createRestParams(session, {
         ...body,
@@ -82,7 +82,7 @@ export class SandboxRestFS {
       })
     );
   }
-  rename(session: SessionData, body: fs.FsRenameData["body"]) {
+  rename(session: SandboxSessionData, body: fs.FsRenameData["body"]) {
     return fs.fsRename(
       this.createRestParams(session, {
         ...body,
@@ -91,7 +91,7 @@ export class SandboxRestFS {
       })
     );
   }
-  remove(session: SessionData, body: fs.FsRemoveData["body"]) {
+  remove(session: SandboxSessionData, body: fs.FsRemoveData["body"]) {
     return fs.fsRemove(
       this.createRestParams(session, {
         ...body,
@@ -99,7 +99,7 @@ export class SandboxRestFS {
       })
     );
   }
-  mkdir(session: SessionData, body: fs.FsMkdirData["body"]) {
+  mkdir(session: SandboxSessionData, body: fs.FsMkdirData["body"]) {
     return fs.fsMkdir(
       this.createRestParams(session, {
         ...body,

@@ -1,5 +1,4 @@
 import {
-  Barrier,
   Disposable,
   type IPitcherClient,
   type protocol as _protocol,
@@ -14,7 +13,6 @@ import { Tasks } from "./tasks";
 import type { SandboxClient, VMTier } from ".";
 import { Sessions } from "./sessions";
 import { PreviewTokens } from "./preview-tokens";
-export { SessionData } from "./sessions";
 
 export {
   FSStatResult,
@@ -58,7 +56,7 @@ export interface SystemMetricsStatus {
   };
 }
 
-export class SandboxSession extends Disposable {
+export class UniversalSandbox extends Disposable {
   /**
    * Namespace for all filesystem operations on this sandbox.
    */
@@ -216,7 +214,7 @@ export class SandboxSession extends Disposable {
   }
 }
 
-export class Sandbox extends SandboxSession {
+export class Sandbox extends UniversalSandbox {
   /**
    * Provider for creating new sessions inside the sandbox. These sessions have their own
    * filesystem, shells, tasks and permissions. You can read more about sessions in the
@@ -253,9 +251,11 @@ export class Sandbox extends SandboxSession {
    * that running processes will continue to run in the forked sandbox.
    */
   public async fork(): Promise<Sandbox> {
-    return this.sandboxClient.create({
+    const session = await this.sandboxClient.create({
       template: this.id,
     });
+
+    return this.sandboxClient.connect(session);
   }
 
   /**
@@ -284,15 +284,14 @@ export class Sandbox extends SandboxSession {
   }
 
   /**
-   * Reboot the sandbox. This will shutdown the sandbox, and then start it again. Files in
+   * Restart the sandbox. This will shutdown the sandbox, and then start it again. Files in
    * the project directory (`/project/sandbox`) will be preserved.
    *
    * Will resolve once the sandbox is rebooted.
    */
-  public async reboot(): Promise<void> {
+  public async restart(): Promise<void> {
     await this.shutdown();
-    const newSandbox = await this.sandboxClient.open(this.id);
-    Object.assign(this, newSandbox);
+    await this.sandboxClient.resume(this.id);
   }
 
   /**
