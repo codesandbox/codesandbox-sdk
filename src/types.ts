@@ -172,15 +172,6 @@ export type CreateSandboxBaseOpts = {
   path?: string;
 };
 
-export type CreateSandboxTemplateSourceOpts = {
-  source: "template";
-  /**
-   * What template to fork from, this is the id of another sandbox. Defaults to our
-   * [universal template](https://codesandbox.io/s/github/codesandbox/sandbox-templates/tree/main/universal).
-   */
-  id?: string;
-};
-
 export type SandboxSessionData = {
   id: string;
   pitcher_token: string;
@@ -201,24 +192,31 @@ export type SandboxSession = {
   userWorkspacePath: string;
 };
 
-export type CreateSandboxGitSourceOpts = {
-  source: "git";
-  url: string;
-  branch?: string;
-  accessToken: string;
+export type CreateSandboxTemplateSourceOpts = CreateSandboxBaseOpts & {
+  source: "template";
+  /**
+   * What template to fork from, this is the id of another sandbox. Defaults to our
+   * [universal template](https://codesandbox.io/s/github/codesandbox/sandbox-templates/tree/main/universal).
+   */
+  id?: string;
 };
 
-export type CreateSandboxFilesSourceOpts = {
+export type CreateSandboxGitSourceOpts = CreateSandboxBaseOpts & {
+  source: "git";
+  url: string;
+  branch: string;
+  gitAccessToken?: string;
+};
+
+export type CreateSandboxFilesSourceOpts = CreateSandboxBaseOpts & {
   source: "files";
   files: Record<string, string>;
 };
 
-export type CreateSandboxOpts = CreateSandboxBaseOpts &
-  (
-    | CreateSandboxTemplateSourceOpts
-    | CreateSandboxGitSourceOpts
-    | CreateSandboxFilesSourceOpts
-  );
+export type CreateSandboxOpts =
+  | CreateSandboxTemplateSourceOpts
+  | CreateSandboxGitSourceOpts
+  | CreateSandboxFilesSourceOpts;
 
 export type SandboxOpts = {
   id: string;
