@@ -1,5 +1,10 @@
 ## QUESTIONS
 
+- Should we always require a `gitAccessToken` for git sandboxes?
+- If `gitAccessToken` should we create a temp session to clone and then still require
+  a `createSession` to interact with the repo?
+- Should we allow `gitAccessToken` with global user on `vm/{id}/start`?
+
 ## TODO
 
 - Improve data passed to browser with a BrowserSession, also ensure reconnect token works

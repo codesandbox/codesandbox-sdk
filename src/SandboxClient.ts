@@ -6,7 +6,9 @@ import { Sandbox } from "./Sandbox";
 import { getBaseUrl, handleResponse } from "./utils/api";
 import { ClientOpts } from ".";
 import {
+  CreateSandboxGitSourceOpts,
   CreateSandboxOpts,
+  CreateSandboxTemplateSourceOpts,
   PaginationOpts,
   SandboxInfo,
   SandboxListOpts,
@@ -89,6 +91,69 @@ export class SandboxClient {
     return new Sandbox(sandboxOpts, this);
   }
 
+  private async createGitSandbox(
+    opts: CreateSandboxGitSourceOpts & StartSandboxOpts
+  ) {
+    const sandbox = await this.createTemplateSandbox({
+      ...opts,
+      source: "template",
+      id: this.defaultTemplateId,
+    });
+
+    const client = await sandbox.connect();
+
+    await client.shells.run(
+      [
+        "rm -rf .git",
+        "git init",
+        `git remote add origin ${opts.url}`,
+        "git fetch origin",
+        `git checkout -b ${opts.branch}`,
+        `git reset --hard origin/${opts.branch}`,
+      ].join("&&")
+    );
+
+    client.disconnect();
+
+    return sandbox;
+  }
+
+  private async createTemplateSandbox(
+    opts: CreateSandboxTemplateSourceOpts & StartSandboxOpts
+  ) {
+    const templateId = opts.id || this.defaultTemplateId;
+    const privacy = opts.privacy || "public";
+    const tags = opts.tags || ["sdk"];
+    const path = opts.path || "/SDK";
+
+    // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
+    const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
+
+    // We never want to start the Sandbox as part of this call. The reason is that we currently need to
+    // call an explicit START to start it in the correct cluster
+    const result = await sandboxFork({
+      client: this.apiClient,
+      body: {
+        privacy: privacyToNumber(privacy),
+        title: opts?.title,
+        description: opts?.description,
+        tags: tagsWithSdk,
+        path,
+      },
+      path: {
+        id: templateId,
+      },
+    });
+
+    const sandbox = handleResponse(
+      result,
+      "Failed to create sandbox"
+      // We currently always pass "start_options" to create a session
+    );
+    const sandboxOpts = await this.start(sandbox.id, opts);
+
+    return new Sandbox(sandboxOpts, this);
+  }
   /**
    * Creates a sandbox by forking a template. You can pass in any template or sandbox id (from
    * any sandbox/template created on codesandbox.io, even your own templates) or don't pass
@@ -106,44 +171,13 @@ export class SandboxClient {
   ): Promise<Sandbox> {
     switch (opts.source) {
       case "git": {
-        throw new Error("Not implemented");
+        return this.createGitSandbox(opts);
       }
       case "files": {
         throw new Error("Not implemented");
       }
       case "template": {
-        const templateId = opts.id || this.defaultTemplateId;
-        const privacy = opts.privacy || "public";
-        const tags = opts.tags || ["sdk"];
-        const path = opts.path || "/SDK";
-
-        // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
-        const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
-
-        // We never want to start the Sandbox as part of this call. The reason is that we currently need to
-        // call an explicit START to start it in the correct cluster
-        const result = await sandboxFork({
-          client: this.apiClient,
-          body: {
-            privacy: privacyToNumber(privacy),
-            title: opts?.title,
-            description: opts?.description,
-            tags: tagsWithSdk,
-            path,
-          },
-          path: {
-            id: templateId,
-          },
-        });
-
-        const sandbox = handleResponse(
-          result,
-          "Failed to create sandbox"
-          // We currently always pass "start_options" to create a session
-        );
-        const sandboxOpts = await this.start(sandbox.id, opts);
-
-        return new Sandbox(sandboxOpts, this);
+        return this.createTemplateSandbox(opts);
       }
     }
   }
