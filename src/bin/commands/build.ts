@@ -13,7 +13,7 @@ import {
   sandboxCreate,
   sandboxFork,
   VmUpdateSpecsRequest,
-} from "../../clients/client";
+} from "../../api-clients/client";
 import { handleResponse } from "../../utils/api";
 import { BASE_URL, getApiKey } from "../utils/constants";
 import { hashDirectory } from "../utils/hash";
@@ -139,7 +139,7 @@ export const buildCommand: yargs.CommandModule<
         spinner.start(`Starting sandbox...`);
       }
 
-      const sandbox = sdk.sandbox.ref(sandboxId);
+      const sandbox = await sdk.sandbox.resume(sandboxId);
       const session = await sandbox.connect();
       spinner.succeed("Sandbox opened");
 

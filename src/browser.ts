@@ -1,6 +1,6 @@
 import { initPitcherClient } from "@codesandbox/pitcher-client";
 import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "./types";
-import { WebSocketSession } from "./sessions/WebSocketSession";
+import { WebSocketClient } from "./clients/WebSocketClient";
 
 /**
  * With this function you can connect to a sandbox from the browser.
@@ -39,7 +39,7 @@ import { WebSocketSession } from "./sessions/WebSocketSession";
  */
 export async function connectToSandbox(
   session: SandboxSession
-): Promise<WebSocketSession> {
+): Promise<WebSocketClient> {
   const pitcherClient = await initPitcherClient(
     {
       appId: "sdk",
@@ -66,5 +66,5 @@ export async function connectToSandbox(
     () => {}
   );
 
-  return new WebSocketSession(pitcherClient);
+  return new WebSocketClient(pitcherClient);
 }

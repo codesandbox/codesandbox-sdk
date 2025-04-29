@@ -1,48 +1,39 @@
 ## QUESTIONS
 
-- Please explain again why we always start the VM from "forkSandbox", but we also handle non start_response... how do we handle actually correct cluster? Is it not by always using the `start` method?
-- You say sessions allows users to edit files without affecting each other, but above you state that all files are shared?
-- Should we really call it GIT, it only supports GitHub?
-- Can we pass custom session to `vmStart`?
-- Using start options is not reliable
-
 ## TODO
+
+- Improve data passed to browser with a BrowserSession, also ensure reconnect token works
 
 # 1 New API
 
 ```ts
 const sdk = new CodeSandbox(apiToken);
 
-const sandbox = sdk.sandbox.create(SandboxOptions & StartOptions);
-const sandbox = sdk.sandbox.fork(
-  id,
-  Omit<SandboxOptions, "template"> & StartOptions
-);
+const sandbox = await sdk.sandbox.resume(id);
+const sandbox = await sdk.sandbox.create(SandboxOptions & StartOptions);
 
+sandbox.isUpToDate;
+sandbox.bootupType;
+sandbox.cluster;
+sandbox.globalSession;
+sandbox.fork(Omit<SandboxOptions, "template"> & StartOptions);
 sandbox.restart(StartOptions);
 sandbox.hibernate();
 sandbox.shutdown();
-sandbox.isUpToDate();
 sandbox.resume();
 sandbox.updateTier();
 
-sandbox.session({
-  username: "anonymous",
-  permission: "read",
-  gitAccessToken: "",
+const client = await sandbox.connect();
+const client = await sandbox.createRestClient();
+const browserSession = await sandbox.globalSession;
+
+const session = await sandbox.createSession({
+  id: "some-user-name",
+  permission: "write",
 });
-sandbox.connect({
-  username: "anonymous",
-  permission: "read",
-});
-sandbox.rest({
-  username: "anonymous",
-  permission: "read",
-});
-sandbox.ssh({
-  username: "anonymous",
-  permission: "read",
-});
+const client = sandbox.connect(session);
+const client = sandbox.createRestClient(session);
+const browserSession = session;
 ```
 
 # 2 Git clone support

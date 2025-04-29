@@ -19,7 +19,7 @@ export * from "./setup";
 export * from "./shells";
 export * from "./tasks";
 
-export class WebSocketSession extends Disposable {
+export class WebSocketClient extends Disposable {
   static async init(session: SandboxSession, apiClient: Client) {
     const pitcherClient = await initPitcherClient(
       {
@@ -65,7 +65,7 @@ export class WebSocketSession extends Disposable {
       () => {}
     );
 
-    return new WebSocketSession(pitcherClient);
+    return new WebSocketClient(pitcherClient);
   }
   /**
    * Namespace for all filesystem operations on this sandbox.

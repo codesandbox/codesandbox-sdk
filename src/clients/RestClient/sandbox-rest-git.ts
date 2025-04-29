@@ -1,5 +1,5 @@
 import { Client } from "@hey-api/client-fetch";
-import * as git from "../../clients/client-rest-git";
+import * as git from "../../api-clients/client-rest-git";
 
 export class SandboxRestGit {
   constructor(private client: Client) {}

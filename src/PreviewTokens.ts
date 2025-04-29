@@ -7,7 +7,7 @@ import {
   previewTokenList,
   previewTokenRevokeAll,
   previewTokenUpdate,
-} from "./clients/client";
+} from "./api-clients/client";
 
 interface BasePreviewTokenInfo {
   expiresAt: Date | null;

@@ -7,7 +7,7 @@ export { VMTier } from "./VMTier";
 
 export * from "./Sandbox";
 export * from "./types";
-import * as WebSocketSession from "./sessions/WebSocketSession";
+import * as WebSocketSession from "./clients/WebSocketClient";
 
 export { WebSocketSession };
 
@@ -19,7 +19,7 @@ function ensure<T>(value: T | undefined, message: string): T {
   return value;
 }
 
-export { RestSession as RestClient } from "./sessions/RestSession";
+export { RestClient as RestClient } from "./clients/RestClient";
 
 export class CodeSandbox {
   public readonly sandbox: SandboxClient;

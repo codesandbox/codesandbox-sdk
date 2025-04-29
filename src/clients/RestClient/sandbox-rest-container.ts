@@ -1,5 +1,5 @@
 import { Client } from "@hey-api/client-fetch";
-import * as container from "../../clients/client-rest-container";
+import * as container from "../../api-clients/client-rest-container";
 
 export class SandboxRestContainer {
   constructor(private client: Client) {}

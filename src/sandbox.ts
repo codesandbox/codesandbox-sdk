@@ -8,6 +8,7 @@ import type {
   SessionCreateOptions,
   StartSandboxOpts,
   CreateSandboxBaseOpts,
+  SandboxOpts,
 } from "./types";
 import { PreviewTokens } from "./PreviewTokens";
 import { Client } from "@hey-api/client-fetch";
@@ -19,12 +20,12 @@ import {
   VmStartResponse,
   vmUpdateHibernationTimeout,
   vmUpdateSpecs,
-} from "./clients/client";
+} from "./api-clients/client";
 import { handleResponse } from "./utils/api";
 import { SandboxClient } from "./SandboxClient";
 import { VMTier } from "./VMTier";
-import { WebSocketSession } from "./sessions/WebSocketSession";
-import { ClientOpts, RestSession } from "./sessions/RestSession";
+import { WebSocketClient } from "./clients/WebSocketClient";
+import { RestClient } from "./clients/RestClient";
 
 export class Sandbox extends Disposable {
   private apiClient: Client;
@@ -41,68 +42,28 @@ export class Sandbox extends Disposable {
    */
   public readonly previewTokens: PreviewTokens;
 
-  constructor(public id: string, private sandboxClient: SandboxClient) {
+  get id() {
+    return this.opts.id;
+  }
+  get bootupType() {
+    return this.opts.bootupType;
+  }
+  get cluster() {
+    return this.opts.cluster;
+  }
+  get isUpToDate() {
+    return this.opts.isUpToDate;
+  }
+  get globalSession() {
+    return this.opts.globalSession;
+  }
+  constructor(private opts: SandboxOpts, private sandboxClient: SandboxClient) {
     super();
+
     this.apiClient = sandboxClient["apiClient"];
     this.previewTokens = this.addDisposable(
       new PreviewTokens(this.id, this.apiClient)
     );
-  }
-
-  private async start(startOpts?: StartSandboxOpts) {
-    const startResult = await vmStart({
-      client: this.apiClient,
-      body: startOpts
-        ? {
-            ipcountry: startOpts.ipcountry,
-            tier: startOpts.vmTier?.name,
-            hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
-            automatic_wakeup_config: startOpts.automaticWakeupConfig,
-          }
-        : undefined,
-      path: {
-        id: this.id,
-      },
-    });
-
-    const response = handleResponse(
-      startResult,
-      `Failed to start sandbox ${this.id}`
-    );
-
-    return response;
-  }
-
-  private async createSession(
-    options: SessionCreateOptions,
-    globalSession: SandboxSession
-  ): Promise<SandboxSession> {
-    const response = await vmCreateSession({
-      client: this.apiClient,
-      body: {
-        session_id: options.id,
-        permission: options.permission ?? "write",
-      },
-      path: {
-        id: this.id,
-      },
-    });
-
-    const handledResponse = handleResponse(
-      response,
-      `Failed to create session ${options.id}`
-    );
-
-    const session: SandboxSession = {
-      bootupType: globalSession.bootupType,
-      cluster: globalSession.cluster,
-      sandboxId: this.id,
-      pitcherToken: handledResponse.pitcher_token,
-      pitcherUrl: handledResponse.pitcher_url,
-      userWorkspacePath: handledResponse.user_workspace_path,
-    };
-
-    return session;
   }
 
   /**
@@ -132,7 +93,7 @@ export class Sandbox extends Disposable {
    * @returns The start data, contains a single use token to connect to the VM
    */
   public async resume(): Promise<void> {
-    await this.start();
+    this.opts = await this.sandboxClient["start"](this.id);
   }
 
   /**
@@ -208,40 +169,43 @@ export class Sandbox extends Disposable {
     );
   }
 
-  async session(opts?: SessionCreateOptions): Promise<SandboxSession> {
-    const startData = await this.start();
-    let session: SandboxSession = {
-      bootupType: startData.bootup_type as SandboxSession["bootupType"],
-      cluster: startData.cluster,
-      sandboxId: this.id,
-      pitcherToken: startData.pitcher_token,
-      pitcherUrl: startData.pitcher_url,
-      userWorkspacePath: startData.user_workspace_path,
-    };
+  async createSession(opts: SessionCreateOptions): Promise<SandboxSession> {
+    const response = await vmCreateSession({
+      client: this.apiClient,
+      body: {
+        session_id: opts.id,
+        permission: opts.permission ?? "write",
+      },
+      path: {
+        id: this.id,
+      },
+    });
 
-    if (opts) {
-      session = await this.createSession(opts, session);
-    }
+    const handledResponse = handleResponse(
+      response,
+      `Failed to create session ${opts.id}`
+    );
+
+    const session: SandboxSession = {
+      sandboxId: this.id,
+      pitcherToken: handledResponse.pitcher_token,
+      pitcherUrl: handledResponse.pitcher_url,
+      userWorkspacePath: handledResponse.user_workspace_path,
+    };
 
     return session;
   }
 
-  async connect(opts?: SessionCreateOptions): Promise<WebSocketSession> {
-    const session = await this.session(opts);
+  async connect(customSession?: SandboxSession): Promise<WebSocketClient> {
+    const session = customSession || this.globalSession;
 
-    return WebSocketSession.init(session, this.apiClient);
+    return WebSocketClient.init(session, this.apiClient);
   }
 
-  async isUpToDate() {
-    const startData = await this.start();
+  async createRestClient(customSession?: SandboxSession) {
+    const session = customSession || this.globalSession;
 
-    return startData.latest_pitcher_version === startData.pitcher_version;
-  }
-
-  async rest(opts?: SessionCreateOptions & ClientOpts) {
-    const session = await this.session(opts);
-
-    return new RestSession(session, opts);
+    return new RestClient(session);
   }
 
   /**
