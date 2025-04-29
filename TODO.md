@@ -28,17 +28,9 @@ sandbox.shutdown();
 sandbox.resume();
 sandbox.updateTier();
 
-const client = await sandbox.connect();
-const client = await sandbox.createRestClient();
-const browserSession = await sandbox.globalSession;
-
-const session = await sandbox.createSession({
-  id: "some-user-name",
-  permission: "write",
-});
-const client = sandbox.connect(session);
-const client = sandbox.createRestClient(session);
-const browserSession = session;
+const session = await sandbox.createBrowserSession();
+const client = sandbox.connect();
+const client = sandbox.createRestClient();
 ```
 
 # 2 Git clone support

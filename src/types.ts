@@ -225,3 +225,7 @@ export type SandboxOpts = {
   isUpToDate: boolean;
   globalSession: SandboxSession;
 };
+
+export type SandboxBrowserSession = PitcherManagerResponse & {
+  id: string;
+};
