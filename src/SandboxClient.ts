@@ -1,7 +1,7 @@
 import type { Client } from "@hey-api/client-fetch";
 import { createClient, createConfig } from "@hey-api/client-fetch";
 
-import { sandboxFork, sandboxList } from "./clients/client";
+import { sandboxFork, sandboxList, vmStart } from "./api-clients/client";
 import { Sandbox } from "./Sandbox";
 import { getBaseUrl, handleResponse } from "./utils/api";
 import { ClientOpts } from ".";
@@ -11,6 +11,7 @@ import {
   SandboxInfo,
   SandboxListOpts,
   SandboxListResponse,
+  SandboxOpts,
   SandboxPrivacy,
   StartSandboxOpts,
 } from "./types";
@@ -42,11 +43,50 @@ export class SandboxClient {
     );
   }
 
+  private async start(
+    sandboxId: string,
+    startOpts?: StartSandboxOpts
+  ): Promise<SandboxOpts> {
+    const startResult = await vmStart({
+      client: this.apiClient,
+      body: startOpts
+        ? {
+            ipcountry: startOpts.ipcountry,
+            tier: startOpts.vmTier?.name,
+            hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
+            automatic_wakeup_config: startOpts.automaticWakeupConfig,
+          }
+        : undefined,
+      path: {
+        id: sandboxId,
+      },
+    });
+
+    const response = handleResponse(
+      startResult,
+      `Failed to start sandbox ${sandboxId}`
+    );
+
+    return {
+      id: sandboxId,
+      bootupType: response.bootup_type as SandboxOpts["bootupType"],
+      cluster: response.cluster,
+      isUpToDate: response.latest_pitcher_version === response.pitcher_version,
+      globalSession: {
+        sandboxId,
+        pitcherToken: response.pitcher_token,
+        pitcherUrl: response.pitcher_url,
+        userWorkspacePath: response.user_workspace_path,
+      },
+    };
+  }
+
   /**
    *
    */
-  ref(sandboxId: string) {
-    return new Sandbox(sandboxId, this);
+  async resume(sandboxId: string) {
+    const sandboxOpts = await this.start(sandboxId);
+    return new Sandbox(sandboxOpts, this);
   }
 
   /**
@@ -68,7 +108,7 @@ export class SandboxClient {
       case "git": {
         throw new Error("Not implemented");
       }
-      case "json": {
+      case "files": {
         throw new Error("Not implemented");
       }
       case "template": {
@@ -101,8 +141,9 @@ export class SandboxClient {
           "Failed to create sandbox"
           // We currently always pass "start_options" to create a session
         );
+        const sandboxOpts = await this.start(sandbox.id, opts);
 
-        return new Sandbox(sandbox.id, this);
+        return new Sandbox(sandboxOpts, this);
       }
     }
   }

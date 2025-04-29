@@ -1,5 +1,5 @@
 import { Client } from "@hey-api/client-fetch";
-import * as task from "../../clients/client-rest-task";
+import * as task from "../../api-clients/client-rest-task";
 
 export class SandboxRestTask {
   constructor(private client: Client) {}

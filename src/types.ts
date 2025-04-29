@@ -195,8 +195,6 @@ export interface SessionCreateOptions {
 }
 
 export type SandboxSession = {
-  bootupType: PitcherManagerResponse["bootupType"];
-  cluster: string;
   sandboxId: string;
   pitcherToken: string;
   pitcherUrl: string;
@@ -210,8 +208,8 @@ export type CreateSandboxGitSourceOpts = {
   accessToken: string;
 };
 
-export type CreateSandboxJSONSourceOpts = {
-  source: "json";
+export type CreateSandboxFilesSourceOpts = {
+  source: "files";
   files: Record<string, string>;
 };
 
@@ -219,5 +217,13 @@ export type CreateSandboxOpts = CreateSandboxBaseOpts &
   (
     | CreateSandboxTemplateSourceOpts
     | CreateSandboxGitSourceOpts
-    | CreateSandboxJSONSourceOpts
+    | CreateSandboxFilesSourceOpts
   );
+
+export type SandboxOpts = {
+  id: string;
+  bootupType: PitcherManagerResponse["bootupType"];
+  cluster: string;
+  isUpToDate: boolean;
+  globalSession: SandboxSession;
+};

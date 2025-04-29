@@ -1,5 +1,5 @@
 import { Client } from "@hey-api/client-fetch";
-import * as fs from "../../clients/client-rest-fs";
+import * as fs from "../../api-clients/client-rest-fs";
 import { join } from "path";
 
 import { SandboxSession } from "../../types";

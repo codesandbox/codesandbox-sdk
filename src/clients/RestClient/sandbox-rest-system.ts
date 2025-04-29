@@ -1,5 +1,5 @@
 import { Client } from "@hey-api/client-fetch";
-import * as system from "../../clients/client-rest-system";
+import * as system from "../../api-clients/client-rest-system";
 
 export class SandboxRestSystem {
   constructor(private client: Client) {}
