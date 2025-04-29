@@ -1,5 +1,5 @@
-import { initPitcherClient } from "@codesandbox/pitcher-client";
-import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "./types";
+import { initPitcherClient, protocol } from "@codesandbox/pitcher-client";
+import { DEFAULT_SUBSCRIPTIONS, SandboxBrowserSession } from "./types";
 import { WebSocketClient } from "./clients/WebSocketClient";
 
 /**
@@ -38,32 +38,25 @@ import { WebSocketClient } from "./clients/WebSocketClient";
  * ```
  */
 export async function connectToSandbox(
-  session: SandboxSession
+  session: SandboxBrowserSession,
+  options: {
+    onFocusChange?: (cb: (isFocused: boolean) => void) => () => void;
+    initStatusCb?: (event: protocol.system.InitStatus) => void;
+  } = {}
 ): Promise<WebSocketClient> {
   const pitcherClient = await initPitcherClient(
     {
       appId: "sdk",
-      instanceId: session.sandboxId,
-      onFocusChange() {
-        return () => {};
-      },
-      requestPitcherInstance: () =>
-        Promise.resolve({
-          bootupType: "RESUME",
-          cluster: "session",
-          id: session.sandboxId,
-          latestPitcherVersion: "1.0.0-session",
-          pitcherManagerVersion: "1.0.0-session",
-          pitcherToken: session.pitcherToken,
-          pitcherURL: session.pitcherUrl,
-          pitcherVersion: "1.0.0-session",
-          reconnectToken: "",
-          userWorkspacePath: session.userWorkspacePath,
-          workspacePath: session.userWorkspacePath,
+      instanceId: session.id,
+      onFocusChange:
+        options.onFocusChange ||
+        (() => {
+          return () => {};
         }),
+      requestPitcherInstance: () => Promise.resolve(session),
       subscriptions: DEFAULT_SUBSCRIPTIONS,
     },
-    () => {}
+    options.initStatusCb || (() => {})
   );
 
   return new WebSocketClient(pitcherClient);

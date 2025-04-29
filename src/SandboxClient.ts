@@ -17,6 +17,7 @@ import {
   SandboxPrivacy,
   StartSandboxOpts,
 } from "./types";
+import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 
 export class SandboxClient {
   private apiClient: Client;
@@ -48,7 +49,7 @@ export class SandboxClient {
   private async start(
     sandboxId: string,
     startOpts?: StartSandboxOpts
-  ): Promise<SandboxOpts> {
+  ): Promise<PitcherManagerResponse> {
     const startResult = await vmStart({
       client: this.apiClient,
       body: startOpts
@@ -70,16 +71,15 @@ export class SandboxClient {
     );
 
     return {
-      id: sandboxId,
-      bootupType: response.bootup_type as SandboxOpts["bootupType"],
+      bootupType: response.bootup_type as PitcherManagerResponse["bootupType"],
       cluster: response.cluster,
-      isUpToDate: response.latest_pitcher_version === response.pitcher_version,
-      globalSession: {
-        sandboxId,
-        pitcherToken: response.pitcher_token,
-        pitcherUrl: response.pitcher_url,
-        userWorkspacePath: response.user_workspace_path,
-      },
+      pitcherURL: response.pitcher_url,
+      workspacePath: response.workspace_path,
+      userWorkspacePath: response.user_workspace_path,
+      pitcherManagerVersion: response.pitcher_manager_version,
+      pitcherVersion: response.pitcher_version,
+      latestPitcherVersion: response.latest_pitcher_version,
+      pitcherToken: response.pitcher_token,
     };
   }
 
@@ -87,8 +87,8 @@ export class SandboxClient {
    *
    */
   async resume(sandboxId: string) {
-    const sandboxOpts = await this.start(sandboxId);
-    return new Sandbox(sandboxOpts, this);
+    const startResponse = await this.start(sandboxId);
+    return new Sandbox(sandboxId, startResponse, this);
   }
 
   private async createGitSandbox(
@@ -150,9 +150,9 @@ export class SandboxClient {
       "Failed to create sandbox"
       // We currently always pass "start_options" to create a session
     );
-    const sandboxOpts = await this.start(sandbox.id, opts);
+    const startResponse = await this.start(sandbox.id, opts);
 
-    return new Sandbox(sandboxOpts, this);
+    return new Sandbox(sandbox.id, startResponse, this);
   }
   /**
    * Creates a sandbox by forking a template. You can pass in any template or sandbox id (from

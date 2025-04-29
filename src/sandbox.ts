@@ -1,6 +1,7 @@
 import {
   Disposable,
   initPitcherClient,
+  PitcherManagerResponse,
   type protocol as _protocol,
 } from "@codesandbox/pitcher-client";
 import type {
@@ -9,6 +10,7 @@ import type {
   StartSandboxOpts,
   CreateSandboxBaseOpts,
   SandboxOpts,
+  SandboxBrowserSession,
 } from "./types";
 import { PreviewTokens } from "./PreviewTokens";
 import { Client } from "@hey-api/client-fetch";
@@ -42,22 +44,31 @@ export class Sandbox extends Disposable {
    */
   public readonly previewTokens: PreviewTokens;
 
-  get id() {
-    return this.opts.id;
-  }
   get bootupType() {
-    return this.opts.bootupType;
+    return this.pitcherManagerResponse.bootupType;
   }
   get cluster() {
-    return this.opts.cluster;
+    return this.pitcherManagerResponse.cluster;
   }
   get isUpToDate() {
-    return this.opts.isUpToDate;
+    return (
+      this.pitcherManagerResponse.latestPitcherVersion ===
+      this.pitcherManagerResponse.pitcherVersion
+    );
   }
   get globalSession() {
-    return this.opts.globalSession;
+    return {
+      sandboxId: this.id,
+      pitcherToken: this.pitcherManagerResponse.pitcherToken,
+      pitcherUrl: this.pitcherManagerResponse.pitcherURL,
+      userWorkspacePath: this.pitcherManagerResponse.userWorkspacePath,
+    };
   }
-  constructor(private opts: SandboxOpts, private sandboxClient: SandboxClient) {
+  constructor(
+    public id: string,
+    private pitcherManagerResponse: PitcherManagerResponse,
+    private sandboxClient: SandboxClient
+  ) {
     super();
 
     this.apiClient = sandboxClient["apiClient"];
@@ -93,7 +104,7 @@ export class Sandbox extends Disposable {
    * @returns The start data, contains a single use token to connect to the VM
    */
   public async resume(): Promise<void> {
-    this.opts = await this.sandboxClient["start"](this.id);
+    this.pitcherManagerResponse = await this.sandboxClient["start"](this.id);
   }
 
   /**
@@ -169,7 +180,9 @@ export class Sandbox extends Disposable {
     );
   }
 
-  async createSession(opts: SessionCreateOptions): Promise<SandboxSession> {
+  private async createSession(
+    opts: SessionCreateOptions
+  ): Promise<SandboxSession> {
     const response = await vmCreateSession({
       client: this.apiClient,
       body: {
@@ -196,16 +209,43 @@ export class Sandbox extends Disposable {
     return session;
   }
 
-  async connect(customSession?: SandboxSession): Promise<WebSocketClient> {
-    const session = customSession || this.globalSession;
+  async connect(
+    customSession?: SessionCreateOptions
+  ): Promise<WebSocketClient> {
+    const session = customSession
+      ? await this.createSession(customSession)
+      : this.globalSession;
 
     return WebSocketClient.init(session, this.apiClient);
   }
 
-  async createRestClient(customSession?: SandboxSession) {
-    const session = customSession || this.globalSession;
+  async createRestClient(customSession?: SessionCreateOptions) {
+    const session = customSession
+      ? await this.createSession(customSession)
+      : this.globalSession;
 
     return new RestClient(session);
+  }
+
+  async createBrowserSession(
+    customSession?: SessionCreateOptions
+  ): Promise<SandboxBrowserSession> {
+    const session = customSession
+      ? await this.createSession(customSession)
+      : this.globalSession;
+
+    return {
+      id: this.id,
+      bootupType: this.bootupType,
+      cluster: this.cluster,
+      latestPitcherVersion: this.pitcherManagerResponse.latestPitcherVersion,
+      pitcherManagerVersion: this.pitcherManagerResponse.pitcherManagerVersion,
+      pitcherToken: session.pitcherToken,
+      pitcherURL: session.pitcherUrl,
+      userWorkspacePath: session.userWorkspacePath,
+      workspacePath: this.pitcherManagerResponse.workspacePath,
+      pitcherVersion: this.pitcherManagerResponse.pitcherVersion,
+    };
   }
 
   /**
