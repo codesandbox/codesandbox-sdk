@@ -16,8 +16,8 @@ import {
 } from "./api-clients/client";
 import { handleResponse } from "./utils/api";
 import { VMTier } from "./VMTier";
-import { WebSocketClient } from "./clients/WebSocketClient";
-import { RestClient } from "./clients/RestClient";
+import { WebSocketSession } from "./sessions/WebSocketSession";
+import { RestSession } from "./sessions/RestSession";
 
 export class Sandbox {
   get bootupType() {
@@ -113,20 +113,20 @@ export class Sandbox {
 
   async connect(
     customSession?: SessionCreateOptions
-  ): Promise<WebSocketClient> {
+  ): Promise<WebSocketSession> {
     const session = customSession
       ? await this.createSession(customSession)
       : this.globalSession;
 
-    return WebSocketClient.init(session, this.apiClient);
+    return WebSocketSession.init(session, this.apiClient);
   }
 
-  async createRestClient(customSession?: SessionCreateOptions) {
+  async createRestSession(customSession?: SessionCreateOptions) {
     const session = customSession
       ? await this.createSession(customSession)
       : this.globalSession;
 
-    return new RestClient(session);
+    return new RestSession(session);
   }
 
   async createBrowserSession(

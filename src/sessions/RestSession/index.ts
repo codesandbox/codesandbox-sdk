@@ -13,7 +13,7 @@ export interface ClientOpts {
   headers?: Record<string, string>;
 }
 
-export class RestClient {
+export class RestSession {
   static id = 0;
   fs: SandboxRestFS;
   container: SandboxRestContainer;
@@ -56,7 +56,7 @@ export class RestClient {
         const method = opts.url.substring(1);
 
         const message = {
-          id: RestClient.id++,
+          id: RestSession.id++,
           method,
           params: opts.body,
         };

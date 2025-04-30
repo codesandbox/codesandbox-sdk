@@ -1,6 +1,6 @@
 import { initPitcherClient, protocol } from "@codesandbox/pitcher-client";
 import { DEFAULT_SUBSCRIPTIONS, SandboxBrowserSession } from "./types";
-import { WebSocketClient } from "./clients/WebSocketClient";
+import { WebSocketSession } from "./sessions/WebSocketSession";
 
 /**
  * With this function you can connect to a sandbox from the browser.
@@ -42,7 +42,7 @@ export async function connectToSandbox(options: {
   getSession: (id: string) => Promise<SandboxBrowserSession>;
   onFocusChange?: (cb: (isFocused: boolean) => void) => () => void;
   initStatusCb?: (event: protocol.system.InitStatus) => void;
-}): Promise<WebSocketClient> {
+}): Promise<WebSocketSession> {
   const pitcherClient = await initPitcherClient(
     {
       appId: "sdk",
@@ -58,5 +58,5 @@ export async function connectToSandbox(options: {
     options.initStatusCb || (() => {})
   );
 
-  return new WebSocketClient(pitcherClient);
+  return new WebSocketSession(pitcherClient);
 }

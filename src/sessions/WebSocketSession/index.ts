@@ -19,7 +19,7 @@ export * from "./setup";
 export * from "./shells";
 export * from "./tasks";
 
-export class WebSocketClient {
+export class WebSocketSession {
   private disposable = new Disposable();
 
   static async init(session: SandboxSession, apiClient: Client) {
@@ -67,7 +67,7 @@ export class WebSocketClient {
       () => {}
     );
 
-    return new WebSocketClient(pitcherClient);
+    return new WebSocketSession(pitcherClient);
   }
   /**
    * Namespace for all filesystem operations on this sandbox.
