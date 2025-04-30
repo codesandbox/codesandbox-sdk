@@ -19,7 +19,9 @@ export * from "./setup";
 export * from "./shells";
 export * from "./tasks";
 
-export class WebSocketClient extends Disposable {
+export class WebSocketClient {
+  private disposable = new Disposable();
+
   static async init(session: SandboxSession, apiClient: Client) {
     const pitcherClient = await initPitcherClient(
       {
@@ -70,18 +72,24 @@ export class WebSocketClient extends Disposable {
   /**
    * Namespace for all filesystem operations on this sandbox.
    */
-  public readonly fs = this.addDisposable(new FileSystem(this.pitcherClient));
+  public readonly fs = this.disposable.addDisposable(
+    new FileSystem(this.pitcherClient)
+  );
 
   /**
    * Namespace for running shell commands on this sandbox.
    */
-  public readonly shells = this.addDisposable(new Shells(this.pitcherClient));
+  public readonly shells = this.disposable.addDisposable(
+    new Shells(this.pitcherClient)
+  );
 
   /**
    * Namespace for detecting open ports on this sandbox, and getting preview URLs for
    * them.
    */
-  public readonly ports = this.addDisposable(new Ports(this.pitcherClient));
+  public readonly ports = this.disposable.addDisposable(
+    new Ports(this.pitcherClient)
+  );
 
   /**
    * Namespace for all setup operations on this sandbox (installing dependencies, etc).
@@ -89,7 +97,9 @@ export class WebSocketClient extends Disposable {
    * This provider is *experimental*, it might get changes or completely be removed
    * if it is not used.
    */
-  public readonly setup = this.addDisposable(new Setup(this.pitcherClient));
+  public readonly setup = this.disposable.addDisposable(
+    new Setup(this.pitcherClient)
+  );
 
   /**
    * Namespace for all task operations on a sandbox. This includes running tasks,
@@ -104,11 +114,11 @@ export class WebSocketClient extends Disposable {
    * This provider is *experimental*, it might get changes or completely be removed
    * if it is not used.
    */
-  public readonly tasks = this.addDisposable(new Tasks(this.pitcherClient));
+  public readonly tasks = this.disposable.addDisposable(
+    new Tasks(this.pitcherClient)
+  );
 
   constructor(protected pitcherClient: IPitcherClient) {
-    super();
-
     // TODO: Bring this back once metrics polling does not reset inactivity
     // const metricsDisposable = {
     //   dispose:
@@ -116,7 +126,15 @@ export class WebSocketClient extends Disposable {
     // };
 
     // this.addDisposable(metricsDisposable);
-    this.addDisposable(this.pitcherClient);
+    this.disposable.addDisposable(this.pitcherClient);
+  }
+
+  get state() {
+    return this.pitcherClient.state;
+  }
+
+  get onStateChange() {
+    return this.pitcherClient.onStateChange.bind(this.pitcherClient);
   }
 
   /**
@@ -196,7 +214,7 @@ export class WebSocketClient extends Disposable {
    */
   public disconnect() {
     this.pitcherClient.disconnect();
-    this.dispose();
+    this.disposable.dispose();
   }
 
   private keepAliveInterval: NodeJS.Timeout | null = null;
@@ -209,7 +227,7 @@ export class WebSocketClient extends Disposable {
         this.pitcherClient.clients.system.update();
       }, 1000 * 30);
 
-      this.onWillDispose(() => {
+      this.disposable.onWillDispose(() => {
         if (this.keepAliveInterval) {
           clearInterval(this.keepAliveInterval);
           this.keepAliveInterval = null;
