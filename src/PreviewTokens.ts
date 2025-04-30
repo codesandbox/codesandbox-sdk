@@ -1,5 +1,4 @@
 import { Disposable } from "./utils/disposable";
-import { SandboxClient } from "./SandboxClient";
 import { Client } from "@hey-api/client-fetch";
 import { handleResponse } from "./utils/api";
 import {
@@ -31,6 +30,21 @@ export interface PreviewToken extends BasePreviewTokenInfo {
 export class PreviewTokens extends Disposable {
   constructor(private sandboxId: string, private apiClient: Client) {
     super();
+  }
+
+  /**
+   * Get a signed preview URL for a port using a preview token.
+   *
+   * @param port - The port to get a signed preview URL for
+   * @param token - The preview token to sign the URL with
+   * @returns The signed preview URL, or undefined if the port is not open
+   */
+  getSignedPreviewUrl(
+    port: number,
+    token: string,
+    protocol = "https://"
+  ): string {
+    return `${protocol}${this.sandboxId}-${port}.csb.app?preview_token=${token}`;
   }
 
   /**

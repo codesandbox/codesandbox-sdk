@@ -9,7 +9,6 @@ import type {
   SessionCreateOptions,
   StartSandboxOpts,
   CreateSandboxBaseOpts,
-  SandboxOpts,
   SandboxBrowserSession,
 } from "./types";
 import { PreviewTokens } from "./PreviewTokens";
@@ -18,8 +17,6 @@ import {
   vmCreateSession,
   vmHibernate,
   vmShutdown,
-  vmStart,
-  VmStartResponse,
   vmUpdateHibernationTimeout,
   vmUpdateSpecs,
 } from "./api-clients/client";
@@ -56,7 +53,7 @@ export class Sandbox extends Disposable {
       this.pitcherManagerResponse.pitcherVersion
     );
   }
-  get globalSession() {
+  private get globalSession() {
     return {
       sandboxId: this.id,
       pitcherToken: this.pitcherManagerResponse.pitcherToken,

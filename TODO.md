@@ -4,10 +4,18 @@
 - If `gitAccessToken` should we create a temp session to clone and then still require
   a `createSession` to interact with the repo?
 - Should we allow `gitAccessToken` with global user on `vm/{id}/start`?
+- Why do you need to connect to get the signed preview url? Could we rather return the preview origin on PitcherManagerResponse and rather make it a Sandbox management type of thing
+
+## USER QUESTIONS
+
+- Do you need to create/fork a sandbox without starting the VM
+- Do you need to shutdown/restart the sandbox without resuming it first
 
 ## TODO
 
-- Improve data passed to browser with a BrowserSession, also ensure reconnect token works
+- Allow getting `sandbox` reference without resuming
+- Start VM on create/fork
+- Move preview tokens to sandbox
 
 # 1 New API
 
@@ -20,7 +28,6 @@ const sandbox = await sdk.sandbox.create(SandboxOptions & StartOptions);
 sandbox.isUpToDate;
 sandbox.bootupType;
 sandbox.cluster;
-sandbox.globalSession;
 sandbox.fork(Omit<SandboxOptions, "template"> & StartOptions);
 sandbox.restart(StartOptions);
 sandbox.hibernate();
