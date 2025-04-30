@@ -1,7 +1,14 @@
 import type { Client } from "@hey-api/client-fetch";
 import { createClient, createConfig } from "@hey-api/client-fetch";
 
-import { sandboxFork, sandboxList, vmStart } from "./api-clients/client";
+import {
+  sandboxFork,
+  sandboxList,
+  vmHibernate,
+  vmShutdown,
+  vmStart,
+} from "./api-clients/client";
+import { VMTier } from "./VMTier";
 import { Sandbox } from "./Sandbox";
 import {
   getBaseUrl,
@@ -18,11 +25,11 @@ import {
   SandboxInfo,
   SandboxListOpts,
   SandboxListResponse,
-  SandboxOpts,
   SandboxPrivacy,
   StartSandboxOpts,
 } from "./types";
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
+import { PreviewTokens } from "./PreviewTokens";
 
 export class SandboxClient {
   private apiClient: Client;
@@ -34,6 +41,19 @@ export class SandboxClient {
 
     return "pcz35m";
   }
+
+  /**
+   * Provider for generating preview tokens. These tokens can be used to generate signed
+   * preview URLs for private sandboxes.
+   *
+   * @example
+   * ```ts
+   * const sandbox = await sdk.sandbox.create();
+   * const previewToken = await sandbox.previewTokens.createToken();
+   * const url = sandbox.ports.getSignedPreviewUrl(8080, previewToken.token);
+   * ```
+   */
+  public readonly previewTokens: PreviewTokens;
 
   constructor(apiToken: string, opts: ClientOpts) {
     const baseUrl =
@@ -49,41 +69,7 @@ export class SandboxClient {
         fetch: opts.fetch ?? fetch,
       })
     );
-  }
-
-  private async start(
-    sandboxId: string,
-    startOpts?: StartSandboxOpts
-  ): Promise<PitcherManagerResponse> {
-    const startResult = await vmStart({
-      client: this.apiClient,
-      body: startOpts
-        ? {
-            ipcountry: startOpts.ipcountry,
-            tier: startOpts.vmTier?.name,
-            hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
-            automatic_wakeup_config: startOpts.automaticWakeupConfig,
-          }
-        : undefined,
-      path: {
-        id: sandboxId,
-      },
-    });
-
-    const response = handleResponse(
-      startResult,
-      `Failed to start sandbox ${sandboxId}`
-    );
-
-    return getStartResponse(response);
-  }
-
-  /**
-   *
-   */
-  async resume(sandboxId: string) {
-    const startResponse = await this.start(sandboxId);
-    return new Sandbox(sandboxId, startResponse, this);
+    this.previewTokens = new PreviewTokens(this.apiClient);
   }
 
   private async createGitSandbox(
@@ -95,7 +81,16 @@ export class SandboxClient {
       id: this.defaultTemplateId,
     });
 
-    const client = await sandbox.connect();
+    const client = await sandbox.connect(
+      // We do not want users to pass gitAccessToken on global user, because it
+      // can be read by other users
+      opts.gitAccessToken
+        ? {
+            id: "clone-admin",
+            permission: "write",
+          }
+        : undefined
+    );
 
     await client.shells.run(
       [
@@ -143,9 +138,91 @@ export class SandboxClient {
     return new Sandbox(
       sandbox.id,
       getStartResponse(sandbox.start_response),
-      this
+      this.apiClient
     );
   }
+
+  private async start(
+    sandboxId: string,
+    startOpts?: StartSandboxOpts
+  ): Promise<PitcherManagerResponse> {
+    const startResult = await vmStart({
+      client: this.apiClient,
+      body: startOpts
+        ? {
+            ipcountry: startOpts.ipcountry,
+            tier: startOpts.vmTier?.name,
+            hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
+            automatic_wakeup_config: startOpts.automaticWakeupConfig,
+          }
+        : undefined,
+      path: {
+        id: sandboxId,
+      },
+    });
+
+    const response = handleResponse(
+      startResult,
+      `Failed to start sandbox ${sandboxId}`
+    );
+
+    return getStartResponse(response);
+  }
+
+  /**
+   *
+   */
+  async resume(sandboxId: string) {
+    const startResponse = await this.start(sandboxId);
+    return new Sandbox(sandboxId, startResponse, this.apiClient);
+  }
+
+  /**
+   * Shuts down a sandbox. Files will be saved, and the sandbox will be stopped.
+   *
+   * @param sandboxId The ID of the sandbox to shutdown
+   */
+  async shutdown(sandboxId: string): Promise<void> {
+    const response = await vmShutdown({
+      client: this.apiClient,
+      path: {
+        id: sandboxId,
+      },
+    });
+
+    handleResponse(response, `Failed to shutdown sandbox ${sandboxId}`);
+  }
+
+  /**
+   * Restart the sandbox. This will shutdown the sandbox, and then start it again. Files in
+   * the project directory (`/project/sandbox`) will be preserved.
+   *
+   * Will resolve once the sandbox is rebooted.
+   */
+  public async restart(sandboxId: string, opts?: StartSandboxOpts) {
+    await this.shutdown(sandboxId);
+    const startResponse = await this.start(sandboxId, opts);
+
+    return new Sandbox(sandboxId, startResponse, this.apiClient);
+  }
+
+  /**
+   * Hibernates a sandbox. Files will be saved, and the sandbox will be put to sleep. Next time
+   * you start the sandbox it will be resumed from the last state it was in.
+   *
+   * @param sandboxId The ID of the sandbox to hibernate
+   */
+  async hibernate(sandboxId: string): Promise<void> {
+    const response = await vmHibernate({
+      client: this.apiClient,
+      path: {
+        id: sandboxId,
+      },
+    });
+
+    handleResponse(response, `Failed to hibernate sandbox ${sandboxId}`);
+  }
+
   /**
    * Creates a sandbox by forking a template. You can pass in any template or sandbox id (from
    * any sandbox/template created on codesandbox.io, even your own templates) or don't pass

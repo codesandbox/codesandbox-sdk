@@ -28,7 +28,7 @@ export interface PreviewToken extends BasePreviewTokenInfo {
  * with an authenticated API client (like Node.js).
  */
 export class PreviewTokens extends Disposable {
-  constructor(private sandboxId: string, private apiClient: Client) {
+  constructor(private apiClient: Client) {
     super();
   }
 
@@ -40,11 +40,12 @@ export class PreviewTokens extends Disposable {
    * @returns The signed preview URL, or undefined if the port is not open
    */
   getSignedPreviewUrl(
+    sandboxId: string,
     port: number,
     token: string,
     protocol = "https://"
   ): string {
-    return `${protocol}${this.sandboxId}-${port}.csb.app?preview_token=${token}`;
+    return `${protocol}${sandboxId}-${port}.csb.app?preview_token=${token}`;
   }
 
   /**
@@ -54,12 +55,15 @@ export class PreviewTokens extends Disposable {
    * @param opts.expiresAt - Optional expiration date for the preview token
    * @returns A preview token that can be used with Ports.getSignedPreviewUrl
    */
-  async create(opts: { expiresAt?: Date } = {}): Promise<PreviewToken> {
+  async create(
+    sandboxId: string,
+    opts: { expiresAt?: Date } = {}
+  ): Promise<PreviewToken> {
     const response = handleResponse(
       await previewTokenCreate({
         client: this.apiClient,
         path: {
-          id: this.sandboxId,
+          id: sandboxId,
         },
         body: {
           expires_at: opts.expiresAt?.toISOString(),
@@ -89,12 +93,12 @@ export class PreviewTokens extends Disposable {
    *
    * @returns A list of preview tokens
    */
-  async list(): Promise<PreviewTokenInfo[]> {
+  async list(sandboxId: string): Promise<PreviewTokenInfo[]> {
     const response = handleResponse(
       await previewTokenList({
         client: this.apiClient,
         path: {
-          id: this.sandboxId,
+          id: sandboxId,
         },
       }),
       "Failed to list preview tokens"
@@ -117,12 +121,12 @@ export class PreviewTokens extends Disposable {
    *
    * @param tokenId - The ID of the token to revoke
    */
-  async revoke(tokenId: string): Promise<void> {
+  async revoke(sandboxId: string, tokenId: string): Promise<void> {
     handleResponse(
       await previewTokenUpdate({
         client: this.apiClient,
         path: {
-          id: this.sandboxId,
+          id: sandboxId,
           token_id: tokenId,
         },
         body: {
@@ -138,12 +142,12 @@ export class PreviewTokens extends Disposable {
    * This will immediately invalidate all tokens, and they can no longer be used
    * to access the sandbox preview.
    */
-  async revokeAll(): Promise<void> {
+  async revokeAll(sandboxId: string): Promise<void> {
     handleResponse(
       await previewTokenRevokeAll({
         client: this.apiClient,
         path: {
-          id: this.sandboxId,
+          id: sandboxId,
         },
       }),
       "Failed to revoke preview tokens"
@@ -158,6 +162,7 @@ export class PreviewTokens extends Disposable {
    * @returns The updated preview token info
    */
   async update(
+    sandboxId: string,
     tokenId: string,
     expiresAt: Date | null
   ): Promise<PreviewTokenInfo> {
@@ -165,7 +170,7 @@ export class PreviewTokens extends Disposable {
       await previewTokenUpdate({
         client: this.apiClient,
         path: {
-          id: this.sandboxId,
+          id: sandboxId,
           token_id: tokenId,
         },
         body: {
