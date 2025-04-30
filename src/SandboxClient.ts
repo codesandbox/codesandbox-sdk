@@ -8,15 +8,9 @@ import {
   vmShutdown,
   vmStart,
 } from "./api-clients/client";
-import { VMTier } from "./VMTier";
 import { Sandbox } from "./Sandbox";
-import {
-  getBaseUrl,
-  getStartOptions,
-  getStartResponse,
-  handleResponse,
-} from "./utils/api";
-import { ClientOpts } from ".";
+import { getStartOptions, getStartResponse, handleResponse } from "./utils/api";
+
 import {
   CreateSandboxGitSourceOpts,
   CreateSandboxOpts,
@@ -29,11 +23,8 @@ import {
   StartSandboxOpts,
 } from "./types";
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
-import { PreviewTokens } from "./PreviewTokens";
 
 export class SandboxClient {
-  private apiClient: Client;
-
   get defaultTemplateId() {
     if (this.apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
       return "7ngcrf";
@@ -42,35 +33,7 @@ export class SandboxClient {
     return "pcz35m";
   }
 
-  /**
-   * Provider for generating preview tokens. These tokens can be used to generate signed
-   * preview URLs for private sandboxes.
-   *
-   * @example
-   * ```ts
-   * const sandbox = await sdk.sandbox.create();
-   * const previewToken = await sandbox.previewTokens.createToken();
-   * const url = sandbox.ports.getSignedPreviewUrl(8080, previewToken.token);
-   * ```
-   */
-  public readonly previewTokens: PreviewTokens;
-
-  constructor(apiToken: string, opts: ClientOpts) {
-    const baseUrl =
-      process.env.CSB_BASE_URL ?? opts.baseUrl ?? getBaseUrl(apiToken);
-
-    this.apiClient = this.apiClient = createClient(
-      createConfig({
-        baseUrl,
-        headers: {
-          Authorization: `Bearer ${apiToken}`,
-          ...(opts.headers ?? {}),
-        },
-        fetch: opts.fetch ?? fetch,
-      })
-    );
-    this.previewTokens = new PreviewTokens(this.apiClient);
-  }
+  constructor(private apiClient: Client) {}
 
   private async createGitSandbox(
     opts: CreateSandboxGitSourceOpts & StartSandboxOpts
