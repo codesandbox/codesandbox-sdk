@@ -8,6 +8,9 @@ export { VMTier } from "./VMTier";
 export * from "./Sandbox";
 export * from "./types";
 import * as WebSocketSession from "./sessions/WebSocketSession";
+import { PreviewTokens } from "./PreviewTokens";
+import { createClient, createConfig } from "@hey-api/client-fetch";
+import { getBaseUrl } from "./utils/api";
 
 export { WebSocketSession };
 
@@ -24,6 +27,19 @@ export { RestSession as RestSession } from "./sessions/RestSession";
 export class CodeSandbox {
   public readonly sandbox: SandboxClient;
 
+  /**
+   * Provider for generating preview tokens. These tokens can be used to generate signed
+   * preview URLs for private sandboxes.
+   *
+   * @example
+   * ```ts
+   * const sandbox = await sdk.sandbox.create();
+   * const previewToken = await sandbox.previewTokens.createToken();
+   * const url = sandbox.ports.getSignedPreviewUrl(8080, previewToken.token);
+   * ```
+   */
+  public readonly previewTokens: PreviewTokens;
+
   constructor(apiToken?: string, readonly opts: ClientOpts = {}) {
     const evaluatedApiToken =
       apiToken ||
@@ -34,6 +50,21 @@ export class CodeSandbox {
         "CSB_API_KEY or TOGETHER_API_KEY is not set"
       );
 
-    this.sandbox = new SandboxClient(evaluatedApiToken, opts);
+    const baseUrl =
+      process.env.CSB_BASE_URL ?? opts.baseUrl ?? getBaseUrl(evaluatedApiToken);
+
+    const apiClient = createClient(
+      createConfig({
+        baseUrl,
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          ...(opts.headers ?? {}),
+        },
+        fetch: opts.fetch ?? fetch,
+      })
+    );
+
+    this.sandbox = new SandboxClient(apiClient);
+    this.previewTokens = new PreviewTokens(apiClient);
   }
 }
