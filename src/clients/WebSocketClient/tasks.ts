@@ -1,6 +1,5 @@
 import type { IPitcherClient, protocol } from "@codesandbox/pitcher-client";
 
-import { PortInfo } from "./ports";
 import { Disposable } from "../../utils/disposable";
 
 export type TaskDefinition = {
@@ -17,7 +16,7 @@ export type Task = TaskDefinition & {
   id: string;
   unconfigured?: boolean;
   shellId: null | string;
-  ports: PortInfo[];
+  ports: protocol.port.Port[];
 };
 
 export class Tasks extends Disposable {
@@ -65,6 +64,6 @@ function taskFromDTO(value: protocol.task.TaskDTO): Task {
     runAtStart: value.runAtStart,
     preview: value.preview,
     shellId: value.shell?.shellId ?? null,
-    ports: value.ports.map((port) => new PortInfo(port.port, port.url)),
+    ports: value.ports,
   };
 }
