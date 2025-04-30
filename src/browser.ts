@@ -37,23 +37,22 @@ import { WebSocketClient } from "./clients/WebSocketClient";
  * const sandbox = await connectToSandbox(startData);
  * ```
  */
-export async function connectToSandbox(
-  session: SandboxBrowserSession,
-  options: {
-    onFocusChange?: (cb: (isFocused: boolean) => void) => () => void;
-    initStatusCb?: (event: protocol.system.InitStatus) => void;
-  } = {}
-): Promise<WebSocketClient> {
+export async function connectToSandbox(options: {
+  id: string;
+  getSession: (id: string) => Promise<SandboxBrowserSession>;
+  onFocusChange?: (cb: (isFocused: boolean) => void) => () => void;
+  initStatusCb?: (event: protocol.system.InitStatus) => void;
+}): Promise<WebSocketClient> {
   const pitcherClient = await initPitcherClient(
     {
       appId: "sdk",
-      instanceId: session.id,
+      instanceId: options.id,
       onFocusChange:
         options.onFocusChange ||
         (() => {
           return () => {};
         }),
-      requestPitcherInstance: () => Promise.resolve(session),
+      requestPitcherInstance: options.getSession,
       subscriptions: DEFAULT_SUBSCRIPTIONS,
     },
     options.initStatusCb || (() => {})

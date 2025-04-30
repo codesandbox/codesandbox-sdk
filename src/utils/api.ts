@@ -1,3 +1,6 @@
+import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
+import { VmStartResponse } from "../api-clients/client";
+import { StartSandboxOpts } from "../types";
 import { RateLimitError } from "./rate-limit";
 
 export type HandledResponse<D, E> = {
@@ -7,6 +10,37 @@ export type HandledResponse<D, E> = {
   error?: E;
   response: Response;
 };
+
+export function getStartOptions(opts: StartSandboxOpts | undefined) {
+  if (!opts) return {};
+
+  return {
+    ipcountry: opts.ipcountry,
+    tier: opts.vmTier?.name,
+    hibernation_timeout_seconds: opts.hibernationTimeoutSeconds,
+    automatic_wakeup_config: opts.automaticWakeupConfig,
+  };
+}
+
+export function getStartResponse(
+  response: VmStartResponse["data"] | null
+): PitcherManagerResponse {
+  if (!response) {
+    throw new Error("No start response");
+  }
+
+  return {
+    bootupType: response.bootup_type as PitcherManagerResponse["bootupType"],
+    cluster: response.cluster,
+    pitcherURL: response.pitcher_url,
+    workspacePath: response.workspace_path,
+    userWorkspacePath: response.user_workspace_path,
+    pitcherManagerVersion: response.pitcher_manager_version,
+    pitcherVersion: response.pitcher_version,
+    latestPitcherVersion: response.latest_pitcher_version,
+    pitcherToken: response.pitcher_token,
+  };
+}
 
 export function getBaseUrl(token: string) {
   if (token.startsWith("csb_")) {

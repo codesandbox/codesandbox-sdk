@@ -7,7 +7,7 @@ import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
 
-import { WebSocketSession, VMTier, CodeSandbox } from "../../";
+import { WebSocketSession, VMTier, CodeSandbox, Sandbox } from "../../";
 
 import {
   sandboxCreate,
@@ -139,7 +139,11 @@ export const buildCommand: yargs.CommandModule<
         spinner.start(`Starting sandbox...`);
       }
 
-      const sandbox = await sdk.sandbox.resume(sandboxId);
+      const startResponse = await sdk.sandbox["start"](sandboxId, {
+        ipcountry: argv.ipCountry,
+        vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
+      });
+      const sandbox = new Sandbox(sandboxId, startResponse, sdk.sandbox);
       const session = await sandbox.connect();
       spinner.succeed("Sandbox opened");
 

@@ -3,7 +3,12 @@ import { createClient, createConfig } from "@hey-api/client-fetch";
 
 import { sandboxFork, sandboxList, vmStart } from "./api-clients/client";
 import { Sandbox } from "./Sandbox";
-import { getBaseUrl, handleResponse } from "./utils/api";
+import {
+  getBaseUrl,
+  getStartOptions,
+  getStartResponse,
+  handleResponse,
+} from "./utils/api";
 import { ClientOpts } from ".";
 import {
   CreateSandboxGitSourceOpts,
@@ -70,17 +75,7 @@ export class SandboxClient {
       `Failed to start sandbox ${sandboxId}`
     );
 
-    return {
-      bootupType: response.bootup_type as PitcherManagerResponse["bootupType"],
-      cluster: response.cluster,
-      pitcherURL: response.pitcher_url,
-      workspacePath: response.workspace_path,
-      userWorkspacePath: response.user_workspace_path,
-      pitcherManagerVersion: response.pitcher_manager_version,
-      pitcherVersion: response.pitcher_version,
-      latestPitcherVersion: response.latest_pitcher_version,
-      pitcherToken: response.pitcher_token,
-    };
+    return getStartResponse(response);
   }
 
   /**
@@ -128,9 +123,6 @@ export class SandboxClient {
 
     // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
     const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
-
-    // We never want to start the Sandbox as part of this call. The reason is that we currently need to
-    // call an explicit START to start it in the correct cluster
     const result = await sandboxFork({
       client: this.apiClient,
       body: {
@@ -139,20 +131,20 @@ export class SandboxClient {
         description: opts?.description,
         tags: tagsWithSdk,
         path,
+        start_options: getStartOptions(opts),
       },
       path: {
         id: templateId,
       },
     });
 
-    const sandbox = handleResponse(
-      result,
-      "Failed to create sandbox"
-      // We currently always pass "start_options" to create a session
-    );
-    const startResponse = await this.start(sandbox.id, opts);
+    const sandbox = handleResponse(result, "Failed to create sandbox");
 
-    return new Sandbox(sandbox.id, startResponse, this);
+    return new Sandbox(
+      sandbox.id,
+      getStartResponse(sandbox.start_response),
+      this
+    );
   }
   /**
    * Creates a sandbox by forking a template. You can pass in any template or sandbox id (from
