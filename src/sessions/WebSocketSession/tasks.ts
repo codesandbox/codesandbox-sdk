@@ -1,4 +1,9 @@
-import type { IPitcherClient, protocol } from "@codesandbox/pitcher-client";
+import {
+  Emitter,
+  IDisposable,
+  type IPitcherClient,
+  type protocol,
+} from "@codesandbox/pitcher-client";
 
 import { Disposable } from "../../utils/disposable";
 
@@ -19,9 +24,93 @@ export type Task = TaskDefinition & {
   ports: protocol.port.Port[];
 };
 
+type TaskShellSubscription = {
+  shellId: string;
+  disposable: IDisposable;
+};
+
 export class Tasks extends Disposable {
+  private shellOutputListeners: Record<string, TaskShellSubscription> = {};
+  private onTaskOutputEmitter = this.addDisposable(
+    new Emitter<{
+      taskId: string;
+      output: string;
+    }>()
+  );
+  public readonly onTaskOutput = this.onTaskOutputEmitter.event;
+
   constructor(private pitcherClient: IPitcherClient) {
     super();
+    this.pitcherClient.clients.shell.onShellCreated((shell) => {
+      console.log("CREATED", shell);
+    });
+    this.addDisposable(
+      pitcherClient.clients.task.onTaskUpdate((task) =>
+        this.listenToShellOutput(task)
+      )
+    );
+    this.onWillDispose(() => {
+      Object.values(this.shellOutputListeners).forEach((listener) =>
+        listener.disposable.dispose()
+      );
+    });
+  }
+
+  private async listenToShellOutput(task: protocol.task.TaskDTO) {
+    const existingListener = this.shellOutputListeners[task.id];
+
+    console.log("TASK UPDATED", JSON.stringify(task, null, 2));
+
+    // Already have shell registered
+    if (existingListener && task.shell?.shellId === existingListener.shellId) {
+      return;
+    }
+
+    // Has removed shell
+    if (
+      existingListener &&
+      (!task.shell || task.shell.shellId !== existingListener.shellId)
+    ) {
+      existingListener.disposable.dispose();
+    }
+
+    // No new shell
+    if (!task.shell) {
+      return;
+    }
+
+    console.log("ADDING NEW SHELL!!!!!");
+
+    // Has new shell
+    const taskShellId = task.shell.shellId;
+    let listener: TaskShellSubscription = {
+      shellId: taskShellId,
+      disposable: this.pitcherClient.clients.shell.onShellOut(
+        ({ shellId, out }) => {
+          console.log("WTF", shellId, out);
+          if (shellId === taskShellId) {
+            this.onTaskOutputEmitter.fire({
+              taskId: task.id,
+              output: out,
+            });
+          }
+        }
+      ),
+    };
+
+    this.shellOutputListeners[task.id] = listener;
+
+    this.pitcherClient.clients.shell.open(task.shell.shellId, {
+      cols: 80,
+      rows: 24,
+    });
+
+    /*
+    this.onTaskOutputEmitter.fire({
+      taskId: task.id,
+      output: shell.buffer.join("\n"),
+    });
+    */
   }
 
   /**

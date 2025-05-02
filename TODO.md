@@ -1,17 +1,28 @@
 ## QUESTIONS
 
-- Have we removed the "This phishing overlay for SDK users?" https://github.com/codesandbox/codesandbox-sdk/issues/5"
-- What you mean about "Dynamically resize terminal"? You can not really do that?
-- Python SDK priority?
-- Have we added Bun to default template? https://github.com/codesandbox/codesandbox-sdk/issues/62
-- Do we allow deleting sandboxes? https://github.com/codesandbox/codesandbox-sdk/issues/86
-- State of env var? https://github.com/codesandbox/codesandbox-sdk/issues/90
+- Should Snapshot Tags work like NPM?
+
+  - Create Sandbox with no wakeup config
+  - Write files
+  - Wait for condition
+  - Hibernate
+  - New endpoint to tag it
+  - Sandbox is tagged (Check if hibernated?)
+  - BIG QUESTION: Should we force prevent starting the Sandbox? What about TanStack
+
+  - New endpoint to create an alias to any tag
+
+  - Change endpoint for Sandbox creation to allow tags/aliases as id
+
+  - What is Tag / Alias format?
 
 ## USER QUESTIONS
 
 ## TODO
 
 - Highlight snapshot building in docs
+- https://github.com/codesandbox/codesandbox-applications/pull/4645
+- Publish browser-static-server
 
 # 1 New API
 

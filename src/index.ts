@@ -7,12 +7,13 @@ export { VMTier } from "./VMTier";
 
 export * from "./Sandbox";
 export * from "./types";
-import * as WebSocketSession from "./sessions/WebSocketSession";
+
 import { PreviewTokens } from "./PreviewTokens";
 import { createClient, createConfig } from "@hey-api/client-fetch";
 import { getBaseUrl } from "./utils/api";
 
-export { WebSocketSession };
+export * from "./sessions/WebSocketSession";
+export * from "./sessions/RestSession";
 
 function ensure<T>(value: T | undefined, message: string): T {
   if (!value) {
@@ -21,8 +22,6 @@ function ensure<T>(value: T | undefined, message: string): T {
 
   return value;
 }
-
-export { RestSession as RestSession } from "./sessions/RestSession";
 
 export class CodeSandbox {
   public readonly sandbox: SandboxClient;

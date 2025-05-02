@@ -129,7 +129,8 @@ export class WebSocketSession {
     this.disposable.addDisposable(this.pitcherClient);
   }
 
-  get state() {
+  // Not sure why we have to explicitly type this
+  get state(): typeof this.pitcherClient.state {
     return this.pitcherClient.state;
   }
 
@@ -213,8 +214,7 @@ export class WebSocketSession {
    * automatically hibernate after an inactivity timer).
    */
   public disconnect() {
-    this.pitcherClient.disconnect();
-    this.disposable.dispose();
+    return this.pitcherClient.disconnect();
   }
 
   private keepAliveInterval: NodeJS.Timeout | null = null;
