@@ -232,7 +232,7 @@ export class ShellInstance extends Disposable {
 
     this.onWillDispose(async () => {
       try {
-        await this.pitcherClient.clients.shell.close(this.shell.shellId);
+        await this.pitcherClient.clients.shell.delete(this.shell.shellId);
       } catch (e) {
         // Ignore errors, we don't care if it's already closed or if we disconnected
       }
