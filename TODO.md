@@ -1,8 +1,17 @@
 ## QUESTIONS
 
+- Have we removed the "This phishing overlay for SDK users?" https://github.com/codesandbox/codesandbox-sdk/issues/5"
+- What you mean about "Dynamically resize terminal"? You can not really do that?
+- Python SDK priority?
+- Have we added Bun to default template? https://github.com/codesandbox/codesandbox-sdk/issues/62
+- Do we allow deleting sandboxes? https://github.com/codesandbox/codesandbox-sdk/issues/86
+- State of env var? https://github.com/codesandbox/codesandbox-sdk/issues/90
+
 ## USER QUESTIONS
 
 ## TODO
+
+- Highlight snapshot building in docs
 
 # 1 New API
 
