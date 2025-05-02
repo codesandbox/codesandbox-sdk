@@ -1,15 +1,8 @@
 ## QUESTIONS
 
-- Does updateTier and updateHibernation require VM start?
-
 ## USER QUESTIONS
 
-- Do you need to create/fork a sandbox without starting the VM
-- Do you need to shutdown/restart the sandbox without resuming it first
-
 ## TODO
-
-- Document state/onStateChange
 
 # 1 New API
 
@@ -25,6 +18,8 @@ sandbox.cluster;
 sandbox.connect();
 sandbox.createBrowserSession();
 sandbox.createRestClient();
+sandbox.updateTier();
+sandbox.updateHibernationTimeout();
 
 sdk.sandbox.shutdown(id);
 sdk.sandbox.previewTokens.create(id);
