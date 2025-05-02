@@ -6,12 +6,7 @@ import { SandboxRestGit } from "./sandbox-rest-git";
 import { SandboxRestShell } from "./sandbox-rest-shell";
 import { SandboxRestSystem } from "./sandbox-rest-system";
 import { SandboxRestTask } from "./sandbox-rest-task";
-import { SandboxSession } from "../../types";
-
-export interface ClientOpts {
-  fetch?: typeof fetch;
-  headers?: Record<string, string>;
-}
+import { ClientOpts, SandboxSession } from "../../types";
 
 export class RestSession {
   static id = 0;
