@@ -246,6 +246,10 @@ export class ShellInstance extends Disposable {
     return this.shell.shellId as string;
   }
 
+  get type(): string {
+    return this.shell.shellType;
+  }
+
   /**
    * Gets the name of the shell.
    */
@@ -264,11 +268,16 @@ export class ShellInstance extends Disposable {
     return this.shell.status;
   }
 
-  async write(input: string): Promise<void> {
-    await this.pitcherClient.clients.shell.send(this.shell.shellId, input, {
-      cols: 80,
-      rows: 24,
-    });
+  async write(input: string, dimensions = DEFAULT_SHELL_SIZE): Promise<void> {
+    await this.pitcherClient.clients.shell.send(
+      this.shell.shellId,
+      input,
+      dimensions
+    );
+  }
+
+  async run(input: string, dimensions = DEFAULT_SHELL_SIZE): Promise<void> {
+    return this.write(input + "\n");
   }
 
   // TODO: allow for kill signals
