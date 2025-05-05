@@ -60,14 +60,6 @@ export class Ports extends Disposable {
     return this.pitcherClient.clients.port.getPorts();
   }
 
-  getPreviewUrl(port: number, protocol = "https://"): string | undefined {
-    const hostname = this.pitcherClient.clients.port
-      .getPorts()
-      .find((p) => p.port === port)?.url;
-
-    return hostname ? `${protocol}${hostname}` : undefined;
-  }
-
   /**
    * Wait for a port to be opened.
    *

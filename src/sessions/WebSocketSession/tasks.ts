@@ -143,6 +143,10 @@ export class Tasks extends Disposable {
 
     return taskFromDTO(task);
   }
+
+  async stopTask(taskId: string) {
+    await this.pitcherClient.clients.task.stopTask(taskId);
+  }
 }
 
 function taskFromDTO(value: protocol.task.TaskDTO): Task {
