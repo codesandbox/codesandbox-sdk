@@ -21,7 +21,7 @@ Promise.all([
   // Browser builds:
   // CommonJS build
   esbuild.build({
-    entryPoints: ["src/browser.ts"],
+    entryPoints: ["src/sessions/WebSocketSession/browser.ts"],
     bundle: true,
     format: "cjs",
     // .cjs extension is required because "type": "module" is set in package.json
@@ -32,7 +32,7 @@ Promise.all([
 
   // ESM build
   esbuild.build({
-    entryPoints: ["src/browser.ts"],
+    entryPoints: ["src/sessions/WebSocketSession/browser.ts"],
     bundle: true,
     format: "esm",
     outdir: "dist/esm",

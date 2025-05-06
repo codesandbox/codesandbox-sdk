@@ -3,29 +3,37 @@ import type { IPitcherClient, protocol } from "@codesandbox/pitcher-client";
 import { Disposable } from "../../utils/disposable";
 import { Emitter } from "../../utils/event";
 
-export class Ports extends Disposable {
-  private onDidPortOpenEmitter = this.addDisposable(
+export class Ports {
+  private disposable = new Disposable();
+  private onDidPortOpenEmitter = this.disposable.addDisposable(
     new Emitter<protocol.port.Port>()
   );
   get onDidPortOpen() {
     return this.onDidPortOpenEmitter.event;
   }
 
-  private onDidPortCloseEmitter = this.addDisposable(new Emitter<number>());
+  private onDidPortCloseEmitter = this.disposable.addDisposable(
+    new Emitter<number>()
+  );
   get onDidPortClose() {
     return this.onDidPortCloseEmitter.event;
   }
 
   private lastOpenedPorts: Set<number> = new Set();
 
-  constructor(private pitcherClient: IPitcherClient) {
-    super();
+  constructor(
+    sessionDisposable: Disposable,
+    private pitcherClient: IPitcherClient
+  ) {
+    sessionDisposable.onWillDispose(() => {
+      this.disposable.dispose();
+    });
 
     pitcherClient.clients.port.getPorts().forEach((port) => {
       this.lastOpenedPorts.add(port.port);
     });
 
-    this.addDisposable(
+    this.disposable.addDisposable(
       pitcherClient.clients.port.onPortsUpdated((ports) => {
         const openedPorts = ports.filter(
           (port) => !this.lastOpenedPorts.has(port.port)
@@ -78,6 +86,7 @@ export class Ports extends Disposable {
     return new Promise((resolve, reject) => {
       // Check if port is already open
       const portInfo = this.getOpenedPorts().find((p) => p.port === port);
+
       if (portInfo) {
         resolve(portInfo);
         return;
@@ -96,7 +105,7 @@ export class Ports extends Disposable {
       }
 
       // Listen for port open events
-      const disposable = this.addDisposable(
+      const disposable = this.disposable.addDisposable(
         this.onDidPortOpen((portInfo) => {
           if (portInfo.port === port) {
             if (timeoutId !== undefined) {

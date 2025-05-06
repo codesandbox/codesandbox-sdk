@@ -1,8 +1,8 @@
 import { initPitcherClient, protocol } from "@codesandbox/pitcher-client";
-import { DEFAULT_SUBSCRIPTIONS, SandboxBrowserSession } from "./types";
-import { WebSocketSession } from "./sessions/WebSocketSession";
+import { DEFAULT_SUBSCRIPTIONS, SandboxBrowserSession } from "../../types";
+import { WebSocketSession } from ".";
 
-export { WebSocketSession };
+export * from ".";
 
 /**
  * With this function you can connect to a sandbox from the browser.
