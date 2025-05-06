@@ -126,7 +126,7 @@ export class Preview<
       this.subscribers.delete(subscriber);
     };
   }
-  refresh() {
+  reload() {
     this.sendMessage({
       type: "REFRESH",
     });
