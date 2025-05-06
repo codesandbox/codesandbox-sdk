@@ -20,6 +20,7 @@ export interface PreviewTokenInfo extends BasePreviewTokenInfo {
 
 export interface PreviewToken extends BasePreviewTokenInfo {
   token: string;
+  sandboxId: string;
 }
 
 /**
@@ -39,13 +40,8 @@ export class PreviewTokens extends Disposable {
    * @param token - The preview token to sign the URL with
    * @returns The signed preview URL, or undefined if the port is not open
    */
-  getSignedPreviewUrl(
-    sandboxId: string,
-    port: number,
-    token: string,
-    protocol = "https://"
-  ): string {
-    return `${protocol}${sandboxId}-${port}.csb.app?preview_token=${token}`;
+  getSignedPreviewUrl(token: PreviewToken, port: number): string {
+    return `https://${token.sandboxId}-${port}.csb.app?preview_token=${token.token}`;
   }
 
   /**
@@ -77,6 +73,7 @@ export class PreviewTokens extends Disposable {
     }
 
     return {
+      sandboxId,
       token: response.token.token,
       expiresAt: response.token.expires_at
         ? new Date(response.token.expires_at)

@@ -29,9 +29,10 @@ type TaskShellSubscription = {
   disposable: IDisposable;
 };
 
-export class Tasks extends Disposable {
+export class Tasks {
+  private disposable = new Disposable();
   private shellOutputListeners: Record<string, TaskShellSubscription> = {};
-  private onTaskOutputEmitter = this.addDisposable(
+  private onTaskOutputEmitter = this.disposable.addDisposable(
     new Emitter<{
       taskId: string;
       output: string;
@@ -39,17 +40,19 @@ export class Tasks extends Disposable {
   );
   public readonly onTaskOutput = this.onTaskOutputEmitter.event;
 
-  constructor(private pitcherClient: IPitcherClient) {
-    super();
-    this.pitcherClient.clients.shell.onShellCreated((shell) => {
-      console.log("CREATED", shell);
+  constructor(
+    sessionDisposable: Disposable,
+    private pitcherClient: IPitcherClient
+  ) {
+    sessionDisposable.onWillDispose(() => {
+      this.disposable.dispose();
     });
-    this.addDisposable(
+    this.disposable.addDisposable(
       pitcherClient.clients.task.onTaskUpdate((task) =>
         this.listenToShellOutput(task)
       )
     );
-    this.onWillDispose(() => {
+    this.disposable.onWillDispose(() => {
       Object.values(this.shellOutputListeners).forEach((listener) =>
         listener.disposable.dispose()
       );
@@ -58,8 +61,6 @@ export class Tasks extends Disposable {
 
   private async listenToShellOutput(task: protocol.task.TaskDTO) {
     const existingListener = this.shellOutputListeners[task.id];
-
-    console.log("TASK UPDATED", JSON.stringify(task, null, 2));
 
     // Already have shell registered
     if (existingListener && task.shell?.shellId === existingListener.shellId) {
@@ -79,15 +80,12 @@ export class Tasks extends Disposable {
       return;
     }
 
-    console.log("ADDING NEW SHELL!!!!!");
-
     // Has new shell
     const taskShellId = task.shell.shellId;
     let listener: TaskShellSubscription = {
       shellId: taskShellId,
       disposable: this.pitcherClient.clients.shell.onShellOut(
         ({ shellId, out }) => {
-          console.log("WTF", shellId, out);
           if (shellId === taskShellId) {
             this.onTaskOutputEmitter.fire({
               taskId: task.id,

@@ -1,6 +1,6 @@
 import { initPitcherClient } from "@codesandbox/pitcher-client";
+import { Disposable } from "../../utils/disposable";
 import {
-  Disposable,
   protocol as _protocol,
   type IPitcherClient,
 } from "@codesandbox/pitcher-client";
@@ -12,12 +12,14 @@ import { Shells } from "./shells";
 import { Tasks } from "./tasks";
 import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../../types";
 import { Client } from "@hey-api/client-fetch";
+import { Previews } from "./previews";
 
 export * from "./filesystem";
 export * from "./ports";
 export * from "./setup";
 export * from "./shells";
 export * from "./tasks";
+export * from "./previews";
 
 export class WebSocketSession {
   private disposable = new Disposable();
@@ -72,24 +74,23 @@ export class WebSocketSession {
   /**
    * Namespace for all filesystem operations on this sandbox.
    */
-  public readonly fs = this.disposable.addDisposable(
-    new FileSystem(this.pitcherClient)
-  );
+  public readonly fs = new FileSystem(this.disposable, this.pitcherClient);
+
+  /**
+   * Namespace for previews
+   */
+  public readonly previews = new Previews(this.disposable);
 
   /**
    * Namespace for running shell commands on this sandbox.
    */
-  public readonly shells = this.disposable.addDisposable(
-    new Shells(this.pitcherClient)
-  );
+  public readonly shells = new Shells(this.disposable, this.pitcherClient);
 
   /**
    * Namespace for detecting open ports on this sandbox, and getting preview URLs for
    * them.
    */
-  public readonly ports = this.disposable.addDisposable(
-    new Ports(this.pitcherClient)
-  );
+  public readonly ports = new Ports(this.disposable, this.pitcherClient);
 
   /**
    * Namespace for all setup operations on this sandbox (installing dependencies, etc).
@@ -97,9 +98,7 @@ export class WebSocketSession {
    * This provider is *experimental*, it might get changes or completely be removed
    * if it is not used.
    */
-  public readonly setup = this.disposable.addDisposable(
-    new Setup(this.pitcherClient)
-  );
+  public readonly setup = new Setup(this.disposable, this.pitcherClient);
 
   /**
    * Namespace for all task operations on a sandbox. This includes running tasks,
@@ -114,9 +113,7 @@ export class WebSocketSession {
    * This provider is *experimental*, it might get changes or completely be removed
    * if it is not used.
    */
-  public readonly tasks = this.disposable.addDisposable(
-    new Tasks(this.pitcherClient)
-  );
+  public readonly tasks = new Tasks(this.disposable, this.pitcherClient);
 
   constructor(protected pitcherClient: IPitcherClient) {
     // TODO: Bring this back once metrics polling does not reset inactivity
@@ -239,5 +236,8 @@ export class WebSocketSession {
         this.keepAliveInterval = null;
       }
     }
+  }
+  dispose() {
+    this.disposable.dispose();
   }
 }

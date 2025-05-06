@@ -7,7 +7,13 @@ import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
 
-import { WebSocketSession, VMTier, CodeSandbox, Sandbox } from "../../";
+import {
+  WebSocketSession,
+  VMTier,
+  CodeSandbox,
+  Sandbox,
+  SetupProgress,
+} from "../../";
 
 import {
   sandboxCreate,
@@ -143,7 +149,7 @@ export const buildCommand: yargs.CommandModule<
         ipcountry: argv.ipCountry,
         vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
       });
-      const sandbox = new Sandbox(sandboxId, startResponse, sdk.sandbox);
+      const sandbox = new Sandbox(sandboxId, startResponse, apiClient);
       const session = await sandbox.connect();
       spinner.succeed("Sandbox opened");
 
@@ -165,14 +171,12 @@ export const buildCommand: yargs.CommandModule<
         spinner.succeed("Files written to sandbox");
 
         spinner.start("Rebooting sandbox...");
-        await sandbox.restart();
+        await sdk.sandbox.restart(sandbox.id);
         spinner.succeed("Sandbox restarted");
       }
 
       const disposableStore = new DisposableStore();
-      const handleProgress = async (
-        progress: WebSocketSession.SetupProgress
-      ) => {
+      const handleProgress = async (progress: SetupProgress) => {
         if (progress.state === "IN_PROGRESS" && progress.steps.length > 0) {
           const step = progress.steps[progress.currentStepIndex];
           if (!step) {
@@ -258,11 +262,11 @@ export const buildCommand: yargs.CommandModule<
             let timeout;
             const portInfo = await Promise.race([
               session.ports.waitForPort(port),
-              new Promise(
-                (_, reject) =>
+              new Promise<Error>(
+                (resolve) =>
                   (timeout = setTimeout(
                     () =>
-                      reject(
+                      resolve(
                         new Error(
                           `Waiting for port ${port} timed out after 60s`
                         )
@@ -273,13 +277,13 @@ export const buildCommand: yargs.CommandModule<
             ]);
             clearTimeout(timeout);
 
-            if (!(portInfo instanceof WebSocketSession.PortInfo)) {
+            if (portInfo instanceof Error) {
               throw portInfo;
             }
 
             // eslint-disable-next-line no-constant-condition
             while (true) {
-              const res = await fetch(portInfo.getPreviewUrl());
+              const res = await fetch("https://" + portInfo.url);
               if (res.status !== 502 && res.status !== 503) {
                 spinner.succeed(`Port ${port} is open (status ${res.status})`);
                 break;
@@ -305,7 +309,7 @@ export const buildCommand: yargs.CommandModule<
       }
 
       spinner.start("Creating memory snapshot...");
-      await sandbox.hibernate();
+      await sdk.sandbox.hibernate(sandbox.id);
       spinner.succeed(
         "Snapshot created, you can use this sandbox id as your template:"
       );

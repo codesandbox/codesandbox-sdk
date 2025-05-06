@@ -38,9 +38,15 @@ export type Watcher = {
   onEvent: Event<WatchEvent>;
 };
 
-export class FileSystem extends Disposable {
-  constructor(private pitcherClient: IPitcherClient) {
-    super();
+export class FileSystem {
+  private disposable = new Disposable();
+  constructor(
+    sessionDisposable: Disposable,
+    private pitcherClient: IPitcherClient
+  ) {
+    sessionDisposable.onWillDispose(() => {
+      this.disposable.dispose();
+    });
   }
 
   /**
@@ -255,7 +261,7 @@ export class FileSystem extends Disposable {
       },
       onEvent: emitter.event,
     };
-    this.addDisposable(watcher);
+    this.disposable.addDisposable(watcher);
 
     return watcher;
   }

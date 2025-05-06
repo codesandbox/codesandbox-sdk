@@ -4,8 +4,9 @@ import { listenOnce } from "@codesandbox/pitcher-common/dist/event";
 import { Disposable } from "../../utils/disposable";
 import { Emitter } from "../../utils/event";
 
-export class Setup extends Disposable {
-  private readonly onSetupProgressUpdateEmitter = this.addDisposable(
+export class Setup {
+  private disposable = new Disposable();
+  private readonly onSetupProgressUpdateEmitter = this.disposable.addDisposable(
     new Emitter<SetupProgress>()
   );
   /**
@@ -14,10 +15,14 @@ export class Setup extends Disposable {
   public readonly onSetupProgressUpdate =
     this.onSetupProgressUpdateEmitter.event;
 
-  constructor(private pitcherClient: IPitcherClient) {
-    super();
-
-    this.addDisposable(
+  constructor(
+    sessionDisposable: Disposable,
+    private pitcherClient: IPitcherClient
+  ) {
+    sessionDisposable.onWillDispose(() => {
+      this.disposable.dispose();
+    });
+    this.disposable.addDisposable(
       pitcherClient.clients.setup.onSetupProgressUpdate((progress) => {
         this.onSetupProgressUpdateEmitter.fire(progress);
       })

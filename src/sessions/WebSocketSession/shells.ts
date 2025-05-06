@@ -33,9 +33,15 @@ export type ShellStatus =
   | "RESTARTING";
 export const DEFAULT_SHELL_SIZE: ShellSize = { cols: 128, rows: 24 };
 
-export class Shells extends Disposable {
-  constructor(private pitcherClient: IPitcherClient) {
-    super();
+export class Shells {
+  private disposable = new Disposable();
+  constructor(
+    sessionDisposable: Disposable,
+    private pitcherClient: IPitcherClient
+  ) {
+    sessionDisposable.onWillDispose(() => {
+      this.disposable.dispose();
+    });
   }
 
   public readonly js = new LanguageInterpreter(this.pitcherClient, {
@@ -188,13 +194,18 @@ class LanguageInterpreter {
   }
 }
 
-export class ShellInstance extends Disposable {
+export class ShellInstance {
+  private disposable = new Disposable();
   // TODO: differentiate between stdout and stderr, also send back bytes instead of
   // strings
-  private onShellOutputEmitter = this.addDisposable(new Emitter<string>());
+  private onShellOutputEmitter = this.disposable.addDisposable(
+    new Emitter<string>()
+  );
   public readonly onOutput = this.onShellOutputEmitter.event;
 
-  private onShellUpdatedEmitter = this.addDisposable(new Emitter<void>());
+  private onShellUpdatedEmitter = this.disposable.addDisposable(
+    new Emitter<void>()
+  );
   public readonly onShellUpdated = this.onShellUpdatedEmitter.event;
 
   private output = this.shell.buffer || [];
@@ -203,9 +214,7 @@ export class ShellInstance extends Disposable {
     private shell: protocol.shell.ShellDTO & { buffer?: string[] },
     private pitcherClient: IPitcherClient
   ) {
-    super();
-
-    this.addDisposable(
+    this.disposable.addDisposable(
       pitcherClient.clients.shell.onShellsUpdated((shells) => {
         const updatedShell = shells.find(
           (s) => s.shellId === this.shell.shellId
@@ -217,7 +226,7 @@ export class ShellInstance extends Disposable {
       })
     );
 
-    this.addDisposable(
+    this.disposable.addDisposable(
       this.pitcherClient.clients.shell.onShellOut(({ shellId, out }) => {
         if (shellId === this.shell.shellId) {
           this.onShellOutputEmitter.fire(out);
@@ -230,7 +239,7 @@ export class ShellInstance extends Disposable {
       })
     );
 
-    this.onWillDispose(async () => {
+    this.disposable.onWillDispose(async () => {
       try {
         await this.pitcherClient.clients.shell.delete(this.shell.shellId);
       } catch (e) {
@@ -277,11 +286,12 @@ export class ShellInstance extends Disposable {
   }
 
   async run(input: string, dimensions = DEFAULT_SHELL_SIZE): Promise<void> {
-    return this.write(input + "\n");
+    return this.write(input + "\n", dimensions);
   }
 
   // TODO: allow for kill signals
   async kill(): Promise<void> {
+    this.disposable.dispose();
     await this.pitcherClient.clients.shell.delete(this.shell.shellId);
   }
 
