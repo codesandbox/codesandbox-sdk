@@ -6,33 +6,32 @@ import type { OpenShellDTO } from "@codesandbox/pitcher-protocol/dist/src/messag
 import { Disposable } from "../../utils/disposable";
 import { Emitter, type Event } from "../../utils/event";
 
-export interface RunningCommand
+interface RunningCommand
   extends Promise<{ output: string; exitCode?: number }> {
   onOutput: Event<string>;
   kill(): void;
 }
 
-export type ShellCreateOpts = {
+type ShellCreateOpts = {
   ptySize?: ShellSize;
 };
-export type ShellRunOpts = {
+type ShellRunOpts = {
   ptySize?: ShellSize;
   shellName?: string;
   env?: Record<string, string>;
   cwd?: string;
 };
-export type ShellOpenOpts = {
+type ShellOpenOpts = {
   ptySize?: ShellSize;
 };
-export type ShellSize = { cols: number; rows: number };
-export type ShellStatus =
-  | "RUNNING"
-  | "FINISHED"
-  | "ERROR"
-  | "KILLED"
-  | "RESTARTING";
-export const DEFAULT_SHELL_SIZE: ShellSize = { cols: 128, rows: 24 };
+type ShellSize = { cols: number; rows: number };
 
+type ShellStatus = "RUNNING" | "FINISHED" | "ERROR" | "KILLED" | "RESTARTING";
+const DEFAULT_SHELL_SIZE: ShellSize = { cols: 128, rows: 24 };
+
+/**
+ * @deprecated
+ */
 export class Shells {
   private disposable = new Disposable();
   constructor(

@@ -13,6 +13,9 @@ import { Tasks } from "./tasks";
 import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../../types";
 import { Client } from "@hey-api/client-fetch";
 import { Previews } from "./previews";
+import { Interpreters } from "./interpreters";
+import { Terminals } from "./terminals";
+import { Commands } from "./commands";
 
 export * from "./filesystem";
 export * from "./ports";
@@ -20,6 +23,9 @@ export * from "./setup";
 export * from "./shells";
 export * from "./tasks";
 export * from "./previews";
+export * from "./terminals";
+export * from "./commands";
+export * from "./interpreters";
 
 export class WebSocketSession {
   private disposable = new Disposable();
@@ -85,6 +91,18 @@ export class WebSocketSession {
    * Namespace for running shell commands on this sandbox.
    */
   public readonly shells = new Shells(this.disposable, this.pitcherClient);
+
+  public readonly terminals = new Terminals(
+    this.disposable,
+    this.pitcherClient
+  );
+  public readonly commands = new Commands(this.disposable, this.pitcherClient);
+
+  public readonly interpreters = new Interpreters(
+    this.disposable,
+    this.pitcherClient,
+    this.commands
+  );
 
   /**
    * Namespace for detecting open ports on this sandbox, and getting preview URLs for
