@@ -27,6 +27,15 @@ Promise.all([
     // .cjs extension is required because "type": "module" is set in package.json
     outfile: "dist/cjs/browser.cjs",
     platform: "browser",
+    // pitcher-common currently requires this, but breaks the first experience
+    banner: {
+      js: `if (!window.process) {
+  window.process = {
+    env: {},
+  };
+}
+`,
+    },
     plugins: [browserifyPlugin],
   }),
 
@@ -37,6 +46,15 @@ Promise.all([
     format: "esm",
     outdir: "dist/esm",
     platform: "browser",
+    // pitcher-common currently requires this, but breaks the first experience
+    banner: {
+      js: `if (!window.process) {
+  window.process = {
+    env: {},
+  };
+}
+`,
+    },
     plugins: [browserifyPlugin],
   }),
 
