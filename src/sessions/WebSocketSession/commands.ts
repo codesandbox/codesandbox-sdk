@@ -66,10 +66,13 @@ export class Commands {
       this.pitcherClient.clients.shell.rename(shell.shellId, opts.name);
     }
 
-    return new Command(this.pitcherClient, shell);
+    return new Command(
+      this.pitcherClient,
+      shell as protocol.shell.CommandShellDTO
+    );
   }
 
-  async getAll(): Promise<Command[]> {
+  getAll(): Command[] {
     const shells = this.pitcherClient.clients.shell.getShells();
 
     return shells
@@ -91,67 +94,68 @@ export class Command {
     new Emitter<CommandStatus>()
   );
   public readonly onStatusChange = this.onStatusChangeEmitter.event;
-  private outputPromise: Promise<{ output: string; status: CommandStatus }>;
+  private barrier = new Barrier<void>();
 
-  private output = this.shell.buffer || [];
+  private output: string[] = [];
 
   get id(): string {
     return this.shell.shellId as string;
   }
 
-  get name(): string {
-    return this.shell.name;
+  get command(): string {
+    return this.shell.startCommand;
   }
 
-  get status(): CommandStatus {
-    return this.shell.status;
-  }
+  status: CommandStatus = "RUNNING";
 
   constructor(
     private pitcherClient: IPitcherClient,
-    private shell: protocol.shell.ShellDTO & { buffer?: string[] }
+    private shell: protocol.shell.CommandShellDTO & { buffer?: string[] }
   ) {
-    this.outputPromise = createCommandOutputPromise(pitcherClient, shell);
     this.disposable.addDisposable(
-      pitcherClient.clients.shell.onShellsUpdated((shells) => {
-        const updatedShell = shells.find(
-          (s) => s.shellId === this.shell.shellId
-        );
-        if (updatedShell) {
-          this.shell = { ...updatedShell, buffer: [] };
-          this.onStatusChangeEmitter.fire(updatedShell.status);
+      pitcherClient.clients.shell.onShellExited(({ shellId, exitCode }) => {
+        if (shellId === this.id) {
+          this.status = exitCode === 0 ? "FINISHED" : "ERROR";
+          this.barrier.open();
+          this.kill();
+        }
+      })
+    );
+
+    this.disposable.addDisposable(
+      pitcherClient.clients.shell.onShellTerminated(({ shellId }) => {
+        if (shellId === this.id) {
+          this.status = "KILLED";
+          this.barrier.open();
+          this.kill();
         }
       })
     );
 
     this.disposable.addDisposable(
       this.pitcherClient.clients.shell.onShellOut(({ shellId, out }) => {
-        if (shellId === this.shell.shellId) {
-          this.onOutputEmitter.fire(out);
+        if (shellId !== this.shell.shellId || out.startsWith("[CODESANDBOX]")) {
+          return;
+        }
 
-          this.output.push(out);
-          if (this.output.length > 1000) {
-            this.output.shift();
-          }
+        this.onOutputEmitter.fire(out);
+
+        this.output.push(out);
+        if (this.output.length > 1000) {
+          this.output.shift();
         }
       })
     );
-
-    this.disposable.onWillDispose(async () => {
-      try {
-        await this.pitcherClient.clients.shell.delete(this.shell.shellId);
-      } catch (e) {
-        // Ignore errors, we don't care if it's already closed or if we disconnected
-      }
-    });
   }
 
-  getOutput(): string {
-    return this.output.join("\n");
-  }
+  async getOutput(): Promise<string> {
+    await this.barrier.wait();
 
-  async getFinalOutput() {
-    return this.outputPromise;
+    if (this.status === "FINISHED") {
+      return this.output.join("\n");
+    }
+
+    throw new Error(`Command ERROR: ${this.output.join("\n")}`);
   }
 
   // TODO: allow for kill signals
@@ -161,72 +165,10 @@ export class Command {
   }
 
   async restart(): Promise<void> {
+    if (this.status !== "RUNNING") {
+      throw new Error("Command is not running");
+    }
+
     await this.pitcherClient.clients.shell.restart(this.shell.shellId);
   }
-}
-
-async function createCommandOutputPromise(
-  pitcher: IPitcherClient,
-  shell: protocol.shell.ShellDTO & { buffer?: string[] }
-): Promise<{ output: string; status: CommandStatus }> {
-  const disposableStore = new DisposableStore();
-  const onOutput = new Emitter<string>();
-
-  disposableStore.add(onOutput);
-
-  if (shell.status === "FINISHED") {
-    return {
-      output: shell.buffer?.join("\n").trim() ?? "",
-      status: shell.status,
-    };
-  }
-
-  let combinedOut = shell.buffer?.join("\n") ?? "";
-  if (combinedOut) {
-    onOutput.fire(combinedOut);
-  }
-  const barrier = new Barrier<CommandStatus>();
-
-  disposableStore.add(
-    pitcher.clients.shell.onShellOut(({ shellId, out }) => {
-      if (shellId !== shell.shellId) {
-        return;
-      }
-
-      onOutput.fire(out);
-      combinedOut += out;
-    })
-  );
-
-  disposableStore.add(
-    pitcher.clients.shell.onShellExited(({ shellId, exitCode }) => {
-      if (shellId !== shell.shellId) {
-        return;
-      }
-
-      barrier.open(exitCode === 0 ? "FINISHED" : "ERROR");
-    })
-  );
-
-  disposableStore.add(
-    pitcher.clients.shell.onShellTerminated(({ shellId }) => {
-      if (shellId !== shell.shellId) {
-        return;
-      }
-
-      barrier.open("KILLED");
-    })
-  );
-
-  const result = await barrier.wait();
-  disposableStore.dispose();
-
-  if (result.status === "disposed") {
-    throw new Error("Shell was disposed");
-  }
-
-  return {
-    output: combinedOut.trim(),
-    status: result.value,
-  };
 }
