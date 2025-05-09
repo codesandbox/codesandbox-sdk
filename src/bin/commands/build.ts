@@ -1,26 +1,23 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { isBinaryFile } from "isbinaryfile";
+import readline from "readline";
 
-import { DisposableStore } from "@codesandbox/pitcher-common";
+import { Disposable, DisposableStore } from "@codesandbox/pitcher-common";
 import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
 
-import {
-  WebSocketSession,
-  VMTier,
-  CodeSandbox,
-  Sandbox,
-  SetupProgress,
-} from "../../";
+import { VMTier, CodeSandbox, Sandbox, SetupProgress } from "../../";
 
 import {
   sandboxCreate,
   sandboxFork,
+  vmCreateTag,
+  vmListClusters,
   VmUpdateSpecsRequest,
 } from "../../api-clients/client";
-import { handleResponse } from "../../utils/api";
+import { getDefaultTemplateId, handleResponse } from "../../utils/api";
 import { BASE_URL, getApiKey } from "../utils/constants";
 import { hashDirectory } from "../utils/hash";
 
@@ -35,6 +32,46 @@ export type BuildCommandArgs = {
   vmTier?: VmUpdateSpecsRequest["tier"];
 };
 
+function createSpinnerFactory() {
+  let currentLineIndex = 0;
+  let currentSpinnerIndex = 0;
+
+  return (prefix: string) => {
+    const spinner = ora({ stream: process.stdout });
+    const spinnerIndex = currentSpinnerIndex++;
+    let lastMethod: string;
+
+    function updateCursor(method: string) {
+      readline.moveCursor(
+        process.stdout,
+        0,
+        spinnerIndex - currentLineIndex + (lastMethod !== "start" ? -1 : 0)
+      );
+      currentLineIndex = spinnerIndex;
+      lastMethod = method;
+    }
+
+    return {
+      start(message: string) {
+        updateCursor("start");
+        spinner.start(`${prefix}: ${message}`);
+      },
+      succeed(message: string) {
+        updateCursor("succeed");
+        spinner.succeed(`${prefix}: ${message}`);
+      },
+      fail(message: string) {
+        updateCursor("fail");
+        spinner.fail(`${prefix}: ${message}`);
+      },
+      info(message: string) {
+        updateCursor("info");
+        spinner.info(`${prefix}: ${message}`);
+      },
+    };
+  };
+}
+
 export const buildCommand: yargs.CommandModule<
   Record<string, never>,
   BuildCommandArgs
@@ -44,21 +81,8 @@ export const buildCommand: yargs.CommandModule<
     "Build an efficient memory snapshot from a directory. This snapshot can be used to create sandboxes quickly.",
   builder: (yargs: yargs.Argv) =>
     yargs
-      .option("ip-country", {
-        describe:
-          "Cluster closest to this country to create the snapshot in, this ensures that sandboxes created of this snapshot will be created in the same cluster",
-        type: "string",
-      })
       .option("from-sandbox", {
         describe: "Use and update an existing sandbox as a template",
-        type: "string",
-      })
-      .option("skip-files", {
-        describe: "Skip writing files to the sandbox",
-        type: "boolean",
-      })
-      .option("cluster", {
-        describe: "Cluster to create the sandbox in",
         type: "string",
       })
       .option("name", {
@@ -93,233 +117,223 @@ export const buildCommand: yargs.CommandModule<
       })
     );
 
-    const spinner = ora("Indexing folder...").start();
+    const createSpinner = createSpinnerFactory();
 
     try {
-      const getSdk = (cluster?: string) => {
-        const headers: Record<string, string> = cluster
-          ? {
-              "x-pitcher-manager-url": `https://${cluster}.pitcher.csb.app/api/v1`,
-            }
-          : {};
+      const clustersData = handleResponse(
+        await vmListClusters({
+          client: apiClient,
+        }),
+        "Failed to list clusters"
+      );
 
-        return {
-          sdk: new CodeSandbox(API_KEY, {
+      const clusters = clustersData.clusters;
+
+      const sandboxIds = await Promise.all(
+        clusters.map(async ({ host: cluster }) => {
+          const sdk = new CodeSandbox(API_KEY, {
             baseUrl: BASE_URL,
-            headers,
-          }),
-          cluster,
-        };
-      };
-
-      const { sdk, cluster } = getSdk(argv.cluster);
-      const { hash, files: filePaths } = await hashDirectory(argv.directory);
-      spinner.succeed(`Indexed ${filePaths.length} files`);
-      const shortHash = hash.slice(0, 6);
-      const tag = `sha:${shortHash}-${cluster || ""}`;
-
-      spinner.start(`Creating or updating sandbox...`);
-      const { sandboxId, filesIncluded } = await createSandbox({
-        apiClient,
-        shaTag: tag,
-        filePaths,
-        rootPath: argv.directory,
-        fromSandbox: argv.fromSandbox,
-        collectionPath: argv.path,
-        name: argv.name,
-        ipcountry: argv.ipCountry,
-        vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
-      });
-
-      if (argv.fromSandbox) {
-        spinner.succeed(
-          `Created sandbox from template (${argv.fromSandbox}): ${sandboxId}`
-        );
-      } else {
-        spinner.succeed(`Sandbox created: ${sandboxId}`);
-      }
-
-      if (argv.cluster) {
-        spinner.start(`Starting sandbox in cluster ${argv.cluster}...`);
-      } else {
-        spinner.start(`Starting sandbox...`);
-      }
-
-      const startResponse = await sdk.sandbox["start"](sandboxId, {
-        ipcountry: argv.ipCountry,
-        vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
-      });
-      const sandbox = new Sandbox(sandboxId, startResponse, apiClient);
-      const session = await sandbox.connect();
-      spinner.succeed("Sandbox opened");
-
-      if (!argv.skipFiles && !filesIncluded) {
-        spinner.start("Writing files to sandbox...");
-        let i = 0;
-        for (const filePath of filePaths) {
-          i++;
-          spinner.start(`Writing file ${i} of ${filePaths.length}...`);
-          const fullPath = path.join(argv.directory, filePath);
-          const content = await fs.readFile(fullPath);
-          const dirname = path.dirname(filePath);
-          await session.fs.mkdir(dirname, true);
-          await session.fs.writeFile(filePath, content, {
-            create: true,
-            overwrite: true,
+            headers: {
+              "x-pitcher-manager-url": `https://${cluster}/api/v1`,
+            },
           });
-        }
-        spinner.succeed("Files written to sandbox");
+          const spinner = createSpinner(`${cluster}`);
 
-        spinner.start("Rebooting sandbox...");
-        await sdk.sandbox.restart(sandbox.id);
-        spinner.succeed("Sandbox restarted");
-      }
+          try {
+            const { hash, files: filePaths } = await hashDirectory(
+              argv.directory
+            );
+            spinner.succeed(`Indexed ${filePaths.length} files`);
+            const shortHash = hash.slice(0, 6);
+            const tag = `sha:${shortHash}-${cluster || ""}`;
 
-      const disposableStore = new DisposableStore();
-      const handleProgress = async (progress: SetupProgress) => {
-        if (progress.state === "IN_PROGRESS" && progress.steps.length > 0) {
-          const step = progress.steps[progress.currentStepIndex];
-          if (!step) {
-            return;
-          }
-
-          const spinnerMessage = `Running setup: ${
-            progress.currentStepIndex + 1
-          } / ${progress.steps.length}: ${step.name}`;
-          spinner.info(spinnerMessage);
-
-          const shellId = step.shellId;
-
-          if (shellId) {
-            const shell = await session.shells.open(shellId, {
-              ptySize: {
-                cols: process.stderr.columns,
-                rows: process.stderr.rows,
-              },
+            spinner.start(`Creating sandbox...`);
+            const sandboxId = await createSandbox({
+              apiClient,
+              shaTag: tag,
+              fromSandbox: argv.fromSandbox,
+              collectionPath: argv.path,
+              name: argv.name,
+              vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
             });
 
-            disposableStore.add(shell);
-            disposableStore.add(
-              shell.onOutput((data) => {
-                process.stderr.write(data);
-              })
-            );
-          }
-        } else if (progress.state === "FINISHED") {
-          spinner.succeed("Setup finished");
-        } else if (progress.state === "STOPPED") {
-          const step = progress.steps[progress.currentStepIndex];
-          if (!step) {
-            return;
-          }
+            spinner.start(`Starting sandbox... `);
 
-          if (step.finishStatus === "FAILED") {
-            throw new Error(`Setup step failed: ${step.name}`);
-          }
-        }
-      };
+            const startResponse = await sdk.sandbox["start"](sandboxId, {
+              vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
+            });
+            const sandbox = new Sandbox(sandboxId, startResponse, apiClient);
+            const session = await sandbox.connect();
 
-      const progress = await session.setup.getProgress();
-      await handleProgress(progress);
-      disposableStore.add(session.setup.onSetupProgressUpdate(handleProgress));
-
-      await session.setup.waitForFinish();
-
-      disposableStore.dispose();
-      spinner.succeed("Sandbox built");
-
-      const tasksWithStart = (await session.tasks.getTasks()).filter(
-        (t) => t.runAtStart === true
-      );
-      let tasksWithPorts = tasksWithStart.filter((t) => t.preview?.port);
-
-      const isMultipleTasks = tasksWithStart.length > 1;
-      spinner.info(
-        `Started ${tasksWithStart.length} ${
-          isMultipleTasks ? "tasks" : "task"
-        }: ${tasksWithStart.map((t) => t.name).join(", ")}`
-      );
-
-      const updatePortSpinner = () => {
-        const isMultiplePorts = tasksWithPorts.length > 1;
-        spinner.start(
-          `Waiting for ${isMultiplePorts ? "ports" : "port"} ${tasksWithPorts
-            .map((t) => t.preview?.port)
-            .join(", ")} to open...`
-        );
-      };
-
-      if (tasksWithPorts.length > 0) {
-        updatePortSpinner();
-
-        await Promise.all(
-          tasksWithPorts.map(async (task) => {
-            const port = task.preview?.port;
-            if (!port) {
-              return;
+            spinner.start("Writing files to sandbox...");
+            let i = 0;
+            for (const filePath of filePaths) {
+              i++;
+              const fullPath = path.join(argv.directory, filePath);
+              const content = await fs.readFile(fullPath);
+              const dirname = path.dirname(filePath);
+              await session.fs.mkdir(dirname, true);
+              await session.fs.writeFile(filePath, content, {
+                create: true,
+                overwrite: true,
+              });
             }
 
-            let timeout;
-            const portInfo = await Promise.race([
-              session.ports.waitForPort(port),
-              new Promise<Error>(
-                (resolve) =>
-                  (timeout = setTimeout(
-                    () =>
-                      resolve(
-                        new Error(
-                          `Waiting for port ${port} timed out after 60s`
-                        )
-                      ),
-                    60000
-                  ))
-              ),
-            ]);
-            clearTimeout(timeout);
+            spinner.start("Restarting sandbox...");
+            await sdk.sandbox.restart(sandbox.id);
 
-            if (portInfo instanceof Error) {
-              throw portInfo;
-            }
+            const disposableStore = new DisposableStore();
+            const handleProgress = async (progress: SetupProgress) => {
+              if (
+                progress.state === "IN_PROGRESS" &&
+                progress.steps.length > 0
+              ) {
+                const step = progress.steps[progress.currentStepIndex];
+                if (!step) {
+                  return;
+                }
 
-            // eslint-disable-next-line no-constant-condition
-            while (true) {
-              const res = await fetch("https://" + portInfo.url);
-              if (res.status !== 502 && res.status !== 503) {
-                spinner.succeed(`Port ${port} is open (status ${res.status})`);
-                break;
+                const spinnerMessage = `Running setup: ${
+                  progress.currentStepIndex + 1
+                } / ${progress.steps.length}: ${step.name}...`;
+                spinner.start(spinnerMessage);
+
+                const shellId = step.shellId;
+
+                if (shellId) {
+                  const shell = await session.shells.open(shellId, {
+                    ptySize: {
+                      cols: process.stderr.columns,
+                      rows: process.stderr.rows,
+                    },
+                  });
+
+                  disposableStore.add(Disposable.create(() => shell.kill()));
+                  disposableStore.add(
+                    shell.onOutput((data) => {
+                      process.stderr.write(data);
+                    })
+                  );
+                }
+              } else if (progress.state === "STOPPED") {
+                const step = progress.steps[progress.currentStepIndex];
+                if (!step) {
+                  return;
+                }
+
+                if (step.finishStatus === "FAILED") {
+                  spinner.fail(`Setup step failed: ${step.name}`);
+                  throw new Error(`Setup step failed: ${step.name}`);
+                }
               }
+            };
 
-              spinner.fail(
-                `Port ${port} is not open yet (status ${res.status}), retrying in 1 second...`
+            const progress = await session.setup.getProgress();
+            await handleProgress(progress);
+            disposableStore.add(
+              session.setup.onSetupProgressUpdate(handleProgress)
+            );
+
+            await session.setup.waitForFinish();
+
+            disposableStore.dispose();
+            const tasksWithStart = (await session.tasks.getTasks()).filter(
+              (t) => t.runAtStart === true
+            );
+            let tasksWithPorts = tasksWithStart.filter((t) => t.preview?.port);
+
+            const updatePortSpinner = () => {
+              const isMultiplePorts = tasksWithPorts.length > 1;
+              spinner.start(
+                `Waiting for ${
+                  isMultiplePorts ? "ports" : "port"
+                } ${tasksWithPorts
+                  .map((t) => t.preview?.port)
+                  .join(", ")} to open...`
               );
-              await new Promise((resolve) => setTimeout(resolve, 1000));
+            };
+
+            if (tasksWithPorts.length > 0) {
+              updatePortSpinner();
+
+              await Promise.all(
+                tasksWithPorts.map(async (task) => {
+                  const port = task.preview?.port;
+                  if (!port) {
+                    return;
+                  }
+
+                  let timeout;
+                  const portInfo = await Promise.race([
+                    session.ports.waitForPort(port),
+                    new Promise<Error>(
+                      (resolve) =>
+                        (timeout = setTimeout(
+                          () =>
+                            resolve(
+                              new Error(
+                                `Waiting for port ${port} timed out after 60s`
+                              )
+                            ),
+                          60000
+                        ))
+                    ),
+                  ]);
+                  clearTimeout(timeout);
+
+                  if (portInfo instanceof Error) {
+                    throw portInfo;
+                  }
+
+                  // eslint-disable-next-line no-constant-condition
+                  while (true) {
+                    const res = await fetch("https://" + portInfo.url);
+                    if (res.status !== 502 && res.status !== 503) {
+                      break;
+                    }
+
+                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                  }
+
+                  tasksWithPorts = tasksWithPorts.filter(
+                    (t) => t.id !== task.id
+                  );
+                  updatePortSpinner();
+                })
+              );
+            } else {
+              spinner.start(
+                "No ports to open, waiting 5 seconds for tasks to run..."
+              );
+              await new Promise((resolve) => setTimeout(resolve, 5000));
             }
 
-            tasksWithPorts = tasksWithPorts.filter((t) => t.id !== task.id);
-            updatePortSpinner();
-          })
-        );
+            spinner.start("Creating memory snapshot...");
+            await sdk.sandbox.hibernate(sandbox.id);
+            spinner.succeed("Snapshot created");
 
-        spinner.succeed("All ports are open");
-      } else {
-        spinner.succeed(
-          "No ports to open, waiting 5 seconds for tasks to run..."
-        );
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-      }
-
-      spinner.start("Creating memory snapshot...");
-      await sdk.sandbox.hibernate(sandbox.id);
-      spinner.succeed(
-        "Snapshot created, you can use this sandbox id as your template:"
+            return sandbox.id;
+          } catch (error) {
+            spinner.fail(
+              error instanceof Error ? error.message : "Unknown error occurred"
+            );
+            throw error;
+          }
+        })
       );
 
-      // eslint-disable-next-line no-console
-      console.log(sandbox.id);
+      const data = handleResponse(
+        await vmCreateTag({
+          client: apiClient,
+          body: {
+            vm_ids: sandboxIds,
+          },
+        }),
+        "Failed to create tag"
+      );
+      console.log("Tag created: " + data.tag_id);
     } catch (error) {
-      spinner.fail(
-        error instanceof Error ? error.message : "Unknown error occurred"
-      );
+      console.error(error);
       process.exit(1);
     }
   },
@@ -328,8 +342,6 @@ export const buildCommand: yargs.CommandModule<
 type CreateSandboxParams = {
   apiClient: Client;
   shaTag: string;
-  filePaths: string[];
-  rootPath: string;
   fromSandbox?: string;
   collectionPath?: string;
   name?: string;
@@ -339,68 +351,34 @@ type CreateSandboxParams = {
 
 async function createSandbox({
   apiClient,
-  filePaths,
-  rootPath,
   shaTag,
   collectionPath,
   fromSandbox,
   name,
-}: CreateSandboxParams): Promise<{
-  sandboxId: string;
-  filesIncluded: boolean;
-}> {
-  // Include the files in the sandbox if there are no binary files and there are 30 or less files
-  const files = await getFiles(filePaths, rootPath);
-
+}: CreateSandboxParams) {
   const sanitizedCollectionPath = collectionPath
     ? collectionPath.startsWith("/")
       ? collectionPath
       : `/${collectionPath}`
     : "/SDK-Templates";
 
-  if (fromSandbox) {
-    const sandbox = handleResponse(
-      await sandboxFork({
-        client: apiClient,
-        path: {
-          id: fromSandbox,
-        },
-        body: {
-          title: name,
-          privacy: 1,
-          tags: ["sdk", shaTag],
-          path: sanitizedCollectionPath,
-        },
-      }),
-      "Failed to fork sandbox"
-    );
-
-    return {
-      sandboxId: sandbox.id,
-      filesIncluded: false,
-    };
-  }
-
   const sandbox = handleResponse(
-    await sandboxCreate({
+    await sandboxFork({
       client: apiClient,
+      path: {
+        id: fromSandbox || getDefaultTemplateId(apiClient),
+      },
       body: {
         title: name,
-        files,
         privacy: 1,
         tags: ["sdk", shaTag],
         path: sanitizedCollectionPath,
-        runtime: "vm",
-        is_frozen: true,
       },
     }),
-    "Failed to create sandbox"
+    "Failed to fork sandbox"
   );
 
-  return {
-    sandboxId: sandbox.id,
-    filesIncluded: Object.keys(files).length > 0,
-  };
+  return sandbox.id;
 }
 
 async function getFiles(
