@@ -84,6 +84,17 @@ export type PreviewTokenCreateRequest = {
     expires_at?: string | null;
 };
 
+export type VmCreateTagResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        tag_id: string;
+    };
+};
+
 export type SandboxGetResponse = {
     errors?: Array<string | {
         [key: string]: unknown;
@@ -317,6 +328,13 @@ export type WorkspaceCreateRequest = {
     name: string;
 };
 
+/**
+ * Create a tag for a list of VM IDs
+ */
+export type VmCreateTagRequest = {
+    vm_ids: Array<string>;
+};
+
 export type VmStartResponse = {
     errors?: Array<string | {
         [key: string]: unknown;
@@ -418,6 +436,19 @@ export type SandboxCreateRequest = {
     title?: string;
 };
 
+export type VmListClustersResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        clusters: Array<{
+            host: string;
+        }>;
+    };
+};
+
 export type TokenUpdateResponse = {
     errors?: Array<string | {
         [key: string]: unknown;
@@ -469,6 +500,10 @@ export type TokenCreateRequest = {
 };
 
 export type VmCreateSessionRequest = {
+    /**
+     * GitHub token for the session
+     */
+    git_access_token?: string;
     /**
      * Permission level for the session
      */
@@ -872,6 +907,41 @@ export type PreviewTokenUpdateResponses = {
 };
 
 export type PreviewTokenUpdateResponse2 = PreviewTokenUpdateResponses[keyof PreviewTokenUpdateResponses];
+
+export type VmListClustersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/vm/clusters';
+};
+
+export type VmListClustersResponses = {
+    /**
+     * VM List Clusters Response
+     */
+    200: VmListClustersResponse;
+};
+
+export type VmListClustersResponse2 = VmListClustersResponses[keyof VmListClustersResponses];
+
+export type VmCreateTagData = {
+    /**
+     * VM Create Tag Request
+     */
+    body?: VmCreateTagRequest;
+    path?: never;
+    query?: never;
+    url: '/vm/tag';
+};
+
+export type VmCreateTagResponses = {
+    /**
+     * VM Create Tag Response
+     */
+    200: VmCreateTagResponse;
+};
+
+export type VmCreateTagResponse2 = VmCreateTagResponses[keyof VmCreateTagResponses];
 
 export type VmHibernateData = {
     /**

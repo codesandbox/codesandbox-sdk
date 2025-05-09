@@ -2,6 +2,7 @@ import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 import { VmStartResponse } from "../api-clients/client";
 import { StartSandboxOpts } from "../types";
 import { RateLimitError } from "./rate-limit";
+import { Client } from "@hey-api/client-fetch";
 
 export type HandledResponse<D, E> = {
   data?: {
@@ -48,6 +49,14 @@ export function getBaseUrl(token: string) {
   }
 
   return "https://api.together.ai/csb/sdk";
+}
+
+export function getDefaultTemplateId(apiClient: Client): string {
+  if (apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
+    return "7ngcrf";
+  }
+
+  return "pcz35m";
 }
 
 export function handleResponse<D, E>(

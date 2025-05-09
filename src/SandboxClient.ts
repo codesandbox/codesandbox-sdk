@@ -9,7 +9,12 @@ import {
   vmStart,
 } from "./api-clients/client";
 import { Sandbox } from "./Sandbox";
-import { getStartOptions, getStartResponse, handleResponse } from "./utils/api";
+import {
+  getDefaultTemplateId,
+  getStartOptions,
+  getStartResponse,
+  handleResponse,
+} from "./utils/api";
 
 import {
   CreateSandboxGitSourceOpts,
@@ -26,11 +31,7 @@ import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 
 export class SandboxClient {
   get defaultTemplateId() {
-    if (this.apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
-      return "7ngcrf";
-    }
-
-    return "pcz35m";
+    return getDefaultTemplateId(this.apiClient);
   }
 
   constructor(private apiClient: Client) {}

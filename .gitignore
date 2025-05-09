@@ -4,6 +4,7 @@
 dist
 tests
 test.ts
+test-template
 
 ### macOS ###
 *.DS_Store

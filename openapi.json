@@ -179,6 +179,39 @@
         "title": "PreviewTokenCreateRequest",
         "type": "object"
       },
+      "VMCreateTagResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": { "tag_id": { "type": "string" } },
+                "required": ["tag_id"],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMCreateTagResponse",
+        "type": "object"
+      },
       "SandboxGetResponse": {
         "allOf": [
           {
@@ -243,7 +276,7 @@
                     "type": "boolean"
                   },
                   "websocket": {
-                    "default": true,
+                    "default": false,
                     "description": "Whether the VM should automatically wake up on WebSocket connections",
                     "type": "boolean"
                   }
@@ -520,7 +553,7 @@
                 "type": "boolean"
               },
               "websocket": {
-                "default": true,
+                "default": false,
                 "description": "Whether the VM should automatically wake up on WebSocket connections",
                 "type": "boolean"
               }
@@ -600,6 +633,15 @@
         },
         "required": ["name"],
         "title": "WorkspaceCreateRequest",
+        "type": "object"
+      },
+      "VMCreateTagRequest": {
+        "description": "Create a tag for a list of VM IDs",
+        "properties": {
+          "vm_ids": { "items": { "type": "string" }, "type": "array" }
+        },
+        "required": ["vm_ids"],
+        "title": "VMCreateTagRequest",
         "type": "object"
       },
       "VMStartResponse": {
@@ -780,6 +822,48 @@
         "required": ["files"],
         "title": "SandboxCreateRequest"
       },
+      "VMListClustersResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "clusters": {
+                    "items": {
+                      "properties": { "host": { "type": "string" } },
+                      "required": ["host"],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": ["clusters"],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMListClustersResponse",
+        "type": "object"
+      },
       "TokenUpdateResponse": {
         "allOf": [
           {
@@ -907,6 +991,10 @@
       },
       "VMCreateSessionRequest": {
         "properties": {
+          "git_access_token": {
+            "description": "GitHub token for the session",
+            "type": "string"
+          },
           "permission": {
             "description": "Permission level for the session",
             "enum": ["read", "write"],
@@ -1668,6 +1756,59 @@
         "security": [{ "authorization": ["preview_token:manage"] }],
         "summary": "Update a Preview Token",
         "tags": []
+      }
+    },
+    "/vm/clusters": {
+      "get": {
+        "callbacks": {},
+        "description": "List all available clusters.\n",
+        "operationId": "vm/list_clusters",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMListClustersResponse"
+                }
+              }
+            },
+            "description": "VM List Clusters Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "List all available clusters",
+        "tags": ["vm"]
+      }
+    },
+    "/vm/tag": {
+      "post": {
+        "callbacks": {},
+        "description": "Creates a new tag for a VM.\n",
+        "operationId": "vm/create_tag",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VMCreateTagRequest" }
+            }
+          },
+          "description": "VM Create Tag Request",
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VMCreateTagResponse" }
+              }
+            },
+            "description": "VM Create Tag Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Create a new tag for a VM",
+        "tags": ["vm"]
       }
     },
     "/vm/{id}/hibernate": {
