@@ -6,7 +6,6 @@ import {
   InjectMessage,
   Message,
 } from "./types";
-import { Disposable } from "../../../utils/disposable";
 import { injectAndInvokeInsidePreview } from "./preview-script";
 
 type PreviewStatus = "DISCONNECTED" | "CONNECTED";
@@ -34,10 +33,7 @@ export class Preview<
   onStatusChange = this.onStatusChangeEmitter.event;
   iframe: HTMLIFrameElement;
 
-  constructor(sessionDisposable: Disposable, src: string) {
-    sessionDisposable.onWillDispose(() => {
-      this.dispose();
-    });
+  constructor(src: string) {
     this.origin = new URL(src).origin;
     this.iframe = this.createIframe(src);
     this.windowListener = (event: MessageEvent) => {
@@ -65,7 +61,6 @@ export class Preview<
 
     this.onPreviewLoad = () => {
       this.status = "CONNECTED";
-      console.log("INJECT SCRIPT");
       this._injectAndInvoke(injectAndInvokeInsidePreview, {});
     };
 
@@ -111,10 +106,21 @@ export class Preview<
     }
   }
 
-  injectAndInvoke<Scope extends Record<string, unknown>>(
+  async injectAndInvoke<Scope extends Record<string, unknown>>(
     func: InjectFunction<MessageToPreview, MessageFromPreview, Scope>,
     scope: Scope
   ) {
+    if (this.status !== "CONNECTED") {
+      return new Promise(() => {
+        const listener = this.onStatusChange((status) => {
+          if (status === "CONNECTED") {
+            this._injectAndInvoke(func, scope);
+            listener.dispose();
+          }
+        });
+      });
+    }
+
     this._injectAndInvoke(func, scope);
   }
 

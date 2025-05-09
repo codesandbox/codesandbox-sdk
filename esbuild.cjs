@@ -21,7 +21,7 @@ Promise.all([
   // Browser builds:
   // CommonJS build
   esbuild.build({
-    entryPoints: ["src/sessions/WebSocketSession/browser.ts"],
+    entryPoints: ["src/browser.ts"],
     bundle: true,
     format: "cjs",
     // .cjs extension is required because "type": "module" is set in package.json
@@ -29,7 +29,7 @@ Promise.all([
     platform: "browser",
     // pitcher-common currently requires this, but breaks the first experience
     banner: {
-      js: `if (!window.process) {
+      js: `if (typeof window !== "undefined" && !window.process) {
   window.process = {
     env: {},
   };
@@ -41,14 +41,14 @@ Promise.all([
 
   // ESM build
   esbuild.build({
-    entryPoints: ["src/sessions/WebSocketSession/browser.ts"],
+    entryPoints: ["src/browser.ts"],
     bundle: true,
     format: "esm",
     outdir: "dist/esm",
     platform: "browser",
     // pitcher-common currently requires this, but breaks the first experience
     banner: {
-      js: `if (!window.process) {
+      js: `if (typeof window !== "undefined" && !window.process) {
   window.process = {
     env: {},
   };
