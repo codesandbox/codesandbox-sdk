@@ -12,7 +12,6 @@ import { Shells } from "./shells";
 import { Tasks } from "./tasks";
 import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../../types";
 import { Client } from "@hey-api/client-fetch";
-import { Previews } from "./previews";
 import { Interpreters } from "./interpreters";
 import { Terminals } from "./terminals";
 import { Commands } from "./commands";
@@ -22,7 +21,6 @@ export * from "./ports";
 export * from "./setup";
 export * from "./shells";
 export * from "./tasks";
-export * from "./previews";
 export * from "./terminals";
 export * from "./commands";
 export * from "./interpreters";
@@ -81,11 +79,6 @@ export class WebSocketSession {
    * Namespace for all filesystem operations on this sandbox.
    */
   public readonly fs = new FileSystem(this.disposable, this.pitcherClient);
-
-  /**
-   * Namespace for previews
-   */
-  public readonly previews = new Previews(this.disposable);
 
   /**
    * Namespace for running shell commands on this sandbox.

@@ -1,14 +1,28 @@
 import type { Id, IPitcherClient } from "@codesandbox/pitcher-client";
-import { listenOnce } from "@codesandbox/pitcher-common/dist/event";
 
-import { Disposable } from "../../utils/disposable";
-import { Emitter } from "../../utils/event";
-
-export class Git extends Disposable {
-  constructor(private pitcherClient: IPitcherClient) {
-    super();
+export class Git {
+  onStatusChange = this.pitcherClient.clients.git.onStatusUpdated;
+  constructor(private pitcherClient: IPitcherClient) {}
+  pull(force?: boolean) {
+    return this.pitcherClient.clients.git.pull(undefined, force);
   }
-  pull() {
-    return this.pitcherClient.clients.git.pull();
+  commit(message: string, paths?: string[]) {
+    return this.pitcherClient.clients.git.commit(message, paths);
+  }
+  push() {
+    return this.pitcherClient.clients.git.push();
+  }
+  status() {
+    return this.pitcherClient.clients.git.getStatus();
+  }
+  discard(path?: string[]) {
+    return this.pitcherClient.clients.git.discard(path);
+  }
+  resetToRemote() {
+    return this.pitcherClient.clients.git.resetLocalWithRemote();
+  }
+  // TODO: Expose git checkout
+  checkout(branch: string) {
+    return this.pitcherClient.clients.task.runCommand(`git checkout ${branch}`);
   }
 }
