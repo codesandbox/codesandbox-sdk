@@ -1,5 +1,6 @@
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 import { VMTier } from "./VMTier";
+import type { WebSocketSession } from "./sessions/WebSocketSession";
 
 export interface SystemMetricsStatus {
   cpu: {
@@ -206,17 +207,12 @@ export type CreateSandboxGitSourceOpts = CreateSandboxBaseOpts & {
   url: string;
   branch: string;
   gitAccessToken?: string;
-};
-
-export type CreateSandboxFilesSourceOpts = CreateSandboxBaseOpts & {
-  source: "files";
-  files: Record<string, string>;
+  setup?: (session: WebSocketSession) => Promise<void>;
 };
 
 export type CreateSandboxOpts =
   | CreateSandboxTemplateSourceOpts
-  | CreateSandboxGitSourceOpts
-  | CreateSandboxFilesSourceOpts;
+  | CreateSandboxGitSourceOpts;
 
 export type SandboxOpts = {
   id: string;
