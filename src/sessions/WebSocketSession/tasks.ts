@@ -1,5 +1,6 @@
 import {
   Emitter,
+  IDisposable,
   type IPitcherClient,
   type protocol,
 } from "@codesandbox/pitcher-client";
@@ -150,6 +151,34 @@ export class Task {
     };
 
     return this.openedShell.output.join("\n");
+  }
+  async waitForPort(timeout: number = 30_000) {
+    if (this.ports.length) {
+      return this.ports[0];
+    }
+
+    let disposer: IDisposable | undefined;
+
+    return Promise.all([
+      new Promise<protocol.port.Port>((resolve) => {
+        disposer = this.pitcherClient.clients.task.onTaskUpdate((task) => {
+          if (task.id !== this.id) {
+            return;
+          }
+
+          if (task.ports.length) {
+            disposer?.dispose();
+            resolve(task.ports[0]);
+          }
+        });
+      }),
+      new Promise<protocol.port.Port>((resolve, reject) => {
+        setTimeout(() => {
+          disposer?.dispose();
+          reject(new Error("Timeout waiting for port"));
+        }, timeout);
+      }),
+    ]);
   }
   async run() {
     await this.pitcherClient.clients.task.runTask(this.id);

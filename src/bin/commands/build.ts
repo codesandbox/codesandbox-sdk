@@ -143,7 +143,7 @@ export const buildCommand: yargs.CommandModule<
           const spinner = createSpinner();
 
           function createSpinnerMessage(message: string, sandboxId?: string) {
-            return `[cluster: ${slug}, sandbox: ${
+            return `[cluster: ${slug}, sandboxId: ${
               sandboxId || "-"
             }]: ${message}`;
           }

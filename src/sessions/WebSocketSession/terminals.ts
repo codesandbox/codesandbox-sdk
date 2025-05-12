@@ -33,17 +33,15 @@ export class Terminals {
     return new Terminal(shell, this.pitcherClient);
   }
 
-  /**
-   * Opens an existing terminal.
-   */
-  async open(
-    shellId: string,
-    dimensions = DEFAULT_SHELL_SIZE
-  ): Promise<Terminal> {
-    const shell = await this.pitcherClient.clients.shell.open(
-      shellId as Id,
-      dimensions
-    );
+  get(shellId: string) {
+    const shell = this.pitcherClient.clients.shell
+      .getShells()
+      .find((shell) => shell.shellId === shellId);
+
+    if (!shell) {
+      return;
+    }
+
     return new Terminal(shell, this.pitcherClient);
   }
 
@@ -101,7 +99,14 @@ export class Terminal {
     );
   }
 
-  getOutput(): string {
+  async open(dimensions = DEFAULT_SHELL_SIZE): Promise<string> {
+    const shell = await this.pitcherClient.clients.shell.open(
+      this.shell.shellId,
+      dimensions
+    );
+
+    this.output = shell.buffer;
+
     return this.output.join("\n");
   }
 

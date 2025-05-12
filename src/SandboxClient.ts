@@ -45,7 +45,7 @@ export class SandboxClient {
       id: this.defaultTemplateId,
     });
 
-    const client = await sandbox.connect(
+    const session = await sandbox.connect(
       // We do not want users to pass gitAccessToken on global user, because it
       // can be read by other users
       opts.gitAccessToken
@@ -56,7 +56,7 @@ export class SandboxClient {
         : undefined
     );
 
-    await client.shells.run(
+    await session.shells.run(
       [
         "rm -rf .git",
         "git init",
@@ -67,7 +67,9 @@ export class SandboxClient {
       ].join("&&")
     );
 
-    client.disconnect();
+    await opts.setup?.(session);
+
+    session.disconnect();
 
     return sandbox;
   }
@@ -205,9 +207,6 @@ export class SandboxClient {
     switch (opts.source) {
       case "git": {
         return this.createGitSandbox(opts);
-      }
-      case "files": {
-        throw new Error("Not implemented");
       }
       case "template": {
         return this.createTemplateSandbox(opts);
