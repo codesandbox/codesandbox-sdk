@@ -8,7 +8,7 @@ import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
 
-import { VMTier, CodeSandbox, Sandbox, SetupProgress } from "../../";
+import { VMTier, CodeSandbox, Sandbox } from "../../";
 
 import {
   sandboxFork,
@@ -201,69 +201,44 @@ export const buildCommand: yargs.CommandModule<
             session = await sandbox.connect();
 
             const disposableStore = new DisposableStore();
-            const handleProgress = async (progress: SetupProgress) => {
-              let buffer: string[] = [];
 
-              if (
-                progress.state === "IN_PROGRESS" &&
-                progress.steps.length > 0
-              ) {
-                const step = progress.steps[progress.currentStepIndex];
-                if (!step) {
-                  return;
-                }
+            const steps = await session.setup.getSteps();
 
+            for (const step of steps) {
+              const buffer: string[] = [];
+
+              try {
                 spinner.start(
                   createSpinnerMessage(
-                    `Running setup ${progress.currentStepIndex + 1} / ${
-                      progress.steps.length
+                    `Running setup ${steps.indexOf(step) + 1} / ${
+                      steps.length
                     } - ${step.name}...`,
                     sandboxId
                   )
                 );
 
-                const shellId = step.shellId;
+                disposableStore.add(
+                  step.onOutput((output) => {
+                    buffer.push(output);
+                  })
+                );
 
-                if (shellId) {
-                  const shell = await session.shells.open(shellId, {
-                    ptySize: {
-                      cols: process.stderr.columns,
-                      rows: process.stderr.rows,
-                    },
-                  });
+                const output = await step.open();
 
-                  disposableStore.add(
-                    shell.onOutput((data) => {
-                      buffer.push(data);
-                    })
-                  );
-                }
-              } else if (progress.state === "STOPPED") {
-                const step = progress.steps[progress.currentStepIndex];
-                if (!step) {
-                  return;
-                }
+                buffer.push(...output.split("\n"));
 
-                if (step.finishStatus === "FAILED") {
-                  spinner.fail(
-                    createSpinnerMessage(
-                      `Setup step failed: ${step.name}`,
-                      sandboxId
-                    )
-                  );
-                  console.log(buffer.join("\n"));
-                  throw new Error(`Setup step failed: ${step.name}`);
-                }
+                await step.waitForFinish();
+              } catch (error) {
+                spinner.fail(
+                  createSpinnerMessage(
+                    `Setup step failed: ${step.name}`,
+                    sandboxId
+                  )
+                );
+                console.log(buffer.join("\n"));
+                throw new Error(`Setup step failed: ${step.name}`);
               }
-            };
-
-            const progress = await session.setup.getProgress();
-            await handleProgress(progress);
-            disposableStore.add(
-              session.setup.onSetupProgressUpdate(handleProgress)
-            );
-
-            await session.setup.waitForFinish();
+            }
 
             disposableStore.dispose();
 
@@ -342,9 +317,9 @@ export const buildCommand: yargs.CommandModule<
             vm_ids: sandboxIds,
           },
         }),
-        "Failed to create tag"
+        "Failed to create template"
       );
-      console.log("Tag created: " + data.tag_id);
+      console.log("Template created: " + data.tag_id);
     } catch (error) {
       console.error(error);
       process.exit(1);
