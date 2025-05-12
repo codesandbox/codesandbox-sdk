@@ -11,7 +11,6 @@ import type * as yargs from "yargs";
 import { VMTier, CodeSandbox, Sandbox, SetupProgress } from "../../";
 
 import {
-  sandboxCreate,
   sandboxFork,
   vmCreateTag,
   vmListClusters,
@@ -25,10 +24,9 @@ export type BuildCommandArgs = {
   directory: string;
   name?: string;
   path?: string;
-  ipCountry?: string;
+  ports?: number[];
   fromSandbox?: string;
   skipFiles?: boolean;
-  cluster?: string;
   vmTier?: VmUpdateSpecsRequest["tier"];
 };
 
@@ -36,7 +34,7 @@ function createSpinnerFactory() {
   let currentLineIndex = 0;
   let currentSpinnerIndex = 0;
 
-  return (prefix: string) => {
+  return () => {
     const spinner = ora({ stream: process.stdout });
     const spinnerIndex = currentSpinnerIndex++;
     let lastMethod: string;
@@ -54,19 +52,19 @@ function createSpinnerFactory() {
     return {
       start(message: string) {
         updateCursor("start");
-        spinner.start(`${prefix}: ${message}`);
+        spinner.start(message);
       },
       succeed(message: string) {
         updateCursor("succeed");
-        spinner.succeed(`${prefix}: ${message}`);
+        spinner.succeed(message);
       },
       fail(message: string) {
         updateCursor("fail");
-        spinner.fail(`${prefix}: ${message}`);
+        spinner.fail(message);
       },
       info(message: string) {
         updateCursor("info");
-        spinner.info(`${prefix}: ${message}`);
+        spinner.info(message);
       },
     };
   };
@@ -88,6 +86,11 @@ export const buildCommand: yargs.CommandModule<
       .option("name", {
         describe: "Name for the resulting sandbox that will serve as snapshot",
         type: "string",
+      })
+      .option("ports", {
+        describe: "Ports to wait for to open before creating snapshot",
+        type: "number",
+        array: true,
       })
       .option("path", {
         describe:
@@ -130,14 +133,22 @@ export const buildCommand: yargs.CommandModule<
       const clusters = clustersData.clusters;
 
       const sandboxIds = await Promise.all(
-        clusters.map(async ({ host: cluster }) => {
+        clusters.map(async ({ host: cluster, slug }) => {
           const sdk = new CodeSandbox(API_KEY, {
             baseUrl: BASE_URL,
             headers: {
               "x-pitcher-manager-url": `https://${cluster}/api/v1`,
             },
           });
-          const spinner = createSpinner(`${cluster}`);
+          const spinner = createSpinner();
+
+          function createSpinnerMessage(message: string, sandboxId?: string) {
+            return `[cluster: ${slug}, sandbox: ${
+              sandboxId || "-"
+            }]: ${message}`;
+          }
+
+          let sandboxId: string | undefined;
 
           try {
             const { hash, files: filePaths } = await hashDirectory(
@@ -145,10 +156,10 @@ export const buildCommand: yargs.CommandModule<
             );
             spinner.succeed(`Indexed ${filePaths.length} files`);
             const shortHash = hash.slice(0, 6);
-            const tag = `sha:${shortHash}-${cluster || ""}`;
+            const tag = `sha:${shortHash}-${slug}`;
 
-            spinner.start(`Creating sandbox...`);
-            const sandboxId = await createSandbox({
+            spinner.start(createSpinnerMessage("Creating sandbox..."));
+            sandboxId = await createSandbox({
               apiClient,
               shaTag: tag,
               fromSandbox: argv.fromSandbox,
@@ -157,15 +168,19 @@ export const buildCommand: yargs.CommandModule<
               vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
             });
 
-            spinner.start(`Starting sandbox... `);
+            spinner.start(
+              createSpinnerMessage("Starting sandbox...", sandboxId)
+            );
 
             const startResponse = await sdk.sandbox["start"](sandboxId, {
               vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
             });
-            const sandbox = new Sandbox(sandboxId, startResponse, apiClient);
-            const session = await sandbox.connect();
+            let sandbox = new Sandbox(sandboxId, startResponse, apiClient);
+            let session = await sandbox.connect();
 
-            spinner.start("Writing files to sandbox...");
+            spinner.start(
+              createSpinnerMessage("Writing files to sandbox...", sandboxId)
+            );
             let i = 0;
             for (const filePath of filePaths) {
               i++;
@@ -179,11 +194,16 @@ export const buildCommand: yargs.CommandModule<
               });
             }
 
-            spinner.start("Restarting sandbox...");
-            await sdk.sandbox.restart(sandbox.id);
+            spinner.start(
+              createSpinnerMessage("Restarting sandbox...", sandboxId)
+            );
+            sandbox = await sdk.sandbox.restart(sandbox.id);
+            session = await sandbox.connect();
 
             const disposableStore = new DisposableStore();
             const handleProgress = async (progress: SetupProgress) => {
+              let buffer: string[] = [];
+
               if (
                 progress.state === "IN_PROGRESS" &&
                 progress.steps.length > 0
@@ -193,10 +213,14 @@ export const buildCommand: yargs.CommandModule<
                   return;
                 }
 
-                const spinnerMessage = `Running setup: ${
-                  progress.currentStepIndex + 1
-                } / ${progress.steps.length}: ${step.name}...`;
-                spinner.start(spinnerMessage);
+                spinner.start(
+                  createSpinnerMessage(
+                    `Running setup ${progress.currentStepIndex + 1} / ${
+                      progress.steps.length
+                    } - ${step.name}...`,
+                    sandboxId
+                  )
+                );
 
                 const shellId = step.shellId;
 
@@ -208,10 +232,9 @@ export const buildCommand: yargs.CommandModule<
                     },
                   });
 
-                  disposableStore.add(Disposable.create(() => shell.kill()));
                   disposableStore.add(
                     shell.onOutput((data) => {
-                      process.stderr.write(data);
+                      buffer.push(data);
                     })
                   );
                 }
@@ -222,7 +245,13 @@ export const buildCommand: yargs.CommandModule<
                 }
 
                 if (step.finishStatus === "FAILED") {
-                  spinner.fail(`Setup step failed: ${step.name}`);
+                  spinner.fail(
+                    createSpinnerMessage(
+                      `Setup step failed: ${step.name}`,
+                      sandboxId
+                    )
+                  );
+                  console.log(buffer.join("\n"));
                   throw new Error(`Setup step failed: ${step.name}`);
                 }
               }
@@ -237,53 +266,28 @@ export const buildCommand: yargs.CommandModule<
             await session.setup.waitForFinish();
 
             disposableStore.dispose();
-            const tasksWithStart = (await session.tasks.getTasks()).filter(
-              (t) => t.runAtStart === true
-            );
-            let tasksWithPorts = tasksWithStart.filter((t) => t.preview?.port);
 
+            const ports = argv.ports || [];
             const updatePortSpinner = () => {
-              const isMultiplePorts = tasksWithPorts.length > 1;
+              const isMultiplePorts = ports.length > 1;
               spinner.start(
-                `Waiting for ${
-                  isMultiplePorts ? "ports" : "port"
-                } ${tasksWithPorts
-                  .map((t) => t.preview?.port)
-                  .join(", ")} to open...`
+                createSpinnerMessage(
+                  `Waiting for ${
+                    isMultiplePorts ? "ports" : "port"
+                  } ${ports.join(", ")} to open...`,
+                  sandboxId
+                )
               );
             };
 
-            if (tasksWithPorts.length > 0) {
+            if (ports.length > 0) {
               updatePortSpinner();
 
               await Promise.all(
-                tasksWithPorts.map(async (task) => {
-                  const port = task.preview?.port;
-                  if (!port) {
-                    return;
-                  }
-
-                  let timeout;
-                  const portInfo = await Promise.race([
-                    session.ports.waitForPort(port),
-                    new Promise<Error>(
-                      (resolve) =>
-                        (timeout = setTimeout(
-                          () =>
-                            resolve(
-                              new Error(
-                                `Waiting for port ${port} timed out after 60s`
-                              )
-                            ),
-                          60000
-                        ))
-                    ),
-                  ]);
-                  clearTimeout(timeout);
-
-                  if (portInfo instanceof Error) {
-                    throw portInfo;
-                  }
+                ports.map(async (port) => {
+                  const portInfo = await session.ports.waitForPort(port, {
+                    timeoutMs: 60000,
+                  });
 
                   // eslint-disable-next-line no-constant-condition
                   while (true) {
@@ -295,27 +299,36 @@ export const buildCommand: yargs.CommandModule<
                     await new Promise((resolve) => setTimeout(resolve, 1000));
                   }
 
-                  tasksWithPorts = tasksWithPorts.filter(
-                    (t) => t.id !== task.id
-                  );
                   updatePortSpinner();
                 })
               );
             } else {
               spinner.start(
-                "No ports to open, waiting 5 seconds for tasks to run..."
+                createSpinnerMessage(
+                  "No ports to open, waiting 5 seconds for tasks to run...",
+                  sandboxId
+                )
               );
               await new Promise((resolve) => setTimeout(resolve, 5000));
             }
 
-            spinner.start("Creating memory snapshot...");
+            spinner.start(
+              createSpinnerMessage("Creating memory snapshot...", sandboxId)
+            );
             await sdk.sandbox.hibernate(sandbox.id);
-            spinner.succeed("Snapshot created");
+            spinner.succeed(
+              createSpinnerMessage("Snapshot created", sandboxId)
+            );
 
             return sandbox.id;
           } catch (error) {
             spinner.fail(
-              error instanceof Error ? error.message : "Unknown error occurred"
+              createSpinnerMessage(
+                error instanceof Error
+                  ? error.message
+                  : "Unknown error occurred",
+                sandboxId
+              )
             );
             throw error;
           }

@@ -11,7 +11,6 @@ export class Ports {
   get onDidPortOpen() {
     return this.onDidPortOpenEmitter.event;
   }
-
   private onDidPortCloseEmitter = this.disposable.addDisposable(
     new Emitter<number>()
   );
