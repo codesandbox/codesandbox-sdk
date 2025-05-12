@@ -445,6 +445,7 @@ export type VmListClustersResponse = {
     data?: {
         clusters: Array<{
             host: string;
+            slug: string;
         }>;
     };
 };
