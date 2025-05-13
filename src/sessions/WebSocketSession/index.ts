@@ -15,6 +15,7 @@ import { Client } from "@hey-api/client-fetch";
 import { Interpreters } from "./interpreters";
 import { Terminals } from "./terminals";
 import { Commands } from "./commands";
+import { Git } from "./git";
 
 export * from "./filesystem";
 export * from "./ports";
@@ -23,6 +24,7 @@ export * from "./shells";
 export * from "./tasks";
 export * from "./terminals";
 export * from "./commands";
+export * from "./git";
 export * from "./interpreters";
 
 export class WebSocketSession {
@@ -96,6 +98,8 @@ export class WebSocketSession {
     this.pitcherClient,
     this.commands
   );
+
+  public readonly git = new Git(this.pitcherClient);
 
   /**
    * Namespace for detecting open ports on this sandbox, and getting preview URLs for
