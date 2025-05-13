@@ -307,6 +307,20 @@ export type PreviewTokenUpdateRequest = {
     expires_at?: string | null;
 };
 
+export type PreviewHostListResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        preview_hosts: Array<{
+            host: string;
+            inserted_at: string;
+        }>;
+    };
+};
+
 export type VmShutdownRequest = {
     [key: string]: unknown;
 };
@@ -333,6 +347,10 @@ export type WorkspaceCreateRequest = {
  */
 export type VmCreateTagRequest = {
     vm_ids: Array<string>;
+};
+
+export type PreviewHostRequest = {
+    hosts: Array<string>;
 };
 
 export type VmStartResponse = {
@@ -1111,3 +1129,57 @@ export type VmUpdateSpecs2Responses = {
 };
 
 export type VmUpdateSpecs2Response = VmUpdateSpecs2Responses[keyof VmUpdateSpecs2Responses];
+
+export type PreviewHostListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/workspace/preview_hosts';
+};
+
+export type PreviewHostListResponses = {
+    /**
+     * Preview Host List Response
+     */
+    201: PreviewHostListResponse;
+};
+
+export type PreviewHostListResponse2 = PreviewHostListResponses[keyof PreviewHostListResponses];
+
+export type PreviewHostCreateData = {
+    /**
+     * Preview Host Create Request
+     */
+    body?: PreviewHostRequest;
+    path?: never;
+    query?: never;
+    url: '/workspace/preview_hosts';
+};
+
+export type PreviewHostCreateResponses = {
+    /**
+     * Preview Host List Response
+     */
+    201: PreviewHostListResponse;
+};
+
+export type PreviewHostCreateResponse = PreviewHostCreateResponses[keyof PreviewHostCreateResponses];
+
+export type PreviewHostUpdateData = {
+    /**
+     * Preview Host Update Request
+     */
+    body?: PreviewHostRequest;
+    path?: never;
+    query?: never;
+    url: '/workspace/preview_hosts';
+};
+
+export type PreviewHostUpdateResponses = {
+    /**
+     * Preview Host List Response
+     */
+    201: PreviewHostListResponse;
+};
+
+export type PreviewHostUpdateResponse = PreviewHostUpdateResponses[keyof PreviewHostUpdateResponses];

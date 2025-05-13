@@ -48,12 +48,11 @@ export class SandboxClient {
     const session = await sandbox.connect(
       // We do not want users to pass gitAccessToken on global user, because it
       // can be read by other users
-      opts.gitAccessToken
-        ? {
-            id: "clone-admin",
-            permission: "write",
-          }
-        : undefined
+      {
+        id: "clone-admin",
+        permission: "write",
+        gitAccessToken: opts.gitAccessToken,
+      }
     );
 
     await session.shells.run(

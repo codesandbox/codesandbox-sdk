@@ -602,6 +602,54 @@
         "title": "PreviewTokenUpdateRequest",
         "type": "object"
       },
+      "PreviewHostListResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "preview_hosts": {
+                    "items": {
+                      "properties": {
+                        "host": { "type": "string" },
+                        "inserted_at": {
+                          "format": "date_time",
+                          "type": "string"
+                        }
+                      },
+                      "required": ["host", "inserted_at"],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": ["preview_hosts"],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "PreviewHostListResponse",
+        "type": "object"
+      },
       "VMShutdownRequest": { "properties": {}, "title": "VMShutdownRequest" },
       "VMUpdateSpecsRequest": {
         "properties": {
@@ -642,6 +690,21 @@
         },
         "required": ["vm_ids"],
         "title": "VMCreateTagRequest",
+        "type": "object"
+      },
+      "PreviewHostRequest": {
+        "properties": {
+          "hosts": {
+            "items": {
+              "description": "Trusted domains that are allowed to access sandbox previews.",
+              "example": "https://example.com",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["hosts"],
+        "title": "PreviewHostRequest",
         "type": "object"
       },
       "VMStartResponse": {
@@ -2097,6 +2160,89 @@
         "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Update VM Specs",
         "tags": ["vm"]
+      }
+    },
+    "/workspace/preview_hosts": {
+      "get": {
+        "callbacks": {},
+        "description": "List all trusted preview hosts for the current team\n",
+        "operationId": "preview_host/list",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewHostListResponse"
+                }
+              }
+            },
+            "description": "Preview Host List Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "List Preview Hosts",
+        "tags": []
+      },
+      "post": {
+        "callbacks": {},
+        "description": "Add one or more trusted domains that are allowed to access sandbox previews for this workspace.\n",
+        "operationId": "preview_host/create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PreviewHostRequest" }
+            }
+          },
+          "description": "Preview Host Create Request",
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewHostListResponse"
+                }
+              }
+            },
+            "description": "Preview Host List Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Create Preview Hosts",
+        "tags": []
+      },
+      "put": {
+        "callbacks": {},
+        "description": "Replace the list of trusted domains that are allowed to access sandbox previews for this workspace.\n",
+        "operationId": "preview_host/update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PreviewHostRequest" }
+            }
+          },
+          "description": "Preview Host Update Request",
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewHostListResponse"
+                }
+              }
+            },
+            "description": "Preview Host List Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Update Preview Hosts",
+        "tags": []
       }
     }
   },

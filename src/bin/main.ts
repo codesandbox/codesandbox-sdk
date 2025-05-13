@@ -3,6 +3,7 @@ import { hideBin } from "yargs/helpers";
 
 import { buildCommand } from "./commands/build";
 import { sandboxCommand } from "./commands/sandbox";
+import { previewHostsCommand } from "./commands/previewHosts";
 
 yargs(hideBin(process.argv))
   .usage("CodeSandbox SDK CLI - Manage your CodeSandbox projects")
@@ -12,4 +13,5 @@ yargs(hideBin(process.argv))
   .recommendCommands()
   .command(buildCommand)
   .command(sandboxCommand)
+  .command(previewHostsCommand)
   .parse();

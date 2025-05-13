@@ -38,7 +38,7 @@ export class Commands {
     });
   }
 
-  async run(command: string, opts?: ShellRunOpts): Promise<Command> {
+  async create(command: string, opts?: ShellRunOpts) {
     const disposableStore = new DisposableStore();
     const onOutput = new Emitter<string>();
     disposableStore.add(onOutput);
@@ -66,10 +66,21 @@ export class Commands {
       this.pitcherClient.clients.shell.rename(shell.shellId, opts.name);
     }
 
-    return new Command(
+    const cmd = new Command(
       this.pitcherClient,
       shell as protocol.shell.CommandShellDTO
     );
+
+    return cmd;
+  }
+
+  async run(command: string | string[], opts?: ShellRunOpts): Promise<string> {
+    const cmd = await this.create(
+      Array.isArray(command) ? command.join(" && ") : command,
+      opts
+    );
+
+    return cmd.getOutput();
   }
 
   getAll(): Command[] {

@@ -14,14 +14,14 @@ export class Interpreters {
       this.disposable.dispose();
     });
   }
-  private async run(command: string, env: Record<string, string> = {}) {
+  private run(command: string, env: Record<string, string> = {}) {
     return this.commands.run(command, {
       env,
     });
   }
 
-  async javascript(code: string) {
-    const command = await this.run(
+  javascript(code: string) {
+    return this.run(
       `node -p "$(cat <<'EOF'
 (() => {${code
         .split("\n")
@@ -37,13 +37,9 @@ EOF
         NO_COLOR: "true",
       }
     );
-
-    console.log(command);
-
-    return command.getOutput();
   }
-  async python(code: string) {
-    const command = await this.run(`python3 -c "exec('''\
+  python(code: string) {
+    return this.run(`python3 -c "exec('''\
 ${code
   .split("\n")
   .map((line, index, lines) => {
@@ -53,7 +49,5 @@ ${code
   })
   .join("\n")}
 ''')"`);
-
-    return command.getOutput();
   }
 }
