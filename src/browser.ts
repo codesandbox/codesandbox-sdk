@@ -4,7 +4,7 @@ import { WebSocketSession } from "./sessions/WebSocketSession";
 
 export * from "./sessions/WebSocketSession";
 
-export { createPreview } from "./previews";
+export { createPreview, Preview } from "./previews";
 
 /**
  * With this function you can connect to a sandbox from the browser.
