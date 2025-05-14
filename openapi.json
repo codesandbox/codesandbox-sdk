@@ -1061,6 +1061,14 @@
             "description": "GitHub token for the session",
             "type": "string"
           },
+          "git_user_email": {
+            "description": "Git user email to configure for this session",
+            "type": "string"
+          },
+          "git_user_name": {
+            "description": "Git user name to configure for this session",
+            "type": "string"
+          },
           "permission": {
             "description": "Permission level for the session",
             "enum": ["read", "write"],
@@ -1962,7 +1970,7 @@
     "/vm/{id}/sessions": {
       "post": {
         "callbacks": {},
-        "description": "Creates a new session on a running VM. A session represents an isolated Linux user, with their own container.\nA session has a single use token that the user can use to connect to the VM. This token has specific permissions (currently, read or write).\nThe session is identified by a unique session ID, and the Linux username is based on the session ID.\n\nThis endpoint requires the VM to be running. If the VM is not running, it will return a 404 error.\n",
+        "description": "Creates a new session on a running VM. A session represents an isolated Linux user, with their own container.\nA session has a single use token that the user can use to connect to the VM. This token has specific permissions (currently, read or write).\nThe session is identified by a unique session ID, and the Linux username is based on the session ID.\n\nThe Git user name and email can be configured via parameters.\n\nThis endpoint requires the VM to be running. If the VM is not running, it will return a 404 error.\n",
         "operationId": "vm/create_session",
         "parameters": [
           {

@@ -1,12 +1,14 @@
 import {
   Disposable,
+  initPitcherClient,
   PitcherManagerResponse,
   type protocol as _protocol,
 } from "@codesandbox/pitcher-client";
-import type {
-  SandboxSession,
-  SessionCreateOptions,
-  SandboxBrowserSession,
+import {
+  type SandboxSession,
+  type SessionCreateOptions,
+  type SandboxBrowserSession,
+  DEFAULT_SUBSCRIPTIONS,
 } from "./types";
 import { Client } from "@hey-api/client-fetch";
 import {
@@ -18,6 +20,7 @@ import { handleResponse } from "./utils/api";
 import { VMTier } from "./VMTier";
 import { WebSocketSession } from "./sessions/WebSocketSession";
 import { RestSession } from "./sessions/RestSession";
+import { SandboxClient, startVm } from "./SandboxClient";
 
 export class Sandbox {
   get bootupType() {
@@ -32,20 +35,19 @@ export class Sandbox {
       this.pitcherManagerResponse.pitcherVersion
     );
   }
-  private defaultSession: SandboxSession;
-  constructor(
-    public id: string,
-    private apiClient: Client,
-    private pitcherManagerResponse: PitcherManagerResponse,
-    customSession?: SandboxSession
-  ) {
-    this.defaultSession = customSession || {
+  private get globalSession() {
+    return {
       sandboxId: this.id,
       pitcherToken: this.pitcherManagerResponse.pitcherToken,
       pitcherUrl: this.pitcherManagerResponse.pitcherURL,
       userWorkspacePath: this.pitcherManagerResponse.userWorkspacePath,
     };
   }
+  constructor(
+    public id: string,
+    private apiClient: Client,
+    private pitcherManagerResponse: PitcherManagerResponse
+  ) {}
 
   /**
    * Updates the specs that this sandbox runs on. It will dynamically scale the sandbox to the
@@ -91,6 +93,13 @@ export class Sandbox {
       body: {
         session_id: opts.id,
         permission: opts.permission ?? "write",
+        ...(opts.git
+          ? {
+              git_access_token: opts.git.accessToken,
+              git_user_email: opts.git.email,
+              git_user_name: opts.git.name,
+            }
+          : {}),
       },
       path: {
         id: this.id,
@@ -107,6 +116,7 @@ export class Sandbox {
       pitcherToken: handledResponse.pitcher_token,
       pitcherUrl: handledResponse.pitcher_url,
       userWorkspacePath: handledResponse.user_workspace_path,
+      env: opts.env,
     };
 
     return session;
@@ -115,17 +125,74 @@ export class Sandbox {
   async connect(
     customSession?: SessionCreateOptions
   ): Promise<WebSocketSession> {
-    const session = customSession
-      ? await this.createSession(customSession)
-      : this.defaultSession;
+    let hasConnected = false;
+    const pitcherClient = await initPitcherClient(
+      {
+        appId: "sdk",
+        instanceId: this.id,
+        onFocusChange() {
+          return () => {};
+        },
+        requestPitcherInstance: async () => {
+          // If we reconnect we have to resume the Sandbox and get new session details
+          if (hasConnected) {
+            this.pitcherManagerResponse = await startVm(
+              this.apiClient,
+              this.id
+            );
+          }
 
-    return WebSocketSession.init(session, this.apiClient);
+          const session = customSession
+            ? await this.createSession(customSession)
+            : this.globalSession;
+
+          const headers = this.apiClient.getConfig().headers as Headers;
+
+          if (headers.get("x-pitcher-manager-url")) {
+            // This is a hack, we need to tell the global scheduler that the VM is running
+            // in a different cluster than the one it'd like to default to.
+
+            const preferredManager = headers
+              .get("x-pitcher-manager-url")
+              ?.replace("/api/v1", "")
+              .replace("https://", "");
+            const baseUrl = this.apiClient
+              .getConfig()
+              .baseUrl?.replace("api", "global-scheduler");
+
+            await fetch(
+              `${baseUrl}/api/v1/cluster/${session.sandboxId}?preferredManager=${preferredManager}`
+            ).then((res) => res.json());
+          }
+
+          hasConnected = true;
+
+          return {
+            bootupType: this.bootupType,
+            pitcherURL: session.pitcherUrl,
+            workspacePath: session.userWorkspacePath,
+            userWorkspacePath: session.userWorkspacePath,
+            pitcherManagerVersion:
+              this.pitcherManagerResponse.pitcherManagerVersion,
+            pitcherVersion: this.pitcherManagerResponse.pitcherVersion,
+            latestPitcherVersion:
+              this.pitcherManagerResponse.latestPitcherVersion,
+            pitcherToken: session.pitcherToken,
+            cluster: this.cluster,
+          };
+        },
+        subscriptions: DEFAULT_SUBSCRIPTIONS,
+      },
+      () => {}
+    );
+
+    return new WebSocketSession(pitcherClient, () => customSession?.env ?? {});
   }
 
   async createRestSession(customSession?: SessionCreateOptions) {
     const session = customSession
       ? await this.createSession(customSession)
-      : this.defaultSession;
+      : this.globalSession;
 
     return new RestSession(session);
   }
@@ -135,10 +202,11 @@ export class Sandbox {
   ): Promise<SandboxBrowserSession> {
     const session = customSession
       ? await this.createSession(customSession)
-      : this.defaultSession;
+      : this.globalSession;
 
     return {
       id: this.id,
+      env: customSession?.env,
       bootupType: this.bootupType,
       cluster: this.cluster,
       latestPitcherVersion: this.pitcherManagerResponse.latestPitcherVersion,

@@ -19,6 +19,7 @@ import {
 import { getDefaultTemplateId, handleResponse } from "../../utils/api";
 import { BASE_URL, getApiKey } from "../utils/constants";
 import { hashDirectory } from "../utils/hash";
+import { startVm } from "../../SandboxClient";
 
 export type BuildCommandArgs = {
   directory: string;
@@ -172,10 +173,10 @@ export const buildCommand: yargs.CommandModule<
               createSpinnerMessage("Starting sandbox...", sandboxId)
             );
 
-            const startResponse = await sdk.sandbox["start"](sandboxId, {
+            const startResponse = await startVm(apiClient, sandboxId, {
               vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
             });
-            let sandbox = new Sandbox(sandboxId, startResponse, apiClient);
+            let sandbox = new Sandbox(sandboxId, apiClient, startResponse);
             let session = await sandbox.connect();
 
             spinner.start(
@@ -227,7 +228,7 @@ export const buildCommand: yargs.CommandModule<
 
                 buffer.push(...output.split("\n"));
 
-                await step.waitForFinish();
+                await step.waitUntilComplete();
               } catch (error) {
                 spinner.fail(
                   createSpinnerMessage(

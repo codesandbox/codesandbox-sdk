@@ -1,23 +1,15 @@
-import type { IPitcherClient } from "@codesandbox/pitcher-client";
-
 import { Disposable } from "../../utils/disposable";
-import { Commands } from "./commands";
+import { Commands, ShellRunOpts } from "./commands";
 
 export class Interpreters {
   private disposable = new Disposable();
-  constructor(
-    sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient,
-    private commands: Commands
-  ) {
+  constructor(sessionDisposable: Disposable, private commands: Commands) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
     });
   }
-  private run(command: string, env: Record<string, string> = {}) {
-    return this.commands.run(command, {
-      env,
-    });
+  private run(command: string, opts?: ShellRunOpts) {
+    return this.commands.run(command, opts);
   }
 
   javascript(code: string) {
@@ -34,7 +26,9 @@ export class Interpreters {
 EOF
 )"`,
       {
-        NO_COLOR: "true",
+        env: {
+          NO_COLOR: "true",
+        },
       }
     );
   }

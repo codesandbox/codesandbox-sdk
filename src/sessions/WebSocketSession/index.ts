@@ -30,53 +30,6 @@ export * from "./interpreters";
 export class WebSocketSession {
   private disposable = new Disposable();
 
-  static async init(session: SandboxSession, apiClient: Client) {
-    const pitcherClient = await initPitcherClient(
-      {
-        appId: "sdk",
-        instanceId: session.sandboxId,
-        onFocusChange() {
-          return () => {};
-        },
-        requestPitcherInstance: async () => {
-          const headers = apiClient.getConfig().headers as Headers;
-
-          if (headers.get("x-pitcher-manager-url")) {
-            // This is a hack, we need to tell the global scheduler that the VM is running
-            // in a different cluster than the one it'd like to default to.
-
-            const preferredManager = headers
-              .get("x-pitcher-manager-url")
-              ?.replace("/api/v1", "")
-              .replace("https://", "");
-            const baseUrl = apiClient
-              .getConfig()
-              .baseUrl?.replace("api", "global-scheduler");
-
-            await fetch(
-              `${baseUrl}/api/v1/cluster/${session.sandboxId}?preferredManager=${preferredManager}`
-            ).then((res) => res.json());
-          }
-
-          return {
-            bootupType: "RESUME",
-            pitcherURL: session.pitcherUrl,
-            workspacePath: session.userWorkspacePath,
-            userWorkspacePath: session.userWorkspacePath,
-            pitcherManagerVersion: "1.0.0-session",
-            pitcherVersion: "1.0.0-session",
-            latestPitcherVersion: "1.0.0-session",
-            pitcherToken: session.pitcherToken,
-            cluster: "session",
-          };
-        },
-        subscriptions: DEFAULT_SUBSCRIPTIONS,
-      },
-      () => {}
-    );
-
-    return new WebSocketSession(pitcherClient);
-  }
   /**
    * Namespace for all filesystem operations on this sandbox.
    */
@@ -87,17 +40,10 @@ export class WebSocketSession {
    */
   public readonly shells = new Shells(this.disposable, this.pitcherClient);
 
-  public readonly terminals = new Terminals(
-    this.disposable,
-    this.pitcherClient
-  );
-  public readonly commands = new Commands(this.disposable, this.pitcherClient);
+  public readonly terminals: Terminals;
+  public readonly commands: Commands;
 
-  public readonly interpreters = new Interpreters(
-    this.disposable,
-    this.pitcherClient,
-    this.commands
-  );
+  public readonly interpreters: Interpreters;
 
   public readonly git = new Git(this.pitcherClient);
 
@@ -130,7 +76,10 @@ export class WebSocketSession {
    */
   public readonly tasks = new Tasks(this.disposable, this.pitcherClient);
 
-  constructor(protected pitcherClient: IPitcherClient) {
+  constructor(
+    protected pitcherClient: IPitcherClient,
+    getEnv: () => Record<string, string>
+  ) {
     // TODO: Bring this back once metrics polling does not reset inactivity
     // const metricsDisposable = {
     //   dispose:
@@ -138,6 +87,9 @@ export class WebSocketSession {
     // };
 
     // this.addDisposable(metricsDisposable);
+    this.terminals = new Terminals(this.disposable, this.pitcherClient, getEnv);
+    this.commands = new Commands(this.disposable, this.pitcherClient, getEnv);
+    this.interpreters = new Interpreters(this.disposable, this.commands);
     this.disposable.addDisposable(this.pitcherClient);
   }
 

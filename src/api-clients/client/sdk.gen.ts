@@ -349,6 +349,8 @@ export const vmUpdateHibernationTimeout = <ThrowOnError extends boolean = false>
  * A session has a single use token that the user can use to connect to the VM. This token has specific permissions (currently, read or write).
  * The session is identified by a unique session ID, and the Linux username is based on the session ID.
  *
+ * The Git user name and email can be configured via parameters.
+ *
  * This endpoint requires the VM to be running. If the VM is not running, it will return a 404 error.
  *
  */

@@ -524,6 +524,14 @@ export type VmCreateSessionRequest = {
      */
     git_access_token?: string;
     /**
+     * Git user email to configure for this session
+     */
+    git_user_email?: string;
+    /**
+     * Git user name to configure for this session
+     */
+    git_user_name?: string;
+    /**
      * Permission level for the session
      */
     permission: 'read' | 'write';
