@@ -1,5 +1,4 @@
 import type { Client } from "@hey-api/client-fetch";
-import { createClient, createConfig } from "@hey-api/client-fetch";
 
 import {
   sandboxFork,
@@ -51,7 +50,13 @@ export class SandboxClient {
       {
         id: "clone-admin",
         permission: "write",
-        gitAccessToken: opts.gitAccessToken,
+        ...(opts.config
+          ? {
+              gitAccessToken: opts.config.accessToken,
+              email: opts.config.email,
+              name: opts.config.name,
+            }
+          : {}),
       }
     );
 
@@ -63,7 +68,7 @@ export class SandboxClient {
         "git fetch origin",
         `git checkout -b ${opts.branch}`,
         `git reset --hard origin/${opts.branch}`,
-      ].join("&&")
+      ].join(" && ")
     );
 
     await opts.setup?.(session);
@@ -102,8 +107,8 @@ export class SandboxClient {
 
     return new Sandbox(
       sandbox.id,
-      getStartResponse(sandbox.start_response),
-      this.apiClient
+      this.apiClient,
+      getStartResponse(sandbox.start_response)
     );
   }
 
@@ -139,7 +144,7 @@ export class SandboxClient {
    */
   async resume(sandboxId: string) {
     const startResponse = await this.start(sandboxId);
-    return new Sandbox(sandboxId, startResponse, this.apiClient);
+    return new Sandbox(sandboxId, this.apiClient, startResponse);
   }
 
   /**
@@ -168,7 +173,7 @@ export class SandboxClient {
     await this.shutdown(sandboxId);
     const startResponse = await this.start(sandboxId, opts);
 
-    return new Sandbox(sandboxId, startResponse, this.apiClient);
+    return new Sandbox(sandboxId, this.apiClient, startResponse);
   }
 
   /**
