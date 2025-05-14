@@ -2,6 +2,7 @@ import type { protocol, IPitcherClient } from "@codesandbox/pitcher-client";
 import type { Id } from "@codesandbox/pitcher-common";
 import { Disposable } from "../../utils/disposable";
 import { Emitter } from "../../utils/event";
+import { ShellRunOpts } from "./commands";
 
 export type ShellSize = { cols: number; rows: number };
 
@@ -11,7 +12,8 @@ export class Terminals {
   private disposable = new Disposable();
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient
+    private pitcherClient: IPitcherClient,
+    private getEnv: () => Record<string, string>
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
@@ -19,16 +21,33 @@ export class Terminals {
   }
 
   async create(
-    shellType: "bash" | "zsh" | "fish" | "ksh" | "dash" = "bash",
-    dimensions = DEFAULT_SHELL_SIZE
+    command: "bash" | "zsh" | "fish" | "ksh" | "dash" = "bash",
+    opts?: ShellRunOpts
   ): Promise<Terminal> {
+    const allEnv = Object.assign(this.getEnv(), opts?.env ?? {});
+
+    // TODO: use a new shell API that natively supports cwd & env
+    let commandWithEnv = Object.keys(allEnv).length
+      ? `env ${Object.entries(allEnv)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(" ")} ${command}`
+      : command;
+
+    if (opts?.cwd) {
+      commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
+    }
+
     const shell = await this.pitcherClient.clients.shell.create(
       this.pitcherClient.workspacePath,
-      dimensions,
-      shellType,
+      opts?.dimensions ?? DEFAULT_SHELL_SIZE,
+      commandWithEnv,
       "TERMINAL",
       true
     );
+
+    if (opts?.name) {
+      this.pitcherClient.clients.shell.rename(shell.shellId, opts.name);
+    }
 
     return new Terminal(shell, this.pitcherClient);
   }

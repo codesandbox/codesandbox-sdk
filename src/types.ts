@@ -183,7 +183,12 @@ export type SandboxSessionData = {
 export interface SessionCreateOptions {
   id: string;
   permission?: "read" | "write";
-  gitAccessToken?: string;
+  git?: {
+    accessToken?: string;
+    email: string;
+    name?: string;
+  };
+  env?: Record<string, string>;
 }
 
 export type SandboxSession = {
@@ -191,6 +196,7 @@ export type SandboxSession = {
   pitcherToken: string;
   pitcherUrl: string;
   userWorkspacePath: string;
+  env?: Record<string, string>;
 };
 
 export type CreateSandboxTemplateSourceOpts = CreateSandboxBaseOpts & {
@@ -228,4 +234,5 @@ export type SandboxOpts = {
 
 export type SandboxBrowserSession = PitcherManagerResponse & {
   id: string;
+  env?: Record<string, string>;
 };

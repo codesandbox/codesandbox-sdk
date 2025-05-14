@@ -47,6 +47,8 @@ export async function connectToSandbox(options: {
   onFocusChange?: (cb: (isFocused: boolean) => void) => () => void;
   initStatusCb?: (event: protocol.system.InitStatus) => void;
 }): Promise<WebSocketSession> {
+  let env: Record<string, string> = {};
+
   const pitcherClient = await initPitcherClient(
     {
       appId: "sdk",
@@ -56,11 +58,19 @@ export async function connectToSandbox(options: {
         (() => {
           return () => {};
         }),
-      requestPitcherInstance: options.getSession,
+      requestPitcherInstance: async (id) => {
+        const session = await options.getSession(id);
+
+        if (session.env) {
+          env = session.env;
+        }
+
+        return session;
+      },
       subscriptions: DEFAULT_SUBSCRIPTIONS,
     },
     options.initStatusCb || (() => {})
   );
 
-  return new WebSocketSession(pitcherClient);
+  return new WebSocketSession(pitcherClient, () => env);
 }

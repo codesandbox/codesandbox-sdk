@@ -31,7 +31,8 @@ export class Commands {
   private disposable = new Disposable();
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient
+    private pitcherClient: IPitcherClient,
+    private getEnv: () => Record<string, string>
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
@@ -43,9 +44,11 @@ export class Commands {
     const onOutput = new Emitter<string>();
     disposableStore.add(onOutput);
 
+    const allEnv = Object.assign(this.getEnv(), opts?.env ?? {});
+
     // TODO: use a new shell API that natively supports cwd & env
-    let commandWithEnv = Object.keys(opts?.env ?? {}).length
-      ? `env ${Object.entries(opts?.env ?? {})
+    let commandWithEnv = Object.keys(allEnv).length
+      ? `env ${Object.entries(allEnv)
           .map(([key, value]) => `${key}=${value}`)
           .join(" ")} ${command}`
       : command;
@@ -80,7 +83,7 @@ export class Commands {
       opts
     );
 
-    return cmd.getOutput();
+    return cmd.waitUntilComplete();
   }
 
   getAll(): Command[] {
@@ -157,7 +160,7 @@ export class Command {
     );
   }
 
-  async getOutput(): Promise<string> {
+  async waitUntilComplete(): Promise<string> {
     await this.barrier.wait();
 
     if (this.status === "FINISHED") {

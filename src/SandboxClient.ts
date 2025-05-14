@@ -28,6 +28,34 @@ import {
 } from "./types";
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 
+export async function startVm(
+  apiClient: Client,
+  sandboxId: string,
+  startOpts?: StartSandboxOpts
+): Promise<PitcherManagerResponse> {
+  const startResult = await vmStart({
+    client: apiClient,
+    body: startOpts
+      ? {
+          ipcountry: startOpts.ipcountry,
+          tier: startOpts.vmTier?.name,
+          hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
+          automatic_wakeup_config: startOpts.automaticWakeupConfig,
+        }
+      : undefined,
+    path: {
+      id: sandboxId,
+    },
+  });
+
+  const response = handleResponse(
+    startResult,
+    `Failed to start sandbox ${sandboxId}`
+  );
+
+  return getStartResponse(response);
+}
+
 export class SandboxClient {
   get defaultTemplateId() {
     return getDefaultTemplateId(this.apiClient);
@@ -48,7 +76,7 @@ export class SandboxClient {
       // We do not want users to pass gitAccessToken on global user, because it
       // can be read by other users
       {
-        id: "clone-admin",
+        id: "clone-repo-user",
         permission: "write",
         ...(opts.config
           ? {
@@ -112,38 +140,11 @@ export class SandboxClient {
     );
   }
 
-  private async start(
-    sandboxId: string,
-    startOpts?: StartSandboxOpts
-  ): Promise<PitcherManagerResponse> {
-    const startResult = await vmStart({
-      client: this.apiClient,
-      body: startOpts
-        ? {
-            ipcountry: startOpts.ipcountry,
-            tier: startOpts.vmTier?.name,
-            hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
-            automatic_wakeup_config: startOpts.automaticWakeupConfig,
-          }
-        : undefined,
-      path: {
-        id: sandboxId,
-      },
-    });
-
-    const response = handleResponse(
-      startResult,
-      `Failed to start sandbox ${sandboxId}`
-    );
-
-    return getStartResponse(response);
-  }
-
   /**
    *
    */
   async resume(sandboxId: string) {
-    const startResponse = await this.start(sandboxId);
+    const startResponse = await startVm(this.apiClient, sandboxId);
     return new Sandbox(sandboxId, this.apiClient, startResponse);
   }
 
@@ -171,7 +172,7 @@ export class SandboxClient {
    */
   public async restart(sandboxId: string, opts?: StartSandboxOpts) {
     await this.shutdown(sandboxId);
-    const startResponse = await this.start(sandboxId, opts);
+    const startResponse = await startVm(this.apiClient, sandboxId, opts);
 
     return new Sandbox(sandboxId, this.apiClient, startResponse);
   }

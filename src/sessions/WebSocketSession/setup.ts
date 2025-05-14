@@ -76,7 +76,7 @@ export class Setup {
     await this.pitcherClient.clients.setup.init();
   }
 
-  async waitForFinish(): Promise<void> {
+  async waitUntilComplete(): Promise<void> {
     if (this.setupProgress.state === "STOPPED") {
       throw new Error("Setup Failed");
     }
@@ -135,6 +135,10 @@ export class Step {
         const oldStep = this.step;
         const newStep = progress.steps[stepIndex];
 
+        if (!newStep) {
+          return;
+        }
+
         this.step = newStep;
 
         if (newStep.finishStatus !== oldStep.finishStatus) {
@@ -182,7 +186,7 @@ export class Step {
     });
   }
 
-  async waitForFinish() {
+  async waitUntilComplete() {
     if (this.step.finishStatus === "FAILED") {
       throw new Error("Step Failed");
     }
