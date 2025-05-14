@@ -206,7 +206,11 @@ export type CreateSandboxGitSourceOpts = CreateSandboxBaseOpts & {
   source: "git";
   url: string;
   branch: string;
-  gitAccessToken?: string;
+  config?: {
+    accessToken: string;
+    email: string;
+    name?: string;
+  };
   setup?: (session: WebSocketSession) => Promise<void>;
 };
 

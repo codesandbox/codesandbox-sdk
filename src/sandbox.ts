@@ -32,19 +32,20 @@ export class Sandbox {
       this.pitcherManagerResponse.pitcherVersion
     );
   }
-  private get globalSession() {
-    return {
+  private defaultSession: SandboxSession;
+  constructor(
+    public id: string,
+    private apiClient: Client,
+    private pitcherManagerResponse: PitcherManagerResponse,
+    customSession?: SandboxSession
+  ) {
+    this.defaultSession = customSession || {
       sandboxId: this.id,
       pitcherToken: this.pitcherManagerResponse.pitcherToken,
       pitcherUrl: this.pitcherManagerResponse.pitcherURL,
       userWorkspacePath: this.pitcherManagerResponse.userWorkspacePath,
     };
   }
-  constructor(
-    public id: string,
-    private pitcherManagerResponse: PitcherManagerResponse,
-    private apiClient: Client
-  ) {}
 
   /**
    * Updates the specs that this sandbox runs on. It will dynamically scale the sandbox to the
@@ -116,7 +117,7 @@ export class Sandbox {
   ): Promise<WebSocketSession> {
     const session = customSession
       ? await this.createSession(customSession)
-      : this.globalSession;
+      : this.defaultSession;
 
     return WebSocketSession.init(session, this.apiClient);
   }
@@ -124,7 +125,7 @@ export class Sandbox {
   async createRestSession(customSession?: SessionCreateOptions) {
     const session = customSession
       ? await this.createSession(customSession)
-      : this.globalSession;
+      : this.defaultSession;
 
     return new RestSession(session);
   }
@@ -134,7 +135,7 @@ export class Sandbox {
   ): Promise<SandboxBrowserSession> {
     const session = customSession
       ? await this.createSession(customSession)
-      : this.globalSession;
+      : this.defaultSession;
 
     return {
       id: this.id,

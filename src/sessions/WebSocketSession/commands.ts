@@ -58,7 +58,7 @@ export class Commands {
       this.pitcherClient.workspacePath,
       opts?.dimensions ?? DEFAULT_SHELL_SIZE,
       commandWithEnv,
-      "COMMAND",
+      "TERMINAL",
       true
     );
 
@@ -128,7 +128,6 @@ export class Command {
         if (shellId === this.id) {
           this.status = exitCode === 0 ? "FINISHED" : "ERROR";
           this.barrier.open();
-          this.kill();
         }
       })
     );
@@ -138,7 +137,6 @@ export class Command {
         if (shellId === this.id) {
           this.status = "KILLED";
           this.barrier.open();
-          this.kill();
         }
       })
     );
