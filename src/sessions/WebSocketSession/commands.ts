@@ -39,10 +39,12 @@ export class Commands {
     });
   }
 
-  async create(command: string, opts?: ShellRunOpts) {
+  async create(command: string | string[], opts?: ShellRunOpts) {
     const disposableStore = new DisposableStore();
     const onOutput = new Emitter<string>();
     disposableStore.add(onOutput);
+
+    command = Array.isArray(command) ? command.join(" && ") : command;
 
     const allEnv = Object.assign(this.getEnv(), opts?.env ?? {});
 
@@ -78,10 +80,7 @@ export class Commands {
   }
 
   async run(command: string | string[], opts?: ShellRunOpts): Promise<string> {
-    const cmd = await this.create(
-      Array.isArray(command) ? command.join(" && ") : command,
-      opts
-    );
+    const cmd = await this.create(command, opts);
 
     return cmd.waitUntilComplete();
   }
