@@ -33,7 +33,7 @@ EOF
     );
   }
   python(code: string) {
-    return this.run(`python3 -c "exec('''\
+    return this.run(`python3 <<'PYCODE'
 ${code
   .split("\n")
   .map((line, index, lines) => {
@@ -42,6 +42,7 @@ ${code
       : line;
   })
   .join("\n")}
-''')"`);
+PYCODE
+`);
   }
 }

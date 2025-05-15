@@ -31,46 +31,6 @@ export type BuildCommandArgs = {
   vmTier?: VmUpdateSpecsRequest["tier"];
 };
 
-function createSpinnerFactory() {
-  let currentLineIndex = 0;
-  let currentSpinnerIndex = 0;
-
-  return () => {
-    const spinner = ora({ stream: process.stdout });
-    const spinnerIndex = currentSpinnerIndex++;
-    let lastMethod: string;
-
-    function updateCursor(method: string) {
-      readline.moveCursor(
-        process.stdout,
-        0,
-        spinnerIndex - currentLineIndex + (lastMethod !== "start" ? -1 : 0)
-      );
-      currentLineIndex = spinnerIndex;
-      lastMethod = method;
-    }
-
-    return {
-      start(message: string) {
-        updateCursor("start");
-        spinner.start(message);
-      },
-      succeed(message: string) {
-        updateCursor("succeed");
-        spinner.succeed(message);
-      },
-      fail(message: string) {
-        updateCursor("fail");
-        spinner.fail(message);
-      },
-      info(message: string) {
-        updateCursor("info");
-        spinner.info(message);
-      },
-    };
-  };
-}
-
 export const buildCommand: yargs.CommandModule<
   Record<string, never>,
   BuildCommandArgs
@@ -121,8 +81,6 @@ export const buildCommand: yargs.CommandModule<
       })
     );
 
-    const createSpinner = createSpinnerFactory();
-
     try {
       const clustersData = handleResponse(
         await vmListClusters({
@@ -133,21 +91,29 @@ export const buildCommand: yargs.CommandModule<
 
       const clusters = clustersData.clusters;
 
+      const spinner = ora({ stream: process.stdout });
+      let spinnerMessages: string[] = clusters.map(() => "");
+
+      function updateSpinnerMessage(
+        index: number,
+        message: string,
+        sandboxId?: string
+      ) {
+        spinnerMessages[index] = `[cluster: ${
+          clusters[index].slug
+        }, sandboxId: ${sandboxId || "-"}]: ${message}`;
+
+        return `\n${spinnerMessages.join("\n")}`;
+      }
+
       const sandboxIds = await Promise.all(
-        clusters.map(async ({ host: cluster, slug }) => {
+        clusters.map(async ({ host: cluster, slug }, index) => {
           const sdk = new CodeSandbox(API_KEY, {
             baseUrl: BASE_URL,
             headers: {
               "x-pitcher-manager-url": `https://${cluster}/api/v1`,
             },
           });
-          const spinner = createSpinner();
-
-          function createSpinnerMessage(message: string, sandboxId?: string) {
-            return `[cluster: ${slug}, sandboxId: ${
-              sandboxId || "-"
-            }]: ${message}`;
-          }
 
           let sandboxId: string | undefined;
 
@@ -155,11 +121,10 @@ export const buildCommand: yargs.CommandModule<
             const { hash, files: filePaths } = await hashDirectory(
               argv.directory
             );
-            spinner.succeed(`Indexed ${filePaths.length} files`);
             const shortHash = hash.slice(0, 6);
             const tag = `sha:${shortHash}-${slug}`;
 
-            spinner.start(createSpinnerMessage("Creating sandbox..."));
+            spinner.start(updateSpinnerMessage(index, "Creating sandbox..."));
             sandboxId = await createSandbox({
               apiClient,
               shaTag: tag,
@@ -170,7 +135,7 @@ export const buildCommand: yargs.CommandModule<
             });
 
             spinner.start(
-              createSpinnerMessage("Starting sandbox...", sandboxId)
+              updateSpinnerMessage(index, "Starting sandbox...", sandboxId)
             );
 
             const startResponse = await startVm(apiClient, sandboxId, {
@@ -180,7 +145,11 @@ export const buildCommand: yargs.CommandModule<
             let session = await sandbox.connect();
 
             spinner.start(
-              createSpinnerMessage("Writing files to sandbox...", sandboxId)
+              updateSpinnerMessage(
+                index,
+                "Writing files to sandbox...",
+                sandboxId
+              )
             );
             let i = 0;
             for (const filePath of filePaths) {
@@ -196,9 +165,9 @@ export const buildCommand: yargs.CommandModule<
             }
 
             spinner.start(
-              createSpinnerMessage("Restarting sandbox...", sandboxId)
+              updateSpinnerMessage(index, "Restarting sandbox...", sandboxId)
             );
-            sandbox = await sdk.sandbox.restart(sandbox.id);
+            sandbox = await sdk.sandboxes.restart(sandbox.id);
             session = await sandbox.connect();
 
             const disposableStore = new DisposableStore();
@@ -210,7 +179,8 @@ export const buildCommand: yargs.CommandModule<
 
               try {
                 spinner.start(
-                  createSpinnerMessage(
+                  updateSpinnerMessage(
+                    index,
                     `Running setup ${steps.indexOf(step) + 1} / ${
                       steps.length
                     } - ${step.name}...`,
@@ -230,13 +200,6 @@ export const buildCommand: yargs.CommandModule<
 
                 await step.waitUntilComplete();
               } catch (error) {
-                spinner.fail(
-                  createSpinnerMessage(
-                    `Setup step failed: ${step.name}`,
-                    sandboxId
-                  )
-                );
-                console.log(buffer.join("\n"));
                 throw new Error(`Setup step failed: ${step.name}`);
               }
             }
@@ -247,7 +210,8 @@ export const buildCommand: yargs.CommandModule<
             const updatePortSpinner = () => {
               const isMultiplePorts = ports.length > 1;
               spinner.start(
-                createSpinnerMessage(
+                updateSpinnerMessage(
+                  index,
                   `Waiting for ${
                     isMultiplePorts ? "ports" : "port"
                   } ${ports.join(", ")} to open...`,
@@ -267,7 +231,7 @@ export const buildCommand: yargs.CommandModule<
 
                   // eslint-disable-next-line no-constant-condition
                   while (true) {
-                    const res = await fetch("https://" + portInfo.url);
+                    const res = await fetch("https://" + portInfo.host);
                     if (res.status !== 502 && res.status !== 503) {
                       break;
                     }
@@ -280,7 +244,8 @@ export const buildCommand: yargs.CommandModule<
               );
             } else {
               spinner.start(
-                createSpinnerMessage(
+                updateSpinnerMessage(
+                  index,
                   "No ports to open, waiting 5 seconds for tasks to run...",
                   sandboxId
                 )
@@ -289,17 +254,22 @@ export const buildCommand: yargs.CommandModule<
             }
 
             spinner.start(
-              createSpinnerMessage("Creating memory snapshot...", sandboxId)
+              updateSpinnerMessage(
+                index,
+                "Creating memory snapshot...",
+                sandboxId
+              )
             );
-            await sdk.sandbox.hibernate(sandbox.id);
-            spinner.succeed(
-              createSpinnerMessage("Snapshot created", sandboxId)
+            await sdk.sandboxes.hibernate(sandbox.id);
+            spinner.start(
+              updateSpinnerMessage(index, "Snapshot created", sandboxId)
             );
 
             return sandbox.id;
           } catch (error) {
             spinner.fail(
-              createSpinnerMessage(
+              updateSpinnerMessage(
+                index,
                 error instanceof Error
                   ? error.message
                   : "Unknown error occurred",
@@ -311,6 +281,8 @@ export const buildCommand: yargs.CommandModule<
         })
       );
 
+      spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+
       const data = handleResponse(
         await vmCreateTag({
           client: apiClient,
@@ -321,6 +293,7 @@ export const buildCommand: yargs.CommandModule<
         "Failed to create template"
       );
       console.log("Template created: " + data.tag_id);
+      process.exit(0);
     } catch (error) {
       console.error(error);
       process.exit(1);
