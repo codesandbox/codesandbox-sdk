@@ -84,7 +84,7 @@ export class Preview<
     return iframe;
   }
 
-  private sendMessage(message: MessageToPreview | BaseMessageToPreview) {
+  sendMessage(message: MessageToPreview | BaseMessageToPreview) {
     if (this.status === "CONNECTED") {
       this.iframe.contentWindow?.postMessage(message, "*");
     }

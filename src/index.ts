@@ -24,6 +24,10 @@ function ensure<T>(value: T | undefined, message: string): T {
 }
 
 export class CodeSandbox {
+  public readonly sandboxes: SandboxClient;
+  /**
+   * @deprecated Use `sandboxes` instead
+   */
   public readonly sandbox: SandboxClient;
 
   /**
@@ -39,7 +43,7 @@ export class CodeSandbox {
    */
   public readonly previewTokens: PreviewTokens;
 
-  constructor(apiToken?: string, readonly opts: ClientOpts = {}) {
+  constructor(apiToken?: string, opts: ClientOpts = {}) {
     const evaluatedApiToken =
       apiToken ||
       ensure(
@@ -63,7 +67,8 @@ export class CodeSandbox {
       })
     );
 
-    this.sandbox = new SandboxClient(apiClient);
+    this.sandboxes = new SandboxClient(apiClient);
+    this.sandbox = this.sandboxes;
     this.previewTokens = new PreviewTokens(apiClient);
   }
 }
