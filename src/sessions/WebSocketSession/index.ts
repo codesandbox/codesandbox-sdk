@@ -1,4 +1,3 @@
-import { initPitcherClient } from "@codesandbox/pitcher-client";
 import { Disposable } from "../../utils/disposable";
 import {
   protocol as _protocol,
@@ -8,10 +7,7 @@ import {
 import { FileSystem } from "./filesystem";
 import { Ports } from "./ports";
 import { Setup } from "./setup";
-import { Shells } from "./shells";
 import { Tasks } from "./tasks";
-import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../../types";
-import { Client } from "@hey-api/client-fetch";
 import { Interpreters } from "./interpreters";
 import { Terminals } from "./terminals";
 import { Commands } from "./commands";
@@ -20,7 +16,6 @@ import { Git } from "./git";
 export * from "./filesystem";
 export * from "./ports";
 export * from "./setup";
-export * from "./shells";
 export * from "./tasks";
 export * from "./terminals";
 export * from "./commands";
@@ -34,11 +29,6 @@ export class WebSocketSession {
    * Namespace for all filesystem operations on this sandbox.
    */
   public readonly fs = new FileSystem(this.disposable, this.pitcherClient);
-
-  /**
-   * Namespace for running shell commands on this sandbox.
-   */
-  public readonly shells = new Shells(this.disposable, this.pitcherClient);
 
   public readonly terminals: Terminals;
   public readonly commands: Commands;

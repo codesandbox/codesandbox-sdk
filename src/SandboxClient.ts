@@ -88,16 +88,14 @@ export class SandboxClient {
       }
     );
 
-    await session.shells.run(
-      [
-        "rm -rf .git",
-        "git init",
-        `git remote add origin ${opts.url}`,
-        "git fetch origin",
-        `git checkout -b ${opts.branch}`,
-        `git reset --hard origin/${opts.branch}`,
-      ].join(" && ")
-    );
+    await session.commands.run([
+      "rm -rf .git",
+      "git init",
+      `git remote add origin ${opts.url}`,
+      "git fetch origin",
+      `git checkout -b ${opts.branch}`,
+      `git reset --hard origin/${opts.branch}`,
+    ]);
 
     await opts.setup?.(session);
 

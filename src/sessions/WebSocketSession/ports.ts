@@ -1,12 +1,17 @@
-import type { IPitcherClient, protocol } from "@codesandbox/pitcher-client";
+import type { IPitcherClient } from "@codesandbox/pitcher-client";
 
 import { Disposable } from "../../utils/disposable";
 import { Emitter } from "../../utils/event";
 
+export type Port = {
+  port: number;
+  host: string;
+};
+
 export class Ports {
   private disposable = new Disposable();
   private onDidPortOpenEmitter = this.disposable.addDisposable(
-    new Emitter<protocol.port.Port>()
+    new Emitter<Port>()
   );
   get onDidPortOpen() {
     return this.onDidPortOpenEmitter.event;
@@ -44,7 +49,7 @@ export class Ports {
 
         if (openedPorts.length) {
           for (const port of openedPorts) {
-            this.onDidPortOpenEmitter.fire(port);
+            this.onDidPortOpenEmitter.fire({ port: port.port, host: port.url });
           }
         }
 
@@ -63,8 +68,10 @@ export class Ports {
     return this.getOpenedPorts().find((p) => p.port === port);
   }
 
-  getOpenedPorts() {
-    return this.pitcherClient.clients.port.getPorts();
+  getOpenedPorts(): Port[] {
+    return this.pitcherClient.clients.port
+      .getPorts()
+      .map(({ port, url }) => ({ host: url, port }));
   }
 
   /**
@@ -79,7 +86,7 @@ export class Ports {
   async waitForPort(
     port: number,
     options?: { timeoutMs?: number }
-  ): Promise<protocol.port.Port> {
+  ): Promise<Port> {
     await this.pitcherClient.clients.port.readyPromise;
 
     return new Promise((resolve, reject) => {
