@@ -2,11 +2,7 @@ import type { IPitcherClient } from "@codesandbox/pitcher-client";
 
 import { Disposable } from "../../utils/disposable";
 import { Emitter } from "../../utils/event";
-
-export type Port = {
-  port: number;
-  host: string;
-};
+import { PreviewToken } from "../../PreviewTokens";
 
 export class Ports {
   private disposable = new Disposable();
@@ -27,7 +23,8 @@ export class Ports {
 
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient
+    private pitcherClient: IPitcherClient,
+    private previewToken?: PreviewToken
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
@@ -49,7 +46,9 @@ export class Ports {
 
         if (openedPorts.length) {
           for (const port of openedPorts) {
-            this.onDidPortOpenEmitter.fire({ port: port.port, host: port.url });
+            this.onDidPortOpenEmitter.fire(
+              new Port(port.port, port.url, this.previewToken)
+            );
           }
         }
 
@@ -71,7 +70,7 @@ export class Ports {
   getOpenedPorts(): Port[] {
     return this.pitcherClient.clients.port
       .getPorts()
-      .map(({ port, url }) => ({ host: url, port }));
+      .map(({ port, url }) => new Port(port, url, this.previewToken));
   }
 
   /**
@@ -123,5 +122,18 @@ export class Ports {
         })
       );
     });
+  }
+}
+
+class Port {
+  constructor(
+    public readonly port: number,
+    public readonly host: string,
+    private previewToken?: PreviewToken
+  ) {}
+  getPreviewUrl() {
+    return `https://${this.host}${
+      this.previewToken ? `?preview_token=${this.previewToken.token}` : ""
+    }`;
   }
 }

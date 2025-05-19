@@ -20,7 +20,7 @@ import { handleResponse } from "./utils/api";
 import { VMTier } from "./VMTier";
 import { WebSocketSession } from "./sessions/WebSocketSession";
 import { RestSession } from "./sessions/RestSession";
-import { Sandboxes, startVm } from "./Sandboxes";
+import { startVm } from "./Sandboxes";
 
 export class Sandbox {
   /**
@@ -146,6 +146,10 @@ export class Sandbox {
     customSession?: SessionCreateOptions
   ): Promise<WebSocketSession> {
     let hasConnected = false;
+    const session = customSession
+      ? await this.createSession(customSession)
+      : this.globalSession;
+
     const pitcherClient = await initPitcherClient(
       {
         appId: "sdk",
@@ -161,10 +165,6 @@ export class Sandbox {
               this.id
             );
           }
-
-          const session = customSession
-            ? await this.createSession(customSession)
-            : this.globalSession;
 
           const headers = this.apiClient.getConfig().headers as Headers;
 
@@ -206,7 +206,10 @@ export class Sandbox {
       () => {}
     );
 
-    return new WebSocketSession(pitcherClient, () => customSession?.env ?? {});
+    return new WebSocketSession(pitcherClient, {
+      env: customSession?.env,
+      previewToken: customSession?.previewToken,
+    });
   }
 
   /**

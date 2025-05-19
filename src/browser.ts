@@ -10,28 +10,27 @@ export { createPreview, Preview } from "./previews";
  * Connect to a Sandbox from the browser and automatically reconnect. `getSession` requires and endpoint that resumes the Sandbox. `onFocusChange` can be used to notify when a reconnect should happen.
  */
 export async function connectToSandbox(options: {
-  id: string;
+  session: SandboxBrowserSession;
   getSession: (id: string) => Promise<SandboxBrowserSession>;
   onFocusChange?: (cb: (isFocused: boolean) => void) => () => void;
   initStatusCb?: (event: protocol.system.InitStatus) => void;
 }): Promise<WebSocketSession> {
-  let env: Record<string, string> = {};
-
+  let hasConnected = false;
   const pitcherClient = await initPitcherClient(
     {
       appId: "sdk",
-      instanceId: options.id,
+      instanceId: options.session.id,
       onFocusChange:
         options.onFocusChange ||
         (() => {
           return () => {};
         }),
       requestPitcherInstance: async (id) => {
-        const session = await options.getSession(id);
+        const session = hasConnected
+          ? await options.getSession(id)
+          : options.session;
 
-        if (session.env) {
-          env = session.env;
-        }
+        hasConnected = true;
 
         return session;
       },
@@ -40,5 +39,8 @@ export async function connectToSandbox(options: {
     options.initStatusCb || (() => {})
   );
 
-  return new WebSocketSession(pitcherClient, () => env);
+  return new WebSocketSession(pitcherClient, {
+    env: options.session.env,
+    previewToken: options.session.previewToken,
+  });
 }
