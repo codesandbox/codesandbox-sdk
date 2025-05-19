@@ -26,7 +26,7 @@ export class Commands {
   constructor(
     sessionDisposable: Disposable,
     private pitcherClient: IPitcherClient,
-    private getEnv: () => Record<string, string>
+    private env: Record<string, string> = {}
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
@@ -43,7 +43,7 @@ export class Commands {
 
     command = Array.isArray(command) ? command.join(" && ") : command;
 
-    const allEnv = Object.assign(this.getEnv(), opts?.env ?? {});
+    const allEnv = Object.assign(this.env, opts?.env ?? {});
 
     // TODO: use a new shell API that natively supports cwd & env
     let commandWithEnv = Object.keys(allEnv).length

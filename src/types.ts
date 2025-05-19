@@ -1,6 +1,7 @@
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 import { VMTier } from "./VMTier";
 import type { WebSocketSession } from "./sessions/WebSocketSession";
+import { PreviewToken } from "./PreviewTokens";
 
 export interface SystemMetricsStatus {
   cpu: {
@@ -189,6 +190,7 @@ export interface SessionCreateOptions {
     name?: string;
   };
   env?: Record<string, string>;
+  previewToken?: PreviewToken;
 }
 
 export type SandboxSession = {
@@ -235,4 +237,5 @@ export type SandboxOpts = {
 export type SandboxBrowserSession = PitcherManagerResponse & {
   id: string;
   env?: Record<string, string>;
+  previewToken?: PreviewToken;
 };

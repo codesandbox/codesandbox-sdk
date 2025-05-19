@@ -19,7 +19,7 @@ import {
 import { getDefaultTemplateId, handleResponse } from "../../utils/api";
 import { BASE_URL, getApiKey } from "../utils/constants";
 import { hashDirectory } from "../utils/hash";
-import { startVm } from "../../SandboxClient";
+import { startVm } from "../../Sandboxes";
 
 export type BuildCommandArgs = {
   directory: string;
