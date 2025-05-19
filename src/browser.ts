@@ -7,39 +7,7 @@ export * from "./sessions/WebSocketSession";
 export { createPreview, Preview } from "./previews";
 
 /**
- * With this function you can connect to a sandbox from the browser.
- *
- * ## Why does this exist?
- *
- * The CodeSandbox API is a REST API that you can use to control sandboxes. However, it
- * requires your CodeSandbox API token to be sent with every request. This makes it
- * unsafe to use from the browser, where you don't want to expose your API token.
- *
- * With this helper function, you can generate a sandbox on the server, and then share a single-use
- * token that can be used to create a connection to that sandbox from the browser.
- *
- * ## Example
- *
- * To use this function, you first need to start a sandbox on the server:
- *
- * ```ts
- * import { CodeSandbox } from "@codesandbox/sdk";
- *
- * const client = new CodeSandbox(apiToken);
- *
- * const startData = await client.sandbox.start("my-sandbox-id");
- * ```
- *
- * Then you can start a sandbox using this start data in the browser:
- *
- * ```ts
- * import { connectToSandbox } from "@codesandbox/sdk/browser";
- *
- * // Get the start data from the server
- * const startData = ...;
- *
- * const sandbox = await connectToSandbox(startData);
- * ```
+ * Connect to a Sandbox from the browser and automatically reconnect. `getSession` requires and endpoint that resumes the Sandbox. `onFocusChange` can be used to notify when a reconnect should happen.
  */
 export async function connectToSandbox(options: {
   id: string;

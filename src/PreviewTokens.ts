@@ -35,21 +35,16 @@ export class PreviewTokens extends Disposable {
 
   /**
    * Get a signed preview URL for a port using a preview token.
-   *
-   * @param port - The port to get a signed preview URL for
-   * @param token - The preview token to sign the URL with
-   * @returns The signed preview URL, or undefined if the port is not open
    */
-  getSignedPreviewUrl(token: PreviewToken, port: number): string {
+  getSignedPreviewUrl(
+    token: { sandboxId: string; token: string },
+    port: number
+  ): string {
     return `https://${token.sandboxId}-${port}.csb.app?preview_token=${token.token}`;
   }
 
   /**
-   * Generate a new preview token that can be used to access private sandbox previews.
-   *
-   * @param opts - Options
-   * @param opts.expiresAt - Optional expiration date for the preview token
-   * @returns A preview token that can be used with Ports.getSignedPreviewUrl
+   * Generate a new preview token that can be used to access private sandbox previews. By default the token never expires.
    */
   async create(
     sandboxId: string,
@@ -87,8 +82,6 @@ export class PreviewTokens extends Disposable {
 
   /**
    * List all active preview tokens for this sandbox.
-   *
-   * @returns A list of preview tokens
    */
   async list(sandboxId: string): Promise<PreviewTokenInfo[]> {
     const response = handleResponse(
@@ -115,8 +108,6 @@ export class PreviewTokens extends Disposable {
 
   /**
    * Revoke a single preview token for this sandbox.
-   *
-   * @param tokenId - The ID of the token to revoke
    */
   async revoke(sandboxId: string, tokenId: string): Promise<void> {
     handleResponse(
@@ -153,10 +144,6 @@ export class PreviewTokens extends Disposable {
 
   /**
    * Update a preview token's expiration date.
-   *
-   * @param tokenId - The ID of the token to update
-   * @param expiresAt - The new expiration date for the token (null for no expiration)
-   * @returns The updated preview token info
    */
   async update(
     sandboxId: string,
