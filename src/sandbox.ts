@@ -20,15 +20,31 @@ import { handleResponse } from "./utils/api";
 import { VMTier } from "./VMTier";
 import { WebSocketSession } from "./sessions/WebSocketSession";
 import { RestSession } from "./sessions/RestSession";
-import { SandboxClient, startVm } from "./SandboxClient";
+import { Sandboxes, startVm } from "./Sandboxes";
 
 export class Sandbox {
+  /**
+   * How the Sandbox booted up:
+   * - RUNNING: Already running
+   * - RESUME: Resumes from hibernation
+   * - CLEAN: Clean bootup, no hibernation snapshot or shutdown
+   * - FORK: When the sandbox was created from a template
+   */
   get bootupType() {
     return this.pitcherManagerResponse.bootupType;
   }
+
+  /**
+   * The cluster the Sandbox is running on.
+   */
   get cluster() {
     return this.pitcherManagerResponse.cluster;
   }
+
+  /**
+   * Whether the Sandbox Agent version is up to date. Use "restart" to
+   * update the agent.
+   */
   get isUpToDate() {
     return (
       this.pitcherManagerResponse.latestPitcherVersion ===
@@ -53,9 +69,6 @@ export class Sandbox {
    * Updates the specs that this sandbox runs on. It will dynamically scale the sandbox to the
    * new specs without a reboot. Be careful when scaling specs down, if the VM is using more memory
    * than it can scale down to, it can become very slow.
-   *
-   * @param id The ID of the sandbox to update
-   * @param tier The new VM tier
    */
   async updateTier(sandboxId: string, tier: VMTier): Promise<void> {
     const response = await vmUpdateSpecs({
@@ -69,6 +82,10 @@ export class Sandbox {
     handleResponse(response, `Failed to update sandbox tier ${sandboxId}`);
   }
 
+  /**
+   * Updates the hibernation timeout for this sandbox. This is the amount of seconds the sandbox
+   * will be kept alive without activity before it is automatically hibernated. Activity can be sessions or interactions with any endpoints exposed by the Sandbox.
+   */
   async updateHibernationTimeout(
     sandboxId: string,
     timeoutSeconds: number
@@ -122,6 +139,9 @@ export class Sandbox {
     return session;
   }
 
+  /**
+   * Connects to the Sandbox using a WebSocket connection, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
+   */
   async connect(
     customSession?: SessionCreateOptions
   ): Promise<WebSocketSession> {
@@ -189,6 +209,9 @@ export class Sandbox {
     return new WebSocketSession(pitcherClient, () => customSession?.env ?? {});
   }
 
+  /**
+   * Returns a REST API client connected to this Sandbox, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
+   */
   async createRestSession(customSession?: SessionCreateOptions) {
     const session = customSession
       ? await this.createSession(customSession)
@@ -197,6 +220,9 @@ export class Sandbox {
     return new RestSession(session);
   }
 
+  /**
+   * Returns a browser session connected to this Sandbox, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
+   */
   async createBrowserSession(
     customSession?: SessionCreateOptions
   ): Promise<SandboxBrowserSession> {

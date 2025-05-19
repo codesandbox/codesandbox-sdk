@@ -26,43 +26,42 @@ export class WebSocketSession {
   private disposable = new Disposable();
 
   /**
-   * Namespace for all filesystem operations on this sandbox.
+   * Namespace for all filesystem operations on this Sandbox
    */
   public readonly fs = new FileSystem(this.disposable, this.pitcherClient);
 
+  /**
+   * Namespace for creating and managing terminals this Sandbox
+   */
   public readonly terminals: Terminals;
+
+  /**
+   * Namespace for running commands in the Sandbox
+   */
   public readonly commands: Commands;
 
+  /**
+   * Namespace for running code interpreters in the Sandbox
+   */
   public readonly interpreters: Interpreters;
 
+  /**
+   * Namespace for Git operations in the Sandbox
+   */
   public readonly git = new Git(this.pitcherClient);
 
   /**
-   * Namespace for detecting open ports on this sandbox, and getting preview URLs for
-   * them.
+   * Namespace for managing ports on this Sandbox
    */
   public readonly ports = new Ports(this.disposable, this.pitcherClient);
 
   /**
-   * Namespace for all setup operations on this sandbox (installing dependencies, etc).
-   *
-   * This provider is *experimental*, it might get changes or completely be removed
-   * if it is not used.
+   * Namespace for the setup that runs when the Sandbox starts from scratch.
    */
   public readonly setup = new Setup(this.disposable, this.pitcherClient);
 
   /**
-   * Namespace for all task operations on a sandbox. This includes running tasks,
-   * getting tasks, and stopping tasks.
-   *
-   * In CodeSandbox, you can create tasks and manage them by creating a `.codesandbox/tasks.json`
-   * in the sandbox. These tasks become available under this namespace, this way you can manage
-   * tasks that you will need to run more often (like a dev server).
-   *
-   * More documentation: https://codesandbox.io/docs/learn/devboxes/task#adding-and-configuring-tasks
-   *
-   * This provider is *experimental*, it might get changes or completely be removed
-   * if it is not used.
+   * Namespace for tasks that are defined in the Sandbox.
    */
   public readonly tasks = new Tasks(this.disposable, this.pitcherClient);
 
@@ -83,17 +82,22 @@ export class WebSocketSession {
     this.disposable.addDisposable(this.pitcherClient);
   }
 
-  // Not sure why we have to explicitly type this
+  /**
+   * The current state of the Sandbox
+   */
   get state(): typeof this.pitcherClient.state {
     return this.pitcherClient.state;
   }
 
+  /**
+   * An event that is emitted when the state of the Sandbox changes.
+   */
   get onStateChange() {
     return this.pitcherClient.onStateChange.bind(this.pitcherClient);
   }
 
   /**
-   * Check if the VM agent process is up to date. To update a restart is required
+   * Check if the Sandbox Agent process is up to date. To update a restart is required
    */
   get isUpToDate() {
     return this.pitcherClient.isUpToDate();
@@ -164,11 +168,19 @@ export class WebSocketSession {
   // }
 
   /**
-   * Disconnect from the sandbox, this does not hibernate the sandbox (but it will
-   * automatically hibernate after an inactivity timer).
+   * Disconnect from the sandbox, this does not hibernate the sandbox (it will
+   * automatically hibernate after hibernation timeout). Call "reconnect" to
+   * reconnect to the sandbox.
    */
   public disconnect() {
     return this.pitcherClient.disconnect();
+  }
+
+  /**
+   * Explicitly reconnect to the sandbox.
+   */
+  public reconnect() {
+    return this.pitcherClient.reconnect();
   }
 
   private keepAliveInterval: NodeJS.Timeout | null = null;
@@ -194,6 +206,9 @@ export class WebSocketSession {
       }
     }
   }
+  /**
+   * Dispose the session, this will disconnect from the sandbox and dispose all resources. If you want to do a clean disconnect, await "disconnect" method first.
+   */
   dispose() {
     this.disposable.dispose();
   }

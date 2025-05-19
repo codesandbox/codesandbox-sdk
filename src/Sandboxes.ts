@@ -56,7 +56,10 @@ export async function startVm(
   return getStartResponse(response);
 }
 
-export class SandboxClient {
+/**
+ * This class provides methods for creating and managing sandboxes.
+ */
+export class Sandboxes {
   get defaultTemplateId() {
     return getDefaultTemplateId(this.apiClient);
   }
@@ -139,7 +142,13 @@ export class SandboxClient {
   }
 
   /**
+   * Resume a sandbox.
    *
+   * - Hibernated with snapshot: It wakes up and continues within 2-3 seconds
+   * - Hibernated with expired snapshot: It will start from scratch (CLEAN bootup)
+   * - Shutdown: It will start from scratch (CLEAN bootup)
+   *
+   * Note! On CLEAN bootups the setup will run again. When hibernated a new snapshot will be created.
    */
   async resume(sandboxId: string) {
     const startResponse = await startVm(this.apiClient, sandboxId);
@@ -148,8 +157,6 @@ export class SandboxClient {
 
   /**
    * Shuts down a sandbox. Files will be saved, and the sandbox will be stopped.
-   *
-   * @param sandboxId The ID of the sandbox to shutdown
    */
   async shutdown(sandboxId: string): Promise<void> {
     const response = await vmShutdown({
@@ -166,7 +173,7 @@ export class SandboxClient {
    * Restart the sandbox. This will shutdown the sandbox, and then start it again. Files in
    * the project directory (`/project/sandbox`) will be preserved.
    *
-   * Will resolve once the sandbox is rebooted.
+   * Will resolve once the sandbox is restarted with its setup running.
    */
   public async restart(sandboxId: string, opts?: StartSandboxOpts) {
     await this.shutdown(sandboxId);
@@ -177,9 +184,7 @@ export class SandboxClient {
 
   /**
    * Hibernates a sandbox. Files will be saved, and the sandbox will be put to sleep. Next time
-   * you start the sandbox it will be resumed from the last state it was in.
-   *
-   * @param sandboxId The ID of the sandbox to hibernate
+   * you resume the sandbox it will continue from the last state it was in.
    */
   async hibernate(sandboxId: string): Promise<void> {
     const response = await vmHibernate({
@@ -193,16 +198,7 @@ export class SandboxClient {
   }
 
   /**
-   * Creates a sandbox by forking a template. You can pass in any template or sandbox id (from
-   * any sandbox/template created on codesandbox.io, even your own templates) or don't pass
-   * in anything and we'll use the default universal template.
-   *
-   * This function will also start & connect to the VM of the created sandbox with a global session, and return a {@link Sandbox}
-   * that allows you to control the VM. Pass "autoConnect: false" to only return the session data.
-   *
-   * @param opts Additional options for creating the sandbox
-   *
-   * @returns A promise that resolves to a {@link Sandbox}, which you can use to control the VM
+   * Create a sandbox from a template or git repository. By default we will create a sandbox from the default template.
    */
   async create(
     opts: CreateSandboxOpts & StartSandboxOpts = { source: "template" }

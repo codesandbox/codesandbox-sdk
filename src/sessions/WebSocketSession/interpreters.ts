@@ -8,10 +8,14 @@ export class Interpreters {
       this.disposable.dispose();
     });
   }
+
   private run(command: string, opts?: ShellRunOpts) {
     return this.commands.run(command, opts);
   }
 
+  /**
+   * Run a JavaScript code snippet in a new shell.
+   */
   javascript(code: string) {
     return this.run(
       `node -p "$(cat <<'EOF'
@@ -32,6 +36,10 @@ EOF
       }
     );
   }
+
+  /**
+   * Run a Python code snippet in a new shell.
+   */
   python(code: string) {
     return this.run(`python3 <<'PYCODE'
 ${code

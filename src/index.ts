@@ -1,7 +1,7 @@
-import { SandboxClient } from "./SandboxClient";
+import { Sandboxes } from "./Sandboxes";
 import { ClientOpts } from "./types";
 
-export { SandboxClient };
+export { Sandboxes as SandboxClient };
 
 export { VMTier } from "./VMTier";
 
@@ -24,11 +24,11 @@ function ensure<T>(value: T | undefined, message: string): T {
 }
 
 export class CodeSandbox {
-  public readonly sandboxes: SandboxClient;
+  public readonly sandboxes: Sandboxes;
   /**
    * @deprecated Use `sandboxes` instead
    */
-  public readonly sandbox: SandboxClient;
+  public readonly sandbox: Sandboxes;
 
   /**
    * Provider for generating preview tokens. These tokens can be used to generate signed
@@ -67,7 +67,7 @@ export class CodeSandbox {
       })
     );
 
-    this.sandboxes = new SandboxClient(apiClient);
+    this.sandboxes = new Sandboxes(apiClient);
     this.sandbox = this.sandboxes;
     this.previewTokens = new PreviewTokens(apiClient);
   }
