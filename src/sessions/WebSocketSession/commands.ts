@@ -34,9 +34,9 @@ export class Commands {
   }
 
   /**
-   * Create and run command in a new shell.
+   * Create and run command in a new shell. Allows you to listen to the output and kill the command.
    */
-  async run(command: string | string[], opts?: ShellRunOpts) {
+  async runBackground(command: string | string[], opts?: ShellRunOpts) {
     const disposableStore = new DisposableStore();
     const onOutput = new Emitter<string>();
     disposableStore.add(onOutput);
@@ -74,6 +74,15 @@ export class Commands {
     );
 
     return cmd;
+  }
+
+  /**
+   * Run a command in a new shell and wait for it to finish, returning its output.
+   */
+  async run(command: string | string[], opts?: ShellRunOpts): Promise<string> {
+    const cmd = await this.runBackground(command, opts);
+
+    return cmd.waitUntilComplete();
   }
 
   /**
