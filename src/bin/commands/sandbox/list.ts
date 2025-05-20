@@ -83,7 +83,7 @@ export async function listSandboxes(
         sandboxes,
         totalCount: total,
         pagination,
-      } = await sdk.sandbox.list({
+      } = await sdk.sandboxes.list({
         ...listOpts,
         pagination: {
           page: currentPage,

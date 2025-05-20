@@ -4,7 +4,7 @@ import { hideBin } from "yargs/helpers";
 import { buildCommand } from "./commands/build";
 import { sandboxesCommand } from "./commands/sandbox";
 import { previewHostsCommand } from "./commands/previewHosts";
-import { hostTokensCommand } from "./commands/host-tokens";
+import { hostTokensCommand } from "./commands/hostTokens";
 
 yargs(hideBin(process.argv))
   .usage("CodeSandbox SDK CLI - Manage your CodeSandbox projects")

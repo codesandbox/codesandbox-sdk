@@ -49,7 +49,7 @@ export class CodeSandbox {
       createConfig({
         baseUrl,
         headers: {
-          Authorization: `Bearer ${apiToken}`,
+          Authorization: `Bearer ${evaluatedApiToken}`,
           ...(opts.headers ?? {}),
         },
         fetch: opts.fetch ?? fetch,
