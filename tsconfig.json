@@ -25,6 +25,6 @@
     "lib",
     "cjs",
     "src/bin",
-    "src/clients"
+    "src/api-clients"
   ]
 }

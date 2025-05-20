@@ -179,6 +179,39 @@
         "title": "PreviewTokenCreateRequest",
         "type": "object"
       },
+      "VMCreateTagResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": { "tag_id": { "type": "string" } },
+                "required": ["tag_id"],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMCreateTagResponse",
+        "type": "object"
+      },
       "SandboxGetResponse": {
         "allOf": [
           {
@@ -243,7 +276,7 @@
                     "type": "boolean"
                   },
                   "websocket": {
-                    "default": true,
+                    "default": false,
                     "description": "Whether the VM should automatically wake up on WebSocket connections",
                     "type": "boolean"
                   }
@@ -520,7 +553,7 @@
                 "type": "boolean"
               },
               "websocket": {
-                "default": true,
+                "default": false,
                 "description": "Whether the VM should automatically wake up on WebSocket connections",
                 "type": "boolean"
               }
@@ -569,6 +602,54 @@
         "title": "PreviewTokenUpdateRequest",
         "type": "object"
       },
+      "PreviewHostListResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "preview_hosts": {
+                    "items": {
+                      "properties": {
+                        "host": { "type": "string" },
+                        "inserted_at": {
+                          "format": "date_time",
+                          "type": "string"
+                        }
+                      },
+                      "required": ["host", "inserted_at"],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": ["preview_hosts"],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "PreviewHostListResponse",
+        "type": "object"
+      },
       "VMShutdownRequest": { "properties": {}, "title": "VMShutdownRequest" },
       "VMUpdateSpecsRequest": {
         "properties": {
@@ -600,6 +681,30 @@
         },
         "required": ["name"],
         "title": "WorkspaceCreateRequest",
+        "type": "object"
+      },
+      "VMCreateTagRequest": {
+        "description": "Create a tag for a list of VM IDs",
+        "properties": {
+          "vm_ids": { "items": { "type": "string" }, "type": "array" }
+        },
+        "required": ["vm_ids"],
+        "title": "VMCreateTagRequest",
+        "type": "object"
+      },
+      "PreviewHostRequest": {
+        "properties": {
+          "hosts": {
+            "items": {
+              "description": "Trusted domains that are allowed to access sandbox previews.",
+              "example": "https://example.com",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["hosts"],
+        "title": "PreviewHostRequest",
         "type": "object"
       },
       "VMStartResponse": {
@@ -780,6 +885,51 @@
         "required": ["files"],
         "title": "SandboxCreateRequest"
       },
+      "VMListClustersResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "clusters": {
+                    "items": {
+                      "properties": {
+                        "host": { "type": "string" },
+                        "slug": { "type": "string" }
+                      },
+                      "required": ["host", "slug"],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": ["clusters"],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMListClustersResponse",
+        "type": "object"
+      },
       "TokenUpdateResponse": {
         "allOf": [
           {
@@ -907,6 +1057,18 @@
       },
       "VMCreateSessionRequest": {
         "properties": {
+          "git_access_token": {
+            "description": "GitHub token for the session",
+            "type": "string"
+          },
+          "git_user_email": {
+            "description": "Git user email to configure for this session",
+            "type": "string"
+          },
+          "git_user_name": {
+            "description": "Git user name to configure for this session",
+            "type": "string"
+          },
           "permission": {
             "description": "Permission level for the session",
             "enum": ["read", "write"],
@@ -1670,6 +1832,59 @@
         "tags": []
       }
     },
+    "/vm/clusters": {
+      "get": {
+        "callbacks": {},
+        "description": "List all available clusters.\n",
+        "operationId": "vm/list_clusters",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMListClustersResponse"
+                }
+              }
+            },
+            "description": "VM List Clusters Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "List all available clusters",
+        "tags": ["vm"]
+      }
+    },
+    "/vm/tag": {
+      "post": {
+        "callbacks": {},
+        "description": "Creates a new tag for a VM.\n",
+        "operationId": "vm/create_tag",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VMCreateTagRequest" }
+            }
+          },
+          "description": "VM Create Tag Request",
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VMCreateTagResponse" }
+              }
+            },
+            "description": "VM Create Tag Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Create a new tag for a VM",
+        "tags": ["vm"]
+      }
+    },
     "/vm/{id}/hibernate": {
       "post": {
         "callbacks": {},
@@ -1755,7 +1970,7 @@
     "/vm/{id}/sessions": {
       "post": {
         "callbacks": {},
-        "description": "Creates a new session on a running VM. A session represents an isolated Linux user, with their own container.\nA session has a single use token that the user can use to connect to the VM. This token has specific permissions (currently, read or write).\nThe session is identified by a unique session ID, and the Linux username is based on the session ID.\n\nThis endpoint requires the VM to be running. If the VM is not running, it will return a 404 error.\n",
+        "description": "Creates a new session on a running VM. A session represents an isolated Linux user, with their own container.\nA session has a single use token that the user can use to connect to the VM. This token has specific permissions (currently, read or write).\nThe session is identified by a unique session ID, and the Linux username is based on the session ID.\n\nThe Git user name and email can be configured via parameters.\n\nThis endpoint requires the VM to be running. If the VM is not running, it will return a 404 error.\n",
         "operationId": "vm/create_session",
         "parameters": [
           {
@@ -1953,6 +2168,89 @@
         "security": [{ "authorization": ["vm:manage"] }],
         "summary": "Update VM Specs",
         "tags": ["vm"]
+      }
+    },
+    "/workspace/preview_hosts": {
+      "get": {
+        "callbacks": {},
+        "description": "List all trusted preview hosts for the current team\n",
+        "operationId": "preview_host/list",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewHostListResponse"
+                }
+              }
+            },
+            "description": "Preview Host List Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "List Preview Hosts",
+        "tags": []
+      },
+      "post": {
+        "callbacks": {},
+        "description": "Add one or more trusted domains that are allowed to access sandbox previews for this workspace.\n",
+        "operationId": "preview_host/create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PreviewHostRequest" }
+            }
+          },
+          "description": "Preview Host Create Request",
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewHostListResponse"
+                }
+              }
+            },
+            "description": "Preview Host List Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Create Preview Hosts",
+        "tags": []
+      },
+      "put": {
+        "callbacks": {},
+        "description": "Replace the list of trusted domains that are allowed to access sandbox previews for this workspace.\n",
+        "operationId": "preview_host/update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PreviewHostRequest" }
+            }
+          },
+          "description": "Preview Host Update Request",
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewHostListResponse"
+                }
+              }
+            },
+            "description": "Preview Host List Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Update Preview Hosts",
+        "tags": []
       }
     }
   },

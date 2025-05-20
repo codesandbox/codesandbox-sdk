@@ -84,6 +84,17 @@ export type PreviewTokenCreateRequest = {
     expires_at?: string | null;
 };
 
+export type VmCreateTagResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        tag_id: string;
+    };
+};
+
 export type SandboxGetResponse = {
     errors?: Array<string | {
         [key: string]: unknown;
@@ -296,6 +307,20 @@ export type PreviewTokenUpdateRequest = {
     expires_at?: string | null;
 };
 
+export type PreviewHostListResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        preview_hosts: Array<{
+            host: string;
+            inserted_at: string;
+        }>;
+    };
+};
+
 export type VmShutdownRequest = {
     [key: string]: unknown;
 };
@@ -315,6 +340,17 @@ export type WorkspaceCreateRequest = {
      * Name for the new workspace. Maximum length 64 characters.
      */
     name: string;
+};
+
+/**
+ * Create a tag for a list of VM IDs
+ */
+export type VmCreateTagRequest = {
+    vm_ids: Array<string>;
+};
+
+export type PreviewHostRequest = {
+    hosts: Array<string>;
 };
 
 export type VmStartResponse = {
@@ -418,6 +454,20 @@ export type SandboxCreateRequest = {
     title?: string;
 };
 
+export type VmListClustersResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        clusters: Array<{
+            host: string;
+            slug: string;
+        }>;
+    };
+};
+
 export type TokenUpdateResponse = {
     errors?: Array<string | {
         [key: string]: unknown;
@@ -469,6 +519,18 @@ export type TokenCreateRequest = {
 };
 
 export type VmCreateSessionRequest = {
+    /**
+     * GitHub token for the session
+     */
+    git_access_token?: string;
+    /**
+     * Git user email to configure for this session
+     */
+    git_user_email?: string;
+    /**
+     * Git user name to configure for this session
+     */
+    git_user_name?: string;
     /**
      * Permission level for the session
      */
@@ -873,6 +935,41 @@ export type PreviewTokenUpdateResponses = {
 
 export type PreviewTokenUpdateResponse2 = PreviewTokenUpdateResponses[keyof PreviewTokenUpdateResponses];
 
+export type VmListClustersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/vm/clusters';
+};
+
+export type VmListClustersResponses = {
+    /**
+     * VM List Clusters Response
+     */
+    200: VmListClustersResponse;
+};
+
+export type VmListClustersResponse2 = VmListClustersResponses[keyof VmListClustersResponses];
+
+export type VmCreateTagData = {
+    /**
+     * VM Create Tag Request
+     */
+    body?: VmCreateTagRequest;
+    path?: never;
+    query?: never;
+    url: '/vm/tag';
+};
+
+export type VmCreateTagResponses = {
+    /**
+     * VM Create Tag Response
+     */
+    200: VmCreateTagResponse;
+};
+
+export type VmCreateTagResponse2 = VmCreateTagResponses[keyof VmCreateTagResponses];
+
 export type VmHibernateData = {
     /**
      * VM Hibernate Request
@@ -1040,3 +1137,57 @@ export type VmUpdateSpecs2Responses = {
 };
 
 export type VmUpdateSpecs2Response = VmUpdateSpecs2Responses[keyof VmUpdateSpecs2Responses];
+
+export type PreviewHostListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/workspace/preview_hosts';
+};
+
+export type PreviewHostListResponses = {
+    /**
+     * Preview Host List Response
+     */
+    201: PreviewHostListResponse;
+};
+
+export type PreviewHostListResponse2 = PreviewHostListResponses[keyof PreviewHostListResponses];
+
+export type PreviewHostCreateData = {
+    /**
+     * Preview Host Create Request
+     */
+    body?: PreviewHostRequest;
+    path?: never;
+    query?: never;
+    url: '/workspace/preview_hosts';
+};
+
+export type PreviewHostCreateResponses = {
+    /**
+     * Preview Host List Response
+     */
+    201: PreviewHostListResponse;
+};
+
+export type PreviewHostCreateResponse = PreviewHostCreateResponses[keyof PreviewHostCreateResponses];
+
+export type PreviewHostUpdateData = {
+    /**
+     * Preview Host Update Request
+     */
+    body?: PreviewHostRequest;
+    path?: never;
+    query?: never;
+    url: '/workspace/preview_hosts';
+};
+
+export type PreviewHostUpdateResponses = {
+    /**
+     * Preview Host List Response
+     */
+    201: PreviewHostListResponse;
+};
+
+export type PreviewHostUpdateResponse = PreviewHostUpdateResponses[keyof PreviewHostUpdateResponses];

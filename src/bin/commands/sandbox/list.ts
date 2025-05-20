@@ -1,11 +1,11 @@
 import ora from "ora";
 import Table from "cli-table3";
-import { CodeSandbox } from "../../../";
-import type {
-  SandboxListOpts,
-  SandboxInfo,
+import {
+  CodeSandbox,
   PaginationOpts,
-} from "../../../sandbox-client";
+  SandboxInfo,
+  SandboxListOpts,
+} from "../../../";
 
 type OutputFormat = {
   field: string;
@@ -83,7 +83,7 @@ export async function listSandboxes(
         sandboxes,
         totalCount: total,
         pagination,
-      } = await sdk.sandbox.list({
+      } = await sdk.sandboxes.list({
         ...listOpts,
         pagination: {
           page: currentPage,

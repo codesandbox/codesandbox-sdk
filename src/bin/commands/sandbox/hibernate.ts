@@ -11,7 +11,7 @@ async function hibernateSingleSandbox(
   spinner: ReturnType<typeof ora>
 ): Promise<CommandResult> {
   try {
-    await new CodeSandbox().sandbox.hibernate(id);
+    await new CodeSandbox().sandboxes.hibernate(id);
     const message = `✔ Sandbox ${id} hibernated successfully`;
     // eslint-disable-next-line no-console
     console.log(message);

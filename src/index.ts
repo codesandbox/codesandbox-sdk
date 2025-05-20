@@ -1,40 +1,19 @@
-import type { Client } from "@hey-api/client-fetch";
+import { Sandboxes } from "./Sandboxes";
+import { ClientOpts } from "./types";
 
-import {
-  SandboxClient,
-  CreateSandboxOpts,
-  VMTier,
-  SandboxListOpts,
-  SandboxInfo,
-  PaginationOpts,
-} from "./sandbox-client";
+export { Sandboxes as SandboxClient };
 
-export {
-  SandboxClient,
-  CreateSandboxOpts,
-  VMTier,
-  SandboxListOpts,
-  SandboxInfo,
-  PaginationOpts,
-};
-export * from "./sandbox";
+export { VMTier } from "./VMTier";
 
-export interface ClientOpts {
-  baseUrl?: string;
-  /**
-   * Custom fetch implementation
-   *
-   * @default fetch
-   */
-  fetch?: typeof fetch;
+export * from "./Sandbox";
+export * from "./types";
 
-  /**
-   * Additional headers to send with each request
-   */
-  headers?: Record<string, string>;
-}
+import { HostTokens } from "./Hosts";
+import { createClient, createConfig } from "@hey-api/client-fetch";
+import { getBaseUrl } from "./utils/api";
 
-export type SandboxPrivacy = "public" | "unlisted" | "private";
+export * from "./sessions/WebSocketSession";
+export * from "./sessions/RestSession";
 
 function ensure<T>(value: T | undefined, message: string): T {
   if (!value) {
@@ -44,12 +23,16 @@ function ensure<T>(value: T | undefined, message: string): T {
   return value;
 }
 
-export { SandboxRestClient as RestClient } from "./sandbox-rest-client";
-
 export class CodeSandbox {
-  public readonly sandbox: SandboxClient;
+  public readonly sandboxes: Sandboxes;
 
-  constructor(apiToken?: string, readonly opts: ClientOpts = {}) {
+  /**
+   * Provider for generating host tokens. These tokens can be used to generate signed
+   * host URLs or headers for private sandboxes.
+   */
+  public readonly hosts: HostTokens;
+
+  constructor(apiToken?: string, opts: ClientOpts = {}) {
     const evaluatedApiToken =
       apiToken ||
       ensure(
@@ -59,6 +42,21 @@ export class CodeSandbox {
         "CSB_API_KEY or TOGETHER_API_KEY is not set"
       );
 
-    this.sandbox = new SandboxClient(evaluatedApiToken, opts);
+    const baseUrl =
+      process.env.CSB_BASE_URL ?? opts.baseUrl ?? getBaseUrl(evaluatedApiToken);
+
+    const apiClient = createClient(
+      createConfig({
+        baseUrl,
+        headers: {
+          Authorization: `Bearer ${evaluatedApiToken}`,
+          ...(opts.headers ?? {}),
+        },
+        fetch: opts.fetch ?? fetch,
+      })
+    );
+
+    this.sandboxes = new Sandboxes(apiClient);
+    this.hosts = new HostTokens(apiClient);
   }
 }

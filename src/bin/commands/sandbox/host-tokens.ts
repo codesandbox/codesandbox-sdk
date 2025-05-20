@@ -11,7 +11,7 @@ export async function listPreviewTokens(sandboxId: string) {
   const spinner = ora("Fetching preview tokens...").start();
 
   try {
-    const tokens = await sdk.sandbox.previewTokens.list(sandboxId);
+    const tokens = await sdk.hosts.listTokens(sandboxId);
     spinner.stop();
 
     if (tokens.length === 0) {
@@ -68,10 +68,9 @@ export async function createPreviewToken(
   const spinner = ora("Creating preview token...").start();
 
   try {
-    const token = await sdk.sandbox.previewTokens.create(
-      sandboxId,
-      expiresAt ? new Date(expiresAt) : null
-    );
+    const token = await sdk.hosts.createToken(sandboxId, {
+      expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+    });
     spinner.stop();
 
     const table = new Table({
@@ -122,7 +121,7 @@ export async function revokePreviewToken(
   const spinner = ora("Revoking preview token...").start();
 
   try {
-    await sdk.sandbox.previewTokens.revoke(sandboxId, previewTokenId);
+    await sdk.hosts.revokeToken(sandboxId, previewTokenId);
     spinner.stop();
     console.log("Preview token revoked successfully");
   } catch (error) {
@@ -140,7 +139,7 @@ export async function updatePreviewToken(
   const spinner = ora("Updating preview token...").start();
 
   try {
-    await sdk.sandbox.previewTokens.update(
+    await sdk.hosts.updateToken(
       sandboxId,
       previewTokenId,
       expiresAt ? new Date(expiresAt) : null
@@ -158,7 +157,7 @@ export async function revokeAllPreviewTokens(sandboxId: string) {
   const spinner = ora("Revoking all preview tokens...").start();
 
   try {
-    await sdk.sandbox.previewTokens.revokeAll(sandboxId);
+    await sdk.hosts.revokeAllTokens(sandboxId);
     spinner.stop();
     console.log("All preview tokens have been revoked");
   } catch (error) {
