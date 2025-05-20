@@ -36,7 +36,10 @@ export class Commands {
   /**
    * Create and run command in a new shell. Allows you to listen to the output and kill the command.
    */
-  async runBackground(command: string | string[], opts?: ShellRunOpts) {
+  async runBackground(
+    command: string | string[],
+    opts?: Omit<ShellRunOpts, "name">
+  ) {
     const disposableStore = new DisposableStore();
     const onOutput = new Emitter<string>();
     disposableStore.add(onOutput);
@@ -64,9 +67,11 @@ export class Commands {
       true
     );
 
-    if (opts?.name) {
-      this.pitcherClient.clients.shell.rename(shell.shellId, opts.name);
-    }
+    // Only way for us to differentiate between a command and a terminal
+    this.pitcherClient.clients.shell.rename(
+      shell.shellId,
+      `COMMAND-${shell.shellId}`
+    );
 
     const cmd = new Command(
       this.pitcherClient,
@@ -92,7 +97,10 @@ export class Commands {
     const shells = this.pitcherClient.clients.shell.getShells();
 
     return shells
-      .filter((shell) => shell.shellType === "COMMAND")
+      .filter(
+        (shell) =>
+          shell.shellType === "TERMINAL" && shell.name.startsWith("COMMAND-")
+      )
       .map((shell) => new Command(this.pitcherClient, shell));
   }
 }
@@ -121,20 +129,13 @@ export class Command {
   private output: string[] = [];
 
   /**
-   * The command that was run.
-   */
-  get command(): string {
-    return this.shell.startCommand;
-  }
-
-  /**
    * The status of the command.
    */
   status: CommandStatus = "RUNNING";
 
   constructor(
     private pitcherClient: IPitcherClient,
-    private shell: protocol.shell.CommandShellDTO & { buffer?: string[] }
+    private shell: protocol.shell.ShellDTO & { buffer?: string[] }
   ) {
     this.disposable.addDisposable(
       pitcherClient.clients.shell.onShellExited(({ shellId, exitCode }) => {
