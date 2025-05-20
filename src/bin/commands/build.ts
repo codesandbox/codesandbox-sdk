@@ -131,6 +131,9 @@ export const buildCommand: yargs.CommandModule<
               fromSandbox: argv.fromSandbox,
               collectionPath: argv.path,
               name: argv.name,
+              vmTier: argv.vmTier
+                ? VMTier.fromName(argv.vmTier)
+                : VMTier.fromName("Micro"),
             });
 
             spinner.start(
