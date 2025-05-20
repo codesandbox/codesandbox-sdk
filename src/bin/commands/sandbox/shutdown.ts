@@ -11,7 +11,7 @@ async function shutdownSingleSandbox(
   spinner: ReturnType<typeof ora>
 ): Promise<CommandResult> {
   try {
-    await new CodeSandbox().sandbox.shutdown(id);
+    await new CodeSandbox().sandboxes.shutdown(id);
     const message = `✔ Sandbox ${id} shutdown successfully`;
     // eslint-disable-next-line no-console
     console.log(message);
