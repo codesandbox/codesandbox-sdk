@@ -22,8 +22,14 @@ export async function connectToSandbox(options: {
       instanceId: options.session.id,
       onFocusChange:
         options.onFocusChange ||
-        (() => {
-          return () => {};
+        ((notify) => {
+          const listener = () => {
+            notify(document.hasFocus());
+          };
+          window.addEventListener("visibilitychange", listener);
+          return () => {
+            window.removeEventListener("visibilitychange", listener);
+          };
         }),
       requestPitcherInstance: async (id) => {
         const session = hasConnected
