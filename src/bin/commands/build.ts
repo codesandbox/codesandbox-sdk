@@ -131,7 +131,6 @@ export const buildCommand: yargs.CommandModule<
               fromSandbox: argv.fromSandbox,
               collectionPath: argv.path,
               name: argv.name,
-              vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
             });
 
             spinner.start(
@@ -139,7 +138,7 @@ export const buildCommand: yargs.CommandModule<
             );
 
             const startResponse = await startVm(apiClient, sandboxId, {
-              vmTier: argv.vmTier ? VMTier.fromName(argv.vmTier) : undefined,
+              vmTier: VMTier.fromName("Micro"),
             });
             let sandbox = new Sandbox(sandboxId, apiClient, startResponse);
             let session = await sandbox.connect();
@@ -167,7 +166,11 @@ export const buildCommand: yargs.CommandModule<
             spinner.start(
               updateSpinnerMessage(index, "Restarting sandbox...", sandboxId)
             );
-            sandbox = await sdk.sandboxes.restart(sandbox.id);
+            sandbox = await sdk.sandboxes.restart(sandbox.id, {
+              vmTier: argv.vmTier
+                ? VMTier.fromName(argv.vmTier)
+                : VMTier.fromName("Micro"),
+            });
             session = await sandbox.connect();
 
             const disposableStore = new DisposableStore();
