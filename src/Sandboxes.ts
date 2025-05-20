@@ -7,7 +7,7 @@ import {
   vmShutdown,
   vmStart,
 } from "./api-clients/client";
-import { Sandbox } from "./Sandbox";
+import { Sandbox } from "./Sandbo";
 import {
   getDefaultTemplateId,
   getStartOptions,
