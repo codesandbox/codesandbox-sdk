@@ -71,7 +71,10 @@ export class Terminals {
     const shells = this.pitcherClient.clients.shell.getShells();
 
     return shells
-      .filter((shell) => shell.shellType === "TERMINAL")
+      .filter(
+        (shell) =>
+          shell.shellType === "TERMINAL" && !shell.name.startsWith("COMMAND-")
+      )
       .map((shell) => new Terminal(shell, this.pitcherClient));
   }
 }
