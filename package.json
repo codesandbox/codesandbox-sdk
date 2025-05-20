@@ -1,6 +1,6 @@
 {
   "name": "@codesandbox/sdk",
-  "version": "0.12.0",
+  "version": "1.0.0",
   "description": "The CodeSandbox SDK",
   "author": "CodeSandbox",
   "license": "MIT",
@@ -57,16 +57,16 @@
     "build:esbuild": "node esbuild.cjs",
     "build:cjs:types": "tsc -p ./tsconfig.build-cjs.json --emitDeclarationOnly",
     "build:esm:types": "tsc -p ./tsconfig.build-esm.json --emitDeclarationOnly",
-    "build-openapi": "rimraf src/clients && curl -o openapi.json https://api.codesandbox.io/meta/openapi && npx prettier --write ./openapi.json && node_modules/.bin/openapi-ts -i ./openapi.json -o src/clients/client -c @hey-api/client-fetch && npm run build-openapi-rest",
-    "build-openapi:staging": "rimraf src/clients && curl -o openapi.json https://api.codesandbox.stream/meta/openapi && npx prettier --write ./openapi.json && node_modules/.bin/openapi-ts -i ./openapi.json -o src/clients/client -c @hey-api/client-fetch && npm run build-openapi-rest",
+    "build-openapi": "rimraf src/api-clients && curl -o openapi.json https://api.codesandbox.io/meta/openapi && npx prettier --write ./openapi.json && node_modules/.bin/openapi-ts -i ./openapi.json -o src/api-clients/client -c @hey-api/client-fetch && npm run build-openapi-rest",
+    "build-openapi:staging": "rimraf src/api-clients && curl -o openapi.json https://api.codesandbox.stream/meta/openapi && npx prettier --write ./openapi.json && node_modules/.bin/openapi-ts -i ./openapi.json -o src/api-clients/client -c @hey-api/client-fetch && npm run build-openapi-rest",
     "build-openapi-rest": "npm run build-openapi-rest-fs && npm run build-openapi-rest-task && npm run build-openapi-rest-container && npm run build-openapi-rest-git && npm run build-openapi-rest-setup && npm run build-openapi-rest-shell && npm run build-openapi-rest-system",
-    "build-openapi-rest-container": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-container.json -o src/clients/client-rest-container -c @hey-api/client-fetch",
-    "build-openapi-rest-fs": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-fs.json -o src/clients/client-rest-fs -c @hey-api/client-fetch",
-    "build-openapi-rest-git": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-git.json -o src/clients/client-rest-git -c @hey-api/client-fetch",
-    "build-openapi-rest-setup": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-setup.json -o src/clients/client-rest-setup -c @hey-api/client-fetch",
-    "build-openapi-rest-shell": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-shell.json -o src/clients/client-rest-shell -c @hey-api/client-fetch",
-    "build-openapi-rest-system": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-system.json -o src/clients/client-rest-system -c @hey-api/client-fetch",
-    "build-openapi-rest-task": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-task.json -o src/clients/client-rest-task -c @hey-api/client-fetch",
+    "build-openapi-rest-container": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-container.json -o src/api-clients/client-rest-container -c @hey-api/client-fetch",
+    "build-openapi-rest-fs": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-fs.json -o src/api-clients/client-rest-fs -c @hey-api/client-fetch",
+    "build-openapi-rest-git": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-git.json -o src/api-clients/client-rest-git -c @hey-api/client-fetch",
+    "build-openapi-rest-setup": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-setup.json -o src/api-clients/client-rest-setup -c @hey-api/client-fetch",
+    "build-openapi-rest-shell": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-shell.json -o src/api-clients/client-rest-shell -c @hey-api/client-fetch",
+    "build-openapi-rest-system": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-system.json -o src/api-clients/client-rest-system -c @hey-api/client-fetch",
+    "build-openapi-rest-task": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-task.json -o src/api-clients/client-rest-task -c @hey-api/client-fetch",
     "clean": "rimraf ./dist",
     "typecheck": "tsc --noEmit",
     "format": "prettier '**/*.{md,js,jsx,json,ts,tsx}' --write",
@@ -84,12 +84,12 @@
     "README.md"
   ],
   "devDependencies": {
-    "@msgpack/msgpack": "^3.1.0",
-    "@codesandbox/pitcher-client": "1.1.5",
+    "@codesandbox/pitcher-client": "1.1.7",
     "@codesandbox/pitcher-common": "0.360.2",
     "@codesandbox/pitcher-protocol": "0.360.4",
     "@hey-api/client-fetch": "^0.7.3",
     "@hey-api/openapi-ts": "^0.63.2",
+    "@msgpack/msgpack": "^3.1.0",
     "@types/blessed": "^0.1.25",
     "@types/yargs": "^17.0.33",
     "blessed": "^0.1.81",
@@ -100,7 +100,6 @@
     "esbuild": "^0.25.0",
     "ignore": "^6.0.2",
     "isbinaryfile": "^5.0.4",
-    "ora": "7.0.1",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
     "prettier": "^2.2.1",
@@ -112,5 +111,8 @@
     "why-is-node-running": "^2.3.0",
     "yargs": "^17.7.2"
   },
-  "dependencies": {}
+  "dependencies": {
+    "ora": "^8.2.0",
+    "readline": "^1.3.0"
+  }
 }

@@ -1,18 +1,14 @@
 import { Client, createClient, createConfig } from "@hey-api/client-fetch";
 import { decode, encode } from "@msgpack/msgpack";
-import { SandboxRestFS } from "./rest/sandbox-rest-fs";
-import { SandboxRestContainer } from "./rest/sandbox-rest-container";
-import { SandboxRestGit } from "./rest/sandbox-rest-git";
-import { SandboxRestShell } from "./rest/sandbox-rest-shell";
-import { SandboxRestSystem } from "./rest/sandbox-rest-system";
-import { SandboxRestTask } from "./rest/sandbox-rest-task";
+import { SandboxRestFS } from "./sandbox-rest-fs";
+import { SandboxRestContainer } from "./sandbox-rest-container";
+import { SandboxRestGit } from "./sandbox-rest-git";
+import { SandboxRestShell } from "./sandbox-rest-shell";
+import { SandboxRestSystem } from "./sandbox-rest-system";
+import { SandboxRestTask } from "./sandbox-rest-task";
+import { ClientOpts, SandboxSession } from "../../types";
 
-export interface ClientOpts {
-  fetch?: typeof fetch;
-  headers?: Record<string, string>;
-}
-
-export class SandboxRestClient {
+export class RestSession {
   static id = 0;
   fs: SandboxRestFS;
   container: SandboxRestContainer;
@@ -20,9 +16,9 @@ export class SandboxRestClient {
   shell: SandboxRestShell;
   system: SandboxRestSystem;
   task: SandboxRestTask;
-  constructor(opts: ClientOpts = {}) {
+  constructor(private session: SandboxSession, opts: ClientOpts = {}) {
     const client = this.createRestClient(opts);
-    this.fs = new SandboxRestFS(client);
+    this.fs = new SandboxRestFS(session, client);
     this.container = new SandboxRestContainer(client);
     this.git = new SandboxRestGit(client);
     this.shell = new SandboxRestShell(client);
@@ -38,6 +34,7 @@ export class SandboxRestClient {
           ...(opts.headers ?? {}),
           "content-type": "application/x-msgpack",
         },
+        throwOnError: true,
         fetch:
           opts.fetch ??
           // @ts-ignore
@@ -47,31 +44,31 @@ export class SandboxRestClient {
       })
     );
 
+    const session = this.session;
+
     return {
       post(opts) {
         const method = opts.url.substring(1);
 
         const message = {
-          id: SandboxRestClient.id++,
+          id: RestSession.id++,
           method,
           params: opts.body,
         };
 
         const encodedMessage = encode(message);
 
-        if (!opts.baseUrl) {
-          throw new Error("You have to pass baseURL to the rest client");
-        }
+        // We have to create a baseUrl, because openapi fetcher always prefixes the url
+        // with "/"
+        const baseUrl = new URL(session.pitcherUrl);
 
-        // This is a hack to properly build the url. As "url" defaults to "/" in openapi client and breaks
-        const urlParts = opts.baseUrl.split("/");
-        const url = urlParts.pop()!;
-        const baseUrl = urlParts.join("/");
+        baseUrl.protocol = "https";
+        baseUrl.pathname = "";
 
         return client
           .post({
-            baseUrl,
-            url,
+            baseUrl: baseUrl.origin,
+            url: `${session.sandboxId}?token=${session.pitcherToken}`,
             headers: {
               "content-length": encodedMessage.byteLength.toString(),
             },

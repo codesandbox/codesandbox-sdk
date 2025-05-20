@@ -1,7 +1,7 @@
 import { type IPitcherClient } from "@codesandbox/pitcher-client";
 
-import { Disposable } from "./utils/disposable";
-import { Emitter, type Event } from "./utils/event";
+import { Disposable } from "../../utils/disposable";
+import { Emitter, type Event } from "../../utils/event";
 
 export type FSStatResult = {
   type: "file" | "directory";
@@ -38,17 +38,19 @@ export type Watcher = {
   onEvent: Event<WatchEvent>;
 };
 
-export class FileSystem extends Disposable {
-  constructor(private pitcherClient: IPitcherClient) {
-    super();
+export class FileSystem {
+  private disposable = new Disposable();
+  constructor(
+    sessionDisposable: Disposable,
+    private pitcherClient: IPitcherClient
+  ) {
+    sessionDisposable.onWillDispose(() => {
+      this.disposable.dispose();
+    });
   }
 
   /**
    * Write a file.
-   *
-   * @param path - The path to write to.
-   * @param content - The content to write.
-   * @param opts - The options for the write.
    */
   async writeFile(
     path: string,
@@ -69,10 +71,6 @@ export class FileSystem extends Disposable {
 
   /**
    * Write a file as a string.
-   *
-   * @param path - The path to write to.
-   * @param content - The content to write.
-   * @param opts - The options for the write.
    */
   async writeTextFile(path: string, content: string, opts: WriteFileOpts = {}) {
     return this.writeFile(path, new TextEncoder().encode(content), opts);
@@ -80,9 +78,6 @@ export class FileSystem extends Disposable {
 
   /**
    * Create a directory.
-   *
-   * @param path - The path to create.
-   * @param recursive - Whether to create the directory recursively.
    */
   async mkdir(path: string, recursive = false): Promise<void> {
     const result = await this.pitcherClient.clients.fs.mkdir(path, recursive);
@@ -94,9 +89,6 @@ export class FileSystem extends Disposable {
 
   /**
    * Read a directory.
-   *
-   * @param path - The path to read.
-   * @returns The entries in the directory.
    */
   async readdir(path: string): Promise<ReaddirEntry[]> {
     const result = await this.pitcherClient.clients.fs.readdir(path);
@@ -113,9 +105,6 @@ export class FileSystem extends Disposable {
 
   /**
    * Read a file
-   *
-   * @param path - The path to read.
-   * @returns The content of the file as a Uint8Array.
    */
   async readFile(path: string): Promise<Uint8Array> {
     const result = await this.pitcherClient.clients.fs.readFile(path);
@@ -129,9 +118,6 @@ export class FileSystem extends Disposable {
 
   /**
    * Read a file as a string.
-   *
-   * @param path - The path to read.
-   * @returns The content of the file as a string.
    */
   async readTextFile(path: string): Promise<string> {
     return await this.readFile(path).then((content) =>
@@ -141,9 +127,6 @@ export class FileSystem extends Disposable {
 
   /**
    * Get the stat of a file or directory.
-   *
-   * @param path - The path to get the stat of.
-   * @returns The stat of the file or directory.
    */
   async stat(path: string): Promise<FSStatResult> {
     const result = await this.pitcherClient.clients.fs.stat(path);
@@ -161,11 +144,6 @@ export class FileSystem extends Disposable {
 
   /**
    * Copy a file or directory.
-   *
-   * @param from - The path to copy from.
-   * @param to - The path to copy to.
-   * @param recursive - Whether to copy the directory recursively.
-   * @param overwrite - Whether to overwrite the destination if it exists.
    */
   async copy(
     from: string,
@@ -187,10 +165,6 @@ export class FileSystem extends Disposable {
 
   /**
    * Rename a file or directory.
-   *
-   * @param from - The path to rename from.
-   * @param to - The path to rename to.
-   * @param overwrite - Whether to overwrite the destination if it exists.
    */
   async rename(from: string, to: string, overwrite = false): Promise<void> {
     const result = await this.pitcherClient.clients.fs.rename(
@@ -206,9 +180,6 @@ export class FileSystem extends Disposable {
 
   /**
    * Remove a file or directory.
-   *
-   * @param path - The path to remove.
-   * @param recursive - Whether to remove the directory recursively.
    */
   async remove(path: string, recursive = false): Promise<void> {
     const result = await this.pitcherClient.clients.fs.remove(path, recursive);
@@ -255,17 +226,14 @@ export class FileSystem extends Disposable {
       },
       onEvent: emitter.event,
     };
-    this.addDisposable(watcher);
+    this.disposable.addDisposable(watcher);
 
     return watcher;
   }
 
   /**
    * Download a file or folder from the filesystem, can only be used to download
-   * from within the workspace directory.
-   *
-   * @param path - The path to download.
-   * @returns A download URL that's valid for 5 minutes.
+   * from within the workspace directory. A download URL that's valid for 5 minutes.
    */
   async download(path: string): Promise<{ downloadUrl: string }> {
     const result = await this.pitcherClient.clients.fs.download(path);
