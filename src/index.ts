@@ -8,7 +8,7 @@ export { VMTier } from "./VMTier";
 export * from "./Sandbox";
 export * from "./types";
 
-import { PreviewTokens } from "./PreviewTokens";
+import { HostTokens } from "./Hosts";
 import { createClient, createConfig } from "@hey-api/client-fetch";
 import { getBaseUrl } from "./utils/api";
 
@@ -25,23 +25,12 @@ function ensure<T>(value: T | undefined, message: string): T {
 
 export class CodeSandbox {
   public readonly sandboxes: Sandboxes;
-  /**
-   * @deprecated Use `sandboxes` instead
-   */
-  public readonly sandbox: Sandboxes;
 
   /**
-   * Provider for generating preview tokens. These tokens can be used to generate signed
-   * preview URLs for private sandboxes.
-   *
-   * @example
-   * ```ts
-   * const sandbox = await sdk.sandbox.create();
-   * const previewToken = await sandbox.previewTokens.createToken();
-   * const url = sandbox.ports.getSignedPreviewUrl(8080, previewToken.token);
-   * ```
+   * Provider for generating host tokens. These tokens can be used to generate signed
+   * host URLs or headers for private sandboxes.
    */
-  public readonly previewTokens: PreviewTokens;
+  public readonly hosts: HostTokens;
 
   constructor(apiToken?: string, opts: ClientOpts = {}) {
     const evaluatedApiToken =
@@ -68,7 +57,6 @@ export class CodeSandbox {
     );
 
     this.sandboxes = new Sandboxes(apiClient);
-    this.sandbox = this.sandboxes;
-    this.previewTokens = new PreviewTokens(apiClient);
+    this.hosts = new HostTokens(apiClient);
   }
 }

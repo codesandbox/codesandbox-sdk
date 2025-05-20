@@ -41,6 +41,6 @@ export async function connectToSandbox(options: {
 
   return new WebSocketSession(pitcherClient, {
     env: options.session.env,
-    previewToken: options.session.previewToken,
+    hostToken: options.session.hostToken,
   });
 }

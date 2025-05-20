@@ -12,10 +12,6 @@ export type TaskDefinition = {
   name: string;
   command: string;
   runAtStart?: boolean;
-  preview?: {
-    port?: number;
-    "pr-link"?: "direct" | "redirect" | "devtool";
-  };
 };
 
 export class Tasks {

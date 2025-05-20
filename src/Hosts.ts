@@ -8,48 +8,69 @@ import {
   previewTokenUpdate,
 } from "./api-clients/client";
 
-interface BasePreviewTokenInfo {
+interface BaseHostTokenInfo {
   expiresAt: Date | null;
   tokenId: string;
   lastUsedAt: Date | null;
 }
 
-export interface PreviewTokenInfo extends BasePreviewTokenInfo {
+export interface HostTokenInfo extends BaseHostTokenInfo {
   tokenPrefix: string;
 }
 
-export interface PreviewToken extends BasePreviewTokenInfo {
+export interface HostToken extends BaseHostTokenInfo {
   token: string;
   sandboxId: string;
 }
 
 /**
- * Provider for generating preview tokens that can be used to access
- * private sandbox previews. This provider is only available in environments
+ * Provider for generating host tokens that can be used to access
+ * private sandbox hosts. This provider is only available in environments
  * with an authenticated API client (like Node.js).
  */
-export class PreviewTokens extends Disposable {
+export class HostTokens extends Disposable {
   constructor(private apiClient: Client) {
     super();
   }
 
   /**
-   * Get a signed preview URL for a port using a preview token.
+   * Get url to access a private host using a host token.
+   * The PORT argument is needed as all hosts are exposed with
+   * a port.
    */
-  getSignedPreviewUrl(
+  getUrl(
     token: { sandboxId: string; token: string },
-    port: number
+    port: number,
+    protocol: string = "https"
   ): string {
-    return `https://${token.sandboxId}-${port}.csb.app?preview_token=${token.token}`;
+    return `${protocol}://${token.sandboxId}-${port}.csb.app?preview_token=${token.token}`;
   }
 
   /**
-   * Generate a new preview token that can be used to access private sandbox previews. By default the token never expires.
+   * Get headers to access a private host using a host token.
    */
-  async create(
+  getHeaders(token: { sandboxId: string; token: string }) {
+    return {
+      "csb-preview-token": token.token,
+    };
+  }
+
+  /**
+   * Get cookies to access a private host using a host token.
+   */
+  getCookies(token: { sandboxId: string; token: string }) {
+    return {
+      csb_preview_token: token.token,
+    };
+  }
+
+  /**
+   * Generate a new host token that can be used to access private sandbox hosts. By default the token never expires.
+   */
+  async createToken(
     sandboxId: string,
     opts: { expiresAt?: Date } = {}
-  ): Promise<PreviewToken> {
+  ): Promise<HostToken> {
     const response = handleResponse(
       await previewTokenCreate({
         client: this.apiClient,
@@ -81,9 +102,9 @@ export class PreviewTokens extends Disposable {
   }
 
   /**
-   * List all active preview tokens for this sandbox.
+   * List all active host tokens for this sandbox.
    */
-  async list(sandboxId: string): Promise<PreviewTokenInfo[]> {
+  async listTokens(sandboxId: string): Promise<HostTokenInfo[]> {
     const response = handleResponse(
       await previewTokenList({
         client: this.apiClient,
@@ -91,7 +112,7 @@ export class PreviewTokens extends Disposable {
           id: sandboxId,
         },
       }),
-      "Failed to list preview tokens"
+      "Failed to list host tokens"
     );
 
     if (!response.tokens) {
@@ -107,9 +128,9 @@ export class PreviewTokens extends Disposable {
   }
 
   /**
-   * Revoke a single preview token for this sandbox.
+   * Revoke a single host token for this sandbox.
    */
-  async revoke(sandboxId: string, tokenId: string): Promise<void> {
+  async revokeToken(sandboxId: string, tokenId: string): Promise<void> {
     handleResponse(
       await previewTokenUpdate({
         client: this.apiClient,
@@ -121,16 +142,16 @@ export class PreviewTokens extends Disposable {
           expires_at: new Date().toISOString(),
         },
       }),
-      "Failed to revoke preview token"
+      "Failed to revoke host token"
     );
   }
 
   /**
-   * Revoke all active preview tokens for this sandbox.
+   * Revoke all active host tokens for this sandbox.
    * This will immediately invalidate all tokens, and they can no longer be used
-   * to access the sandbox preview.
+   * to access the sandbox host.
    */
-  async revokeAll(sandboxId: string): Promise<void> {
+  async revokeAllTokens(sandboxId: string): Promise<void> {
     handleResponse(
       await previewTokenRevokeAll({
         client: this.apiClient,
@@ -138,18 +159,18 @@ export class PreviewTokens extends Disposable {
           id: sandboxId,
         },
       }),
-      "Failed to revoke preview tokens"
+      "Failed to revoke host tokens"
     );
   }
 
   /**
-   * Update a preview token's expiration date.
+   * Update a host token's expiration date.
    */
-  async update(
+  async updateToken(
     sandboxId: string,
     tokenId: string,
     expiresAt: Date | null
-  ): Promise<PreviewTokenInfo> {
+  ): Promise<HostTokenInfo> {
     const response = handleResponse(
       await previewTokenUpdate({
         client: this.apiClient,
@@ -161,7 +182,7 @@ export class PreviewTokens extends Disposable {
           expires_at: expiresAt?.toISOString(),
         },
       }),
-      "Failed to update preview token"
+      "Failed to update host token"
     );
 
     if (!response.token) {
