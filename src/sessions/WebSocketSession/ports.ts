@@ -2,7 +2,12 @@ import type { IPitcherClient } from "@codesandbox/pitcher-client";
 
 import { Disposable } from "../../utils/disposable";
 import { Emitter } from "../../utils/event";
-import { PreviewToken } from "../../PreviewTokens";
+import { HostToken } from "../../Hosts";
+
+export type Port = {
+  host: string;
+  port: number;
+};
 
 export class Ports {
   private disposable = new Disposable();
@@ -23,8 +28,7 @@ export class Ports {
 
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient,
-    private previewToken?: PreviewToken
+    private pitcherClient: IPitcherClient
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
@@ -46,9 +50,10 @@ export class Ports {
 
         if (openedPorts.length) {
           for (const port of openedPorts) {
-            this.onDidPortOpenEmitter.fire(
-              new Port(port.port, port.url, this.previewToken)
-            );
+            this.onDidPortOpenEmitter.fire({
+              port: port.port,
+              host: port.url,
+            });
           }
         }
 
@@ -63,14 +68,20 @@ export class Ports {
     );
   }
 
-  getOpenedPort(port: number) {
-    return this.getOpenedPorts().find((p) => p.port === port);
+  /**
+   * Get a port by number.
+   */
+  get(port: number) {
+    return this.getAll().find((p) => p.port === port);
   }
 
-  getOpenedPorts(): Port[] {
+  /**
+   * Get all ports.
+   */
+  getAll(): Port[] {
     return this.pitcherClient.clients.port
       .getPorts()
-      .map(({ port, url }) => new Port(port, url, this.previewToken));
+      .map(({ port, url }) => ({ port, host: url }));
   }
 
   /**
@@ -90,7 +101,7 @@ export class Ports {
 
     return new Promise((resolve, reject) => {
       // Check if port is already open
-      const portInfo = this.getOpenedPorts().find((p) => p.port === port);
+      const portInfo = this.getAll().find((p) => p.port === port);
 
       if (portInfo) {
         resolve(portInfo);
@@ -122,18 +133,5 @@ export class Ports {
         })
       );
     });
-  }
-}
-
-class Port {
-  constructor(
-    public readonly port: number,
-    public readonly host: string,
-    private previewToken?: PreviewToken
-  ) {}
-  getPreviewUrl() {
-    return `https://${this.host}${
-      this.previewToken ? `?preview_token=${this.previewToken.token}` : ""
-    }`;
   }
 }

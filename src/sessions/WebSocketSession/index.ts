@@ -12,7 +12,8 @@ import { Interpreters } from "./interpreters";
 import { Terminals } from "./terminals";
 import { Commands } from "./commands";
 import { Git } from "./git";
-import { PreviewToken } from "../../PreviewTokens";
+import { HostToken } from "../../Hosts";
+import { Hosts } from "./hosts";
 
 export * from "./filesystem";
 export * from "./ports";
@@ -30,6 +31,11 @@ export class WebSocketSession {
    * Namespace for all filesystem operations on this Sandbox
    */
   public readonly fs = new FileSystem(this.disposable, this.pitcherClient);
+
+  /**
+   * Namespace for hosts
+   */
+  public readonly hosts: Hosts;
 
   /**
    * Namespace for creating and managing terminals this Sandbox
@@ -54,7 +60,7 @@ export class WebSocketSession {
   /**
    * Namespace for managing ports on this Sandbox
    */
-  public readonly ports: Ports;
+  public readonly ports = new Ports(this.disposable, this.pitcherClient);
 
   /**
    * Namespace for the setup that runs when the Sandbox starts from scratch.
@@ -68,10 +74,7 @@ export class WebSocketSession {
 
   constructor(
     protected pitcherClient: IPitcherClient,
-    {
-      env,
-      previewToken,
-    }: { env?: Record<string, string>; previewToken?: PreviewToken }
+    { env, hostToken }: { env?: Record<string, string>; hostToken?: HostToken }
   ) {
     // TODO: Bring this back once metrics polling does not reset inactivity
     // const metricsDisposable = {
@@ -82,7 +85,8 @@ export class WebSocketSession {
     // this.addDisposable(metricsDisposable);
     this.terminals = new Terminals(this.disposable, this.pitcherClient, env);
     this.commands = new Commands(this.disposable, this.pitcherClient, env);
-    this.ports = new Ports(this.disposable, this.pitcherClient, previewToken);
+
+    this.hosts = new Hosts(this.pitcherClient, hostToken);
     this.interpreters = new Interpreters(this.disposable, this.commands);
     this.disposable.addDisposable(this.pitcherClient);
   }

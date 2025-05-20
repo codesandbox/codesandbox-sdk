@@ -208,7 +208,7 @@ export class Sandbox {
 
     return new WebSocketSession(pitcherClient, {
       env: customSession?.env,
-      previewToken: customSession?.previewToken,
+      hostToken: customSession?.hostToken,
     });
   }
 

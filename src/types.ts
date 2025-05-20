@@ -1,7 +1,7 @@
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 import { VMTier } from "./VMTier";
 import type { WebSocketSession } from "./sessions/WebSocketSession";
-import { PreviewToken } from "./PreviewTokens";
+import { HostToken } from "./Hosts";
 
 export interface SystemMetricsStatus {
   cpu: {
@@ -132,14 +132,14 @@ export interface StartSandboxOpts {
    */
   automaticWakeupConfig?: {
     /**
-     * Whether the VM should automatically wake up on HTTP requests to preview URLs (excludes WebSocket requests)
+     * Whether the VM should automatically wake up on HTTP requests to hosts exposed (excludes WebSocket requests)
      *
      * @default true
      */
     http: boolean;
 
     /**
-     * Whether the VM should automatically wake up on WebSocket connections to preview URLs
+     * Whether the VM should automatically wake up on WebSocket connections to host exposed
      *
      * @default false
      */
@@ -190,7 +190,7 @@ export interface SessionCreateOptions {
     name?: string;
   };
   env?: Record<string, string>;
-  previewToken?: PreviewToken;
+  hostToken?: HostToken;
 }
 
 export type SandboxSession = {
@@ -237,5 +237,5 @@ export type SandboxOpts = {
 export type SandboxBrowserSession = PitcherManagerResponse & {
   id: string;
   env?: Record<string, string>;
-  previewToken?: PreviewToken;
+  hostToken?: HostToken;
 };

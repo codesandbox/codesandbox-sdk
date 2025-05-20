@@ -19,46 +19,6 @@ export type PreviewHostsCommandArgs = {
   clear?: boolean;
 };
 
-function createSpinnerFactory() {
-  let currentLineIndex = 0;
-  let currentSpinnerIndex = 0;
-
-  return () => {
-    const spinner = ora({ stream: process.stdout });
-    const spinnerIndex = currentSpinnerIndex++;
-    let lastMethod: string;
-
-    function updateCursor(method: string) {
-      readline.moveCursor(
-        process.stdout,
-        0,
-        spinnerIndex - currentLineIndex + (lastMethod !== "start" ? -1 : 0)
-      );
-      currentLineIndex = spinnerIndex;
-      lastMethod = method;
-    }
-
-    return {
-      start(message: string) {
-        updateCursor("start");
-        spinner.start(message);
-      },
-      succeed(message: string) {
-        updateCursor("succeed");
-        spinner.succeed(message);
-      },
-      fail(message: string) {
-        updateCursor("fail");
-        spinner.fail(message);
-      },
-      info(message: string) {
-        updateCursor("info");
-        spinner.info(message);
-      },
-    };
-  };
-}
-
 export const previewHostsCommand: yargs.CommandModule<
   Record<string, never>,
   PreviewHostsCommandArgs
