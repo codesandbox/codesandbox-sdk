@@ -5,7 +5,7 @@ export { Sandboxes as SandboxClient };
 
 export { VMTier } from "./VMTier";
 
-export * from "./Sandbox";
+export * from "./Sandbo";
 export * from "./types";
 
 import { HostTokens } from "./Hosts";
