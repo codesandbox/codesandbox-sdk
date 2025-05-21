@@ -23,6 +23,7 @@ export * from "./terminals";
 export * from "./commands";
 export * from "./git";
 export * from "./interpreters";
+export * from "./hosts";
 
 export class WebSocketSession {
   private disposable = new Disposable();
