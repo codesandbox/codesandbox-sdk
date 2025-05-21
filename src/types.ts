@@ -214,6 +214,7 @@ export type CreateSandboxGitSourceOpts = CreateSandboxBaseOpts & {
   source: "git";
   url: string;
   branch: string;
+  templateId?: string;
   config?: {
     accessToken: string;
     email: string;

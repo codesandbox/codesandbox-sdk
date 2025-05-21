@@ -23,6 +23,7 @@ export * from "./terminals";
 export * from "./commands";
 export * from "./git";
 export * from "./interpreters";
+export * from "./hosts";
 
 export class WebSocketSession {
   private disposable = new Disposable();
@@ -55,7 +56,7 @@ export class WebSocketSession {
   /**
    * Namespace for Git operations in the Sandbox
    */
-  public readonly git = new Git(this.pitcherClient);
+  public readonly git: Git;
 
   /**
    * Namespace for managing ports on this Sandbox
@@ -88,6 +89,7 @@ export class WebSocketSession {
 
     this.hosts = new Hosts(this.pitcherClient, hostToken);
     this.interpreters = new Interpreters(this.disposable, this.commands);
+    this.git = new Git(this.pitcherClient, this.commands);
     this.disposable.addDisposable(this.pitcherClient);
   }
 
