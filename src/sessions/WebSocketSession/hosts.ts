@@ -1,6 +1,8 @@
 import { IPitcherClient } from "@codesandbox/pitcher-client";
 import { HostToken } from "../../Hosts";
 
+export { HostToken } from "../../Hosts";
+
 export class Hosts {
   constructor(
     private pitcherClient: IPitcherClient,
