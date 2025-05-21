@@ -70,41 +70,42 @@ export class Sandbox {
    * new specs without a reboot. Be careful when scaling specs down, if the VM is using more memory
    * than it can scale down to, it can become very slow.
    */
-  async updateTier(sandboxId: string, tier: VMTier): Promise<void> {
+  async updateTier(tier: VMTier): Promise<void> {
     const response = await vmUpdateSpecs({
       client: this.apiClient,
-      path: { id: sandboxId },
+      path: { id: this.id },
       body: {
         tier: tier.name,
       },
     });
 
-    handleResponse(response, `Failed to update sandbox tier ${sandboxId}`);
+    handleResponse(response, `Failed to update sandbox tier ${this.id}`);
   }
 
   /**
    * Updates the hibernation timeout for this sandbox. This is the amount of seconds the sandbox
    * will be kept alive without activity before it is automatically hibernated. Activity can be sessions or interactions with any endpoints exposed by the Sandbox.
    */
-  async updateHibernationTimeout(
-    sandboxId: string,
-    timeoutSeconds: number
-  ): Promise<void> {
+  async updateHibernationTimeout(timeoutSeconds: number): Promise<void> {
     const response = await vmUpdateHibernationTimeout({
       client: this.apiClient,
-      path: { id: sandboxId },
+      path: { id: this.id },
       body: { hibernation_timeout_seconds: timeoutSeconds },
     });
 
     handleResponse(
       response,
-      `Failed to update hibernation timeout for sandbox ${sandboxId}`
+      `Failed to update hibernation timeout for sandbox ${this.id}`
     );
   }
 
   private async createSession(
     opts: SessionCreateOptions
   ): Promise<SandboxSession> {
+    if (opts.id.length > 20) {
+      throw new Error("Session ID must be 32 characters or less");
+    }
+
     const response = await vmCreateSession({
       client: this.apiClient,
       body: {
