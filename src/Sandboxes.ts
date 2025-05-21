@@ -72,7 +72,7 @@ export class Sandboxes {
     const sandbox = await this.createTemplateSandbox({
       ...opts,
       source: "template",
-      id: this.defaultTemplateId,
+      id: opts.templateId || this.defaultTemplateId,
     });
 
     const session = await sandbox.connect(
@@ -170,6 +170,17 @@ export class Sandboxes {
   }
 
   /**
+   * Forks a sandbox. This will create a new sandbox from the given sandbox.
+   */
+  public async fork(sandboxId: string, opts?: StartSandboxOpts) {
+    return this.create({
+      source: "template",
+      id: sandboxId,
+      ...opts,
+    });
+  }
+
+  /**
    * Restart the sandbox. This will shutdown the sandbox, and then start it again. Files in
    * the project directory (`/project/sandbox`) will be preserved.
    *
@@ -209,6 +220,9 @@ export class Sandboxes {
       }
       case "template": {
         return this.createTemplateSandbox(opts);
+      }
+      default: {
+        throw new Error("Invalid source");
       }
     }
   }

@@ -2,7 +2,7 @@ import type { protocol, IPitcherClient } from "@codesandbox/pitcher-client";
 import type { Id } from "@codesandbox/pitcher-common";
 import { Disposable } from "../../utils/disposable";
 import { Emitter } from "../../utils/event";
-import { ShellRunOpts } from "./commands";
+import { isCommandShell, ShellRunOpts } from "./commands";
 
 export type ShellSize = { cols: number; rows: number };
 
@@ -72,8 +72,7 @@ export class Terminals {
 
     return shells
       .filter(
-        (shell) =>
-          shell.shellType === "TERMINAL" && !shell.name.startsWith("COMMAND-")
+        (shell) => shell.shellType === "TERMINAL" && !isCommandShell(shell)
       )
       .map((shell) => new Terminal(shell, this.pitcherClient));
   }
@@ -121,6 +120,9 @@ export class Terminal {
     );
   }
 
+  /**
+   * Open the terminal and get its current output, subscribes to future output
+   */
   async open(dimensions = DEFAULT_SHELL_SIZE): Promise<string> {
     const shell = await this.pitcherClient.clients.shell.open(
       this.shell.shellId,
