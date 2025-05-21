@@ -237,6 +237,7 @@ export class Sandbox {
     return {
       id: this.id,
       env: customSession?.env,
+      hostToken: customSession?.hostToken,
       bootupType: this.bootupType,
       cluster: this.cluster,
       latestPitcherVersion: this.pitcherManagerResponse.latestPitcherVersion,
