@@ -111,7 +111,7 @@ export class Sandboxes {
     opts: CreateSandboxTemplateSourceOpts & StartSandboxOpts
   ) {
     const templateId = opts.id || this.defaultTemplateId;
-    const privacy = opts.privacy || "public";
+    const privacy = opts.privacy || "unlisted";
     const tags = opts.tags || ["sdk"];
     const path = opts.path || "/SDK";
 
