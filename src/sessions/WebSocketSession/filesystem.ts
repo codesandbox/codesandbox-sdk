@@ -43,7 +43,7 @@ export class FileSystem {
   constructor(
     sessionDisposable: Disposable,
     private pitcherClient: IPitcherClient,
-    private sessionId?: string
+    private username?: string
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
@@ -214,14 +214,11 @@ export class FileSystem {
       path,
       options,
       (event) => {
-        if (this.sessionId) {
+        if (this.username) {
           emitter.fire({
             ...event,
             paths: event.paths.map((path) =>
-              path.replace(
-                `home/csb-session-${this.sessionId}/workspace/`,
-                "sandbox/"
-              )
+              path.replace(`home/${this.username}/workspace/`, "sandbox/")
             ),
           });
         } else {

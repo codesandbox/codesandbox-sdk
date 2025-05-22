@@ -151,8 +151,6 @@ export class Sandbox {
       ? await this.createSession(customSession)
       : this.globalSession;
 
-    console.log("SESSION", session);
-
     const pitcherClient = await initPitcherClient(
       {
         appId: "sdk",
@@ -210,7 +208,10 @@ export class Sandbox {
     );
 
     return new WebSocketSession(pitcherClient, {
-      sessionId: customSession?.id,
+      username: customSession
+        ? // @ts-ignore
+          pitcherClient["joinResult"].client.username
+        : undefined,
       env: customSession?.env,
       hostToken: customSession?.hostToken,
     });
