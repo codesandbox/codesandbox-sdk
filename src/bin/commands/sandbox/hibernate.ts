@@ -1,5 +1,5 @@
 import ora from "ora";
-import { CodeSandbox } from "../../../";
+import { CodeSandbox } from "@codesandbox/sdk";
 
 type CommandResult = {
   success: boolean;

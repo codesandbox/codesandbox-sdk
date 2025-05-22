@@ -1,8 +1,36 @@
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
-import { VmStartResponse } from "../api-clients/client";
+import { vmStart, VmStartResponse } from "../api-clients/client";
 import { StartSandboxOpts } from "../types";
 import { RateLimitError } from "./rate-limit";
 import { Client } from "@hey-api/client-fetch";
+
+export async function startVm(
+  apiClient: Client,
+  sandboxId: string,
+  startOpts?: StartSandboxOpts
+): Promise<PitcherManagerResponse> {
+  const startResult = await vmStart({
+    client: apiClient,
+    body: startOpts
+      ? {
+          ipcountry: startOpts.ipcountry,
+          tier: startOpts.vmTier?.name,
+          hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
+          automatic_wakeup_config: startOpts.automaticWakeupConfig,
+        }
+      : undefined,
+    path: {
+      id: sandboxId,
+    },
+  });
+
+  const response = handleResponse(
+    startResult,
+    `Failed to start sandbox ${sandboxId}`
+  );
+
+  return getStartResponse(response);
+}
 
 export type HandledResponse<D, E> = {
   data?: {

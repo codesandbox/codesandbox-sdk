@@ -13,6 +13,7 @@ import {
   getStartOptions,
   getStartResponse,
   handleResponse,
+  startVm,
 } from "./utils/api";
 
 import {
@@ -26,35 +27,6 @@ import {
   SandboxPrivacy,
   StartSandboxOpts,
 } from "./types";
-import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
-
-export async function startVm(
-  apiClient: Client,
-  sandboxId: string,
-  startOpts?: StartSandboxOpts
-): Promise<PitcherManagerResponse> {
-  const startResult = await vmStart({
-    client: apiClient,
-    body: startOpts
-      ? {
-          ipcountry: startOpts.ipcountry,
-          tier: startOpts.vmTier?.name,
-          hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
-          automatic_wakeup_config: startOpts.automaticWakeupConfig,
-        }
-      : undefined,
-    path: {
-      id: sandboxId,
-    },
-  });
-
-  const response = handleResponse(
-    startResult,
-    `Failed to start sandbox ${sandboxId}`
-  );
-
-  return getStartResponse(response);
-}
 
 /**
  * This class provides methods for creating and managing sandboxes.

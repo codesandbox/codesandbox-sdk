@@ -1,14 +1,8 @@
-import readline from "readline";
-
 import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
-import ora from "ora";
+
 import type * as yargs from "yargs";
 
-import {
-  previewHostList,
-  previewHostCreate,
-  previewHostUpdate,
-} from "../../api-clients/client";
+import { previewHostList, previewHostUpdate } from "../../api-clients/client";
 import { handleResponse } from "../../utils/api";
 import { BASE_URL, getApiKey } from "../utils/constants";
 
