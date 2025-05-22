@@ -237,6 +237,7 @@ export type SandboxOpts = {
 
 export type SandboxBrowserSession = PitcherManagerResponse & {
   id: string;
+  sessionId?: string;
   env?: Record<string, string>;
   hostToken?: HostToken;
 };
