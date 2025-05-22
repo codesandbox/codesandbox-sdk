@@ -16,11 +16,10 @@ import {
   vmUpdateHibernationTimeout,
   vmUpdateSpecs,
 } from "./api-clients/client";
-import { handleResponse } from "./utils/api";
+import { handleResponse, startVm } from "./utils/api";
 import { VMTier } from "./VMTier";
 import { WebSocketSession } from "./sessions/WebSocketSession";
 import { RestSession } from "./sessions/RestSession";
-import { startVm } from "./Sandboxes";
 
 export class Sandbox {
   /**

@@ -112,14 +112,20 @@ const require = topLevelCreateRequire(import.meta.url);
 
   // Bin builds:
   esbuild.build({
-    entryPoints: ["src/bin/main.ts"],
-    outfile: "dist/bin/codesandbox.cjs",
+    entryPoints: ["src/bin/main.tsx"],
+    outfile: "dist/bin/codesandbox.mjs",
     bundle: true,
-    format: "cjs",
+    format: "esm",
     platform: "node",
     banner: {
       js: `#!/usr/bin/env node\n\n`,
     },
+    external: [
+      ...Object.keys(require("./package.json").dependencies || {}),
+      ...Object.keys(require("./package.json").devDependencies || {}),
+      ...require("module").builtinModules,
+      "@codesandbox/sdk",
+    ],
   }),
 ]).catch(() => {
   process.exit(1);
