@@ -42,7 +42,8 @@ export class FileSystem {
   private disposable = new Disposable();
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient
+    private pitcherClient: IPitcherClient,
+    private sessionId?: string
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
@@ -212,7 +213,21 @@ export class FileSystem {
     const result = await this.pitcherClient.clients.fs.watch(
       path,
       options,
-      (event) => emitter.fire(event)
+      (event) => {
+        if (this.sessionId) {
+          emitter.fire({
+            ...event,
+            paths: event.paths.map((path) =>
+              path.replace(
+                `home/csb-session-${this.sessionId}/workspace/`,
+                "sandbox/"
+              )
+            ),
+          });
+        } else {
+          emitter.fire(event);
+        }
+      }
     );
 
     if (result.type === "error") {

@@ -31,7 +31,7 @@ export class WebSocketSession {
   /**
    * Namespace for all filesystem operations on this Sandbox
    */
-  public readonly fs = new FileSystem(this.disposable, this.pitcherClient);
+  public readonly fs: FileSystem;
 
   /**
    * Namespace for hosts
@@ -75,7 +75,15 @@ export class WebSocketSession {
 
   constructor(
     protected pitcherClient: IPitcherClient,
-    { env, hostToken }: { env?: Record<string, string>; hostToken?: HostToken }
+    {
+      env,
+      hostToken,
+      sessionId,
+    }: {
+      env?: Record<string, string>;
+      hostToken?: HostToken;
+      sessionId?: string;
+    }
   ) {
     // TODO: Bring this back once metrics polling does not reset inactivity
     // const metricsDisposable = {
@@ -84,6 +92,7 @@ export class WebSocketSession {
     // };
 
     // this.addDisposable(metricsDisposable);
+    this.fs = new FileSystem(this.disposable, this.pitcherClient, sessionId);
     this.terminals = new Terminals(this.disposable, this.pitcherClient, env);
     this.commands = new Commands(this.disposable, this.pitcherClient, env);
 
