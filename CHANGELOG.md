@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.13.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.12.0...v0.13.0) (2025-05-22)
+
+
+### Features
+
+* New release ([c60b62e](https://github.com/codesandbox/codesandbox-sdk/commit/c60b62e368da7f086b10c23b8256939feeffe7f9))
+* New release ([8127b49](https://github.com/codesandbox/codesandbox-sdk/commit/8127b499e51060af56370e52eea19efe95bdc163))
+
+
+### Bug Fixes
+
+* fix typo and paths with dedicated sessions ([da5e3f6](https://github.com/codesandbox/codesandbox-sdk/commit/da5e3f6dfa23eff493540c494239049c0884811d))
+
 ## [0.12.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.11.2...v0.12.0) (2025-04-24)
 
 
