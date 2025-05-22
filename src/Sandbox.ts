@@ -103,7 +103,7 @@ export class Sandbox {
     opts: SessionCreateOptions
   ): Promise<SandboxSession> {
     if (opts.id.length > 20) {
-      throw new Error("Session ID must be 32 characters or less");
+      throw new Error("Session ID must be 20 characters or less");
     }
 
     const response = await vmCreateSession({
@@ -150,6 +150,8 @@ export class Sandbox {
     const session = customSession
       ? await this.createSession(customSession)
       : this.globalSession;
+
+    console.log("SESSION", session);
 
     const pitcherClient = await initPitcherClient(
       {
@@ -208,6 +210,7 @@ export class Sandbox {
     );
 
     return new WebSocketSession(pitcherClient, {
+      sessionId: customSession?.id,
       env: customSession?.env,
       hostToken: customSession?.hostToken,
     });
@@ -237,6 +240,7 @@ export class Sandbox {
     return {
       id: this.id,
       env: customSession?.env,
+      sessionId: customSession?.id,
       hostToken: customSession?.hostToken,
       bootupType: this.bootupType,
       cluster: this.cluster,
