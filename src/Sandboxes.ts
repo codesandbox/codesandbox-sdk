@@ -25,6 +25,7 @@ import {
   SandboxListResponse,
   SandboxPrivacy,
   StartSandboxOpts,
+  SessionCreateOptions,
 } from "./types";
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 
@@ -75,21 +76,21 @@ export class Sandboxes {
       id: opts.templateId || this.defaultTemplateId,
     });
 
-    const session = await sandbox.connect(
-      // We do not want users to pass gitAccessToken on global user, because it
-      // can be read by other users
-      {
-        id: "clone-repo-user",
-        permission: "write",
-        ...(opts.config
-          ? {
-              gitAccessToken: opts.config.accessToken,
-              email: opts.config.email,
-              name: opts.config.name,
-            }
-          : {}),
-      }
-    );
+    // We do not want users to pass gitAccessToken on global user, because it
+    // can be read by other users
+    const sessionCreateOptions: SessionCreateOptions = {
+      id: "clone-repo-user",
+      permission: "write",
+    };
+    if (opts.config) {
+      sessionCreateOptions.git = {
+        accessToken: opts.config.accessToken,
+        email: opts.config.email,
+        name: opts.config.name,
+      };
+    }
+
+    const session = await sandbox.connect(sessionCreateOptions);
 
     await session.commands.run([
       "rm -rf .git",
