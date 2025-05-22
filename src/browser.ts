@@ -46,6 +46,10 @@ export async function connectToSandbox(options: {
   );
 
   return new WebSocketSession(pitcherClient, {
+    username: options.session.sessionId
+      ? // @ts-ignore
+        pitcherClient["joinResult"].client.username
+      : undefined,
     env: options.session.env,
     hostToken: options.session.hostToken,
   });
