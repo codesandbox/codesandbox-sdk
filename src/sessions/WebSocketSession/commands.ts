@@ -10,6 +10,11 @@ export type ShellRunOpts = {
   name?: string;
   env?: Record<string, string>;
   cwd?: string;
+  /**
+   * Run the command in the global session instead of the current session. This makes
+   * any environment variables available to all users of the Sandbox.
+   */
+  asGlobalSession?: boolean;
 };
 
 export type CommandStatus =
@@ -60,7 +65,7 @@ export class Commands {
       this.pitcherClient.workspacePath,
       opts?.dimensions ?? DEFAULT_SHELL_SIZE,
       commandWithEnv,
-      "TERMINAL",
+      opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
       true
     );
 
