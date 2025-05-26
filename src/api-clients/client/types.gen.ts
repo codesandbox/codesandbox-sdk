@@ -95,6 +95,21 @@ export type VmCreateTagResponse = {
     };
 };
 
+export type VmListRunningVmsResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        concurrent_vm_count: number;
+        concurrent_vm_limit: number;
+        vms: Array<{
+            id?: string;
+        }>;
+    };
+};
+
 export type SandboxGetResponse = {
     errors?: Array<string | {
         [key: string]: unknown;
@@ -950,6 +965,22 @@ export type VmListClustersResponses = {
 };
 
 export type VmListClustersResponse2 = VmListClustersResponses[keyof VmListClustersResponses];
+
+export type VmListRunningVmsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/vm/running';
+};
+
+export type VmListRunningVmsResponses = {
+    /**
+     * VM List Running VMs Response
+     */
+    200: VmListRunningVmsResponse;
+};
+
+export type VmListRunningVmsResponse2 = VmListRunningVmsResponses[keyof VmListRunningVmsResponses];
 
 export type VmCreateTagData = {
     /**

@@ -212,6 +212,54 @@
         "title": "VMCreateTagResponse",
         "type": "object"
       },
+      "VMListRunningVMsResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "concurrent_vm_count": { "type": "integer" },
+                  "concurrent_vm_limit": { "type": "integer" },
+                  "vms": {
+                    "items": {
+                      "properties": { "id": { "type": "string" } },
+                      "type": "object"
+                    },
+                    "required": ["id"],
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "vms",
+                  "concurrent_vm_count",
+                  "concurrent_vm_limit"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMListRunningVMsResponse",
+        "type": "object"
+      },
       "SandboxGetResponse": {
         "allOf": [
           {
@@ -1852,6 +1900,29 @@
         },
         "security": [{ "authorization": ["vm:manage"] }],
         "summary": "List all available clusters",
+        "tags": ["vm"]
+      }
+    },
+    "/vm/running": {
+      "get": {
+        "callbacks": {},
+        "description": "List information about currently running VMs. This information is updated roughly every 30 seconds, so this data is not guaranteed to be perfectly up-to-date.\n",
+        "operationId": "vm/list_running_vms",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMListRunningVMsResponse"
+                }
+              }
+            },
+            "description": "VM List Running VMs Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "List information about currently running VMs",
         "tags": ["vm"]
       }
     },
