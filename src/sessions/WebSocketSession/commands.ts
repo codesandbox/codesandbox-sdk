@@ -64,19 +64,25 @@ export class Commands {
       true
     );
 
+    if (shell.status === "ERROR" || shell.status === "KILLED") {
+      throw new Error(`Failed to create shell: ${shell.buffer.join("\n")}`);
+    }
+
     const details = {
       type: "command",
       command,
       name: opts?.name,
     };
 
-    // Only way for us to differentiate between a command and a terminal
-    this.pitcherClient.clients.shell.rename(
-      shell.shellId,
-      // We embed some details in the name to properly show the command that was run
-      // , the name and that it is an actual command
-      JSON.stringify(details)
-    );
+    if (shell.status !== "FINISHED") {
+      // Only way for us to differentiate between a command and a terminal
+      this.pitcherClient.clients.shell.rename(
+        shell.shellId,
+        // We embed some details in the name to properly show the command that was run
+        // , the name and that it is an actual command
+        JSON.stringify(details)
+      );
+    }
 
     const cmd = new Command(
       this.pitcherClient,
