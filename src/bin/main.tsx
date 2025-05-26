@@ -13,6 +13,9 @@ import { SDKProvider } from "./ui/sdkContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 if (process.argv.length === 2) {
+  // Clear the screen before rendering the dashboard
+  process.stdout.write('\x1Bc');
+  
   const sdk = new CodeSandbox();
   const queryClient = new QueryClient();
   render(
