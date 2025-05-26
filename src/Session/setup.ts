@@ -4,8 +4,8 @@ import {
   type protocol,
 } from "@codesandbox/pitcher-client";
 
-import { Disposable } from "../../utils/disposable";
-import { Emitter } from "../../utils/event";
+import { Disposable } from "../utils/disposable";
+import { Emitter } from "../utils/event";
 import { DEFAULT_SHELL_SIZE } from "./terminals";
 
 export class Setup {

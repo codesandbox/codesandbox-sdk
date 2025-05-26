@@ -1,7 +1,6 @@
 import type { protocol, IPitcherClient } from "@codesandbox/pitcher-client";
-import type { Id } from "@codesandbox/pitcher-common";
-import { Disposable } from "../../utils/disposable";
-import { Emitter } from "../../utils/event";
+import { Disposable } from "../utils/disposable";
+import { Emitter } from "../utils/event";
 import { isCommandShell, ShellRunOpts } from "./commands";
 
 export type ShellSize = { cols: number; rows: number };

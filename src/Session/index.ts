@@ -1,4 +1,4 @@
-import { Disposable } from "../../utils/disposable";
+import { Disposable } from "../utils/disposable";
 import {
   protocol as _protocol,
   type IPitcherClient,
@@ -12,7 +12,7 @@ import { Interpreters } from "./interpreters";
 import { Terminals } from "./terminals";
 import { Commands } from "./commands";
 import { Git } from "./git";
-import { HostToken } from "../../Hosts";
+import { HostToken } from "../Hosts";
 import { Hosts } from "./hosts";
 
 export * from "./filesystem";
@@ -25,7 +25,7 @@ export * from "./git";
 export * from "./interpreters";
 export * from "./hosts";
 
-export class WebSocketSession {
+export class Session {
   private disposable = new Disposable();
 
   /**

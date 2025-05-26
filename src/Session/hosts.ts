@@ -1,7 +1,7 @@
 import { IPitcherClient } from "@codesandbox/pitcher-client";
-import { HostToken } from "../../Hosts";
+import { HostToken } from "../Hosts";
 
-export { HostToken } from "../../Hosts";
+export { HostToken };
 
 export class Hosts {
   constructor(
@@ -20,7 +20,7 @@ export class Hosts {
   /**
    * If private Sandbox this will return headers with a host token.
    */
-  getHeaders() {
+  getHeaders(): Record<string, string> {
     if (!this.hostToken) {
       return {};
     }
@@ -33,7 +33,7 @@ export class Hosts {
   /**
    * If private Sandbox this will return cookies with a host token.
    */
-  getCookies() {
+  getCookies(): Record<string, string> {
     if (!this.hostToken) {
       return {};
     }

@@ -1,7 +1,7 @@
 import { type IPitcherClient } from "@codesandbox/pitcher-client";
 
-import { Disposable } from "../../utils/disposable";
-import { Emitter, type Event } from "../../utils/event";
+import { Disposable } from "../utils/disposable";
+import { Emitter, type Event } from "../utils/event";
 
 export type FSStatResult = {
   type: "file" | "directory";
