@@ -85,8 +85,6 @@
   ],
   "devDependencies": {
     "@codesandbox/pitcher-client": "1.1.7",
-    "@codesandbox/pitcher-common": "0.360.2",
-    "@codesandbox/pitcher-protocol": "0.360.4",
     "@hey-api/client-fetch": "^0.7.3",
     "@hey-api/openapi-ts": "^0.63.2",
     "@msgpack/msgpack": "^3.1.0",
@@ -112,6 +110,9 @@
     "yargs": "^17.7.2"
   },
   "dependencies": {
+    "isomorphic-ws": "^5.0.0",
+    "@codesandbox/pitcher-common": "0.360.2",
+    "@codesandbox/pitcher-protocol": "0.360.4",
     "ora": "^8.2.0",
     "readline": "^1.3.0"
   }

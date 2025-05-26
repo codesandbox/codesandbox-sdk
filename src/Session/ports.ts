@@ -1,8 +1,8 @@
 import type { IPitcherClient } from "@codesandbox/pitcher-client";
 
-import { Disposable } from "../../utils/disposable";
-import { Emitter } from "../../utils/event";
-import { HostToken } from "../../Hosts";
+import { Disposable } from "../utils/disposable";
+import { Emitter } from "../utils/event";
+import { HostToken } from "../Hosts";
 
 export type Port = {
   host: string;

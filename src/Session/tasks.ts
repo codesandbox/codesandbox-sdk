@@ -5,7 +5,7 @@ import {
   type protocol,
 } from "@codesandbox/pitcher-client";
 
-import { Disposable } from "../../utils/disposable";
+import { Disposable } from "../utils/disposable";
 import { DEFAULT_SHELL_SIZE } from "./terminals";
 
 export type TaskDefinition = {
@@ -33,14 +33,14 @@ export class Tasks {
   /**
    * Gets all tasks that are available in the current sandbox.
    */
-  getTasks(): Task[] {
+  getAll(): Task[] {
     return this.tasks;
   }
 
   /**
    * Gets a task by its ID.
    */
-  getTask(taskId: string): Task | undefined {
+  get(taskId: string): Task | undefined {
     return this.tasks.find((task) => task.id === taskId);
   }
 }
@@ -73,7 +73,7 @@ export class Task {
     return this.data.command;
   }
   get runAtStart() {
-    return this.data.runAtStart;
+    return Boolean(this.data.runAtStart);
   }
   get ports() {
     return this.data.ports;
@@ -155,7 +155,7 @@ export class Task {
 
     let disposer: IDisposable | undefined;
 
-    return Promise.all([
+    const [port] = await Promise.all([
       new Promise<protocol.port.Port>((resolve) => {
         disposer = this.pitcherClient.clients.task.onTaskUpdate((task) => {
           if (task.id !== this.id) {
@@ -175,6 +175,8 @@ export class Task {
         }, timeout);
       }),
     ]);
+
+    return port;
   }
   async run() {
     await this.pitcherClient.clients.task.runTask(this.id);
