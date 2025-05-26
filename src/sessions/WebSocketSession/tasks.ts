@@ -33,14 +33,14 @@ export class Tasks {
   /**
    * Gets all tasks that are available in the current sandbox.
    */
-  getTasks(): Task[] {
+  getAll(): Task[] {
     return this.tasks;
   }
 
   /**
    * Gets a task by its ID.
    */
-  getTask(taskId: string): Task | undefined {
+  get(taskId: string): Task | undefined {
     return this.tasks.find((task) => task.id === taskId);
   }
 }
