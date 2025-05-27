@@ -60,7 +60,7 @@ class NodeAgentClientShells implements IAgentClientShells {
     command?: string,
     type?: shell.ShellProcessType,
     isSystemShell?: boolean
-  ): Promise<shell.ShellDTO> {
+  ): Promise<shell.OpenShellDTO> {
     return this.agentConnection.request({
       method: "shell/create",
       params: {

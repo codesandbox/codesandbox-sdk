@@ -1,6 +1,6 @@
 {
   "name": "@codesandbox/sdk",
-  "version": "1.1.0",
+  "version": "1.1.5",
   "description": "The CodeSandbox SDK",
   "author": "CodeSandbox",
   "license": "MIT",

@@ -107,6 +107,15 @@ export const buildCommand: yargs.CommandModule<
 
       const sandboxIds = await Promise.all(
         clusters.map(async ({ host: cluster, slug }, index) => {
+          const clusterApiClient: Client = createClient(
+            createConfig({
+              baseUrl: BASE_URL,
+              headers: {
+                Authorization: `Bearer ${API_KEY}`,
+                "x-pitcher-manager-url": `https://${cluster}/api/v1`,
+              },
+            })
+          );
           const sdk = new CodeSandbox(API_KEY, {
             baseUrl: BASE_URL,
             headers: {
@@ -125,7 +134,7 @@ export const buildCommand: yargs.CommandModule<
 
             spinner.start(updateSpinnerMessage(index, "Creating sandbox..."));
             sandboxId = await createSandbox({
-              apiClient,
+              apiClient: clusterApiClient,
               shaTag: tag,
               fromSandbox: argv.fromSandbox,
               collectionPath: argv.path,
@@ -139,10 +148,14 @@ export const buildCommand: yargs.CommandModule<
               updateSpinnerMessage(index, "Starting sandbox...", sandboxId)
             );
 
-            const startResponse = await startVm(apiClient, sandboxId, {
+            const startResponse = await startVm(clusterApiClient, sandboxId, {
               vmTier: VMTier.fromName("Micro"),
             });
-            let sandbox = new Sandbox(sandboxId, apiClient, startResponse);
+            let sandbox = new Sandbox(
+              sandboxId,
+              clusterApiClient,
+              startResponse
+            );
             let session = await sandbox.connect();
 
             spinner.start(

@@ -24,7 +24,7 @@ export interface IAgentClientShells {
     command?: string,
     type?: shell.ShellProcessType,
     isSystemShell?: boolean
-  ): Promise<shell.ShellDTO>;
+  ): Promise<shell.OpenShellDTO>;
   rename(shellId: Id, name: string): Promise<null>;
   getShells(): Promise<shell.ShellDTO[]>;
   open(shellId: Id, size: shell.ShellSize): Promise<shell.OpenShellDTO>;
