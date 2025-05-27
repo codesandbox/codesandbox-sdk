@@ -1,22 +1,32 @@
-import type { IPitcherClient } from "@codesandbox/pitcher-client";
 import { Commands } from "./commands";
+import { IAgentClient } from "../agent-client-interface";
 
+/**
+ * An interface to interact with the git repository.
+ *
+ * The class is initialized with a `pitcherClient` and a `commands` object.
+ * The `pitcherClient` object is used to communicate with the Pitcher server.
+ * The `commands` object is used to run shell commands.
+ *
+ * The interface provides methods to commit changes to git, checkout a branch,
+ * and push changes to git.
+ *
+ * The interface also provides an event `onStatusChange` that is emitted when
+ * the git status changes.
+ */
 export class Git {
   /**
    * An event that is emitted when the git status changes.
    */
-  onStatusChange = this.pitcherClient.clients.git.onStatusUpdated;
+  onStatusChange = this.agentClient.git.onStatusUpdated;
 
-  constructor(
-    private pitcherClient: IPitcherClient,
-    private commands: Commands
-  ) {}
+  constructor(private agentClient: IAgentClient, private commands: Commands) {}
 
   /**
    * Get the current git status.
    */
   status() {
-    return this.pitcherClient.clients.git.getStatus();
+    return this.agentClient.git.getStatus();
   }
 
   /**

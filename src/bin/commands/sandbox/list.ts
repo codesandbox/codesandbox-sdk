@@ -5,7 +5,7 @@ import {
   PaginationOpts,
   SandboxInfo,
   SandboxListOpts,
-} from "../../../";
+} from "@codesandbox/sdk";
 
 type OutputFormat = {
   field: string;

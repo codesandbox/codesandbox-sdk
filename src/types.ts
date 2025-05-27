@@ -1,7 +1,7 @@
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 import { VMTier } from "./VMTier";
-import { HostToken } from "./Hosts";
-import { ISession } from "./session-interface";
+import { HostToken } from "./HostTokens";
+import { Session } from "./Session";
 
 export interface SystemMetricsStatus {
   cpu: {
@@ -220,7 +220,7 @@ export type CreateSandboxGitSourceOpts = CreateSandboxBaseOpts & {
     email: string;
     name?: string;
   };
-  setup?: (session: ISession) => Promise<void>;
+  setup?: (session: Session) => Promise<void>;
 };
 
 export type CreateSandboxOpts =

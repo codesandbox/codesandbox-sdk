@@ -1,4 +1,4 @@
-import { type IPitcherClient } from "@codesandbox/pitcher-client";
+import { type IAgentClient } from "../agent-client-interface";
 
 import { Disposable } from "../utils/disposable";
 import { Emitter, type Event } from "../utils/event";
@@ -42,7 +42,7 @@ export class FileSystem {
   private disposable = new Disposable();
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient,
+    private agentClient: IAgentClient,
     private username?: string
   ) {
     sessionDisposable.onWillDispose(() => {
@@ -58,7 +58,7 @@ export class FileSystem {
     content: Uint8Array,
     opts: WriteFileOpts = {}
   ): Promise<void> {
-    const result = await this.pitcherClient.clients.fs.writeFile(
+    const result = await this.agentClient.fs.writeFile(
       path,
       content,
       opts.create ?? true,
@@ -81,7 +81,7 @@ export class FileSystem {
    * Create a directory.
    */
   async mkdir(path: string, recursive = false): Promise<void> {
-    const result = await this.pitcherClient.clients.fs.mkdir(path, recursive);
+    const result = await this.agentClient.fs.mkdir(path, recursive);
 
     if (result.type === "error") {
       throw new Error(`${result.errno}: ${result.error}`);
@@ -92,7 +92,7 @@ export class FileSystem {
    * Read a directory.
    */
   async readdir(path: string): Promise<ReaddirEntry[]> {
-    const result = await this.pitcherClient.clients.fs.readdir(path);
+    const result = await this.agentClient.fs.readdir(path);
 
     if (result.type === "error") {
       throw new Error(`${result.errno}: ${result.error}`);
@@ -108,7 +108,7 @@ export class FileSystem {
    * Read a file
    */
   async readFile(path: string): Promise<Uint8Array> {
-    const result = await this.pitcherClient.clients.fs.readFile(path);
+    const result = await this.agentClient.fs.readFile(path);
 
     if (result.type === "error") {
       throw new Error(`${result.errno}: ${result.error}`);
@@ -130,7 +130,7 @@ export class FileSystem {
    * Get the stat of a file or directory.
    */
   async stat(path: string): Promise<FSStatResult> {
-    const result = await this.pitcherClient.clients.fs.stat(path);
+    const result = await this.agentClient.fs.stat(path);
 
     if (result.type === "error") {
       throw new Error(`${result.errno}: ${result.error}`);
@@ -152,7 +152,7 @@ export class FileSystem {
     recursive = false,
     overwrite = false
   ): Promise<void> {
-    const result = await this.pitcherClient.clients.fs.copy(
+    const result = await this.agentClient.fs.copy(
       from,
       to,
       recursive,
@@ -168,11 +168,7 @@ export class FileSystem {
    * Rename a file or directory.
    */
   async rename(from: string, to: string, overwrite = false): Promise<void> {
-    const result = await this.pitcherClient.clients.fs.rename(
-      from,
-      to,
-      overwrite
-    );
+    const result = await this.agentClient.fs.rename(from, to, overwrite);
 
     if (result.type === "error") {
       throw new Error(`${result.errno}: ${result.error}`);
@@ -183,7 +179,7 @@ export class FileSystem {
    * Remove a file or directory.
    */
   async remove(path: string, recursive = false): Promise<void> {
-    const result = await this.pitcherClient.clients.fs.remove(path, recursive);
+    const result = await this.agentClient.fs.remove(path, recursive);
 
     if (result.type === "error") {
       throw new Error(`${result.errno}: ${result.error}`);
@@ -210,22 +206,18 @@ export class FileSystem {
   async watch(path: string, options: WatchOpts = {}): Promise<Watcher> {
     const emitter = new Emitter<WatchEvent>();
 
-    const result = await this.pitcherClient.clients.fs.watch(
-      path,
-      options,
-      (event) => {
-        if (this.username) {
-          emitter.fire({
-            ...event,
-            paths: event.paths.map((path) =>
-              path.replace(`home/${this.username}/workspace/`, "sandbox/")
-            ),
-          });
-        } else {
-          emitter.fire(event);
-        }
+    const result = await this.agentClient.fs.watch(path, options, (event) => {
+      if (this.username) {
+        emitter.fire({
+          ...event,
+          paths: event.paths.map((path) =>
+            path.replace(`home/${this.username}/workspace/`, "sandbox/")
+          ),
+        });
+      } else {
+        emitter.fire(event);
       }
-    );
+    });
 
     if (result.type === "error") {
       throw new Error(`${result.errno}: ${result.error}`);
@@ -248,7 +240,7 @@ export class FileSystem {
    * from within the workspace directory. A download URL that's valid for 5 minutes.
    */
   async download(path: string): Promise<{ downloadUrl: string }> {
-    const result = await this.pitcherClient.clients.fs.download(path);
+    const result = await this.agentClient.fs.download(path);
 
     return result;
   }

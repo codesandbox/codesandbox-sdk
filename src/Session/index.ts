@@ -1,8 +1,4 @@
 import { Disposable } from "../utils/disposable";
-import {
-  protocol as _protocol,
-  type IPitcherClient,
-} from "@codesandbox/pitcher-client";
 
 import { FileSystem } from "./filesystem";
 import { Ports } from "./ports";
@@ -12,8 +8,11 @@ import { Interpreters } from "./interpreters";
 import { Terminals } from "./terminals";
 import { Commands } from "./commands";
 import { Git } from "./git";
-import { HostToken } from "../Hosts";
+import { HostToken } from "../HostTokens";
 import { Hosts } from "./hosts";
+import { IAgentClient } from "../agent-client-interface";
+import { setup } from "@codesandbox/pitcher-protocol";
+import { Barrier } from "@codesandbox/pitcher-common";
 
 export * from "./filesystem";
 export * from "./ports";
@@ -25,7 +24,41 @@ export * from "./git";
 export * from "./interpreters";
 export * from "./hosts";
 
+type SessionParams = {
+  env?: Record<string, string>;
+  hostToken?: HostToken;
+  username?: string;
+};
+
 export class Session {
+  static async create(agentClient: IAgentClient, params: SessionParams) {
+    let setupProgress = await agentClient.setup.getProgress();
+
+    let hasInitializedSteps = Boolean(setupProgress.steps.length);
+
+    if (hasInitializedSteps) {
+      return new Session(agentClient, params, setupProgress);
+    }
+
+    // We have a race condition where we might not have the steps yet and need
+    // an event to tell us when they have started. But we might also have all the steps,
+    // where no new event will arrive. So we use a barrier to manage this
+    const initialStepsBarrier = new Barrier<setup.SetupProgress>();
+
+    const setupProgressUpdateDisposable =
+      agentClient.setup.onSetupProgressUpdate((progress) => {
+        setupProgressUpdateDisposable.dispose();
+        initialStepsBarrier.open(progress);
+      });
+
+    const response = await initialStepsBarrier.wait();
+
+    if (response.status === "disposed") {
+      throw new Error("Failed to get setup progress");
+    }
+
+    return new Session(agentClient, params, response.value);
+  }
   private disposable = new Disposable();
 
   /**
@@ -61,29 +94,22 @@ export class Session {
   /**
    * Namespace for managing ports on this Sandbox
    */
-  public readonly ports = new Ports(this.disposable, this.pitcherClient);
+  public readonly ports = new Ports(this.disposable, this.agentClient);
 
   /**
    * Namespace for the setup that runs when the Sandbox starts from scratch.
    */
-  public readonly setup = new Setup(this.disposable, this.pitcherClient);
+  public readonly setup: Setup;
 
   /**
    * Namespace for tasks that are defined in the Sandbox.
    */
-  public readonly tasks = new Tasks(this.disposable, this.pitcherClient);
+  public readonly tasks = new Tasks(this.disposable, this.agentClient);
 
   constructor(
-    protected pitcherClient: IPitcherClient,
-    {
-      env,
-      hostToken,
-      username,
-    }: {
-      env?: Record<string, string>;
-      hostToken?: HostToken;
-      username?: string;
-    }
+    protected agentClient: IAgentClient,
+    { env, hostToken, username }: SessionParams,
+    initialSetupProgress: setup.SetupProgress
   ) {
     // TODO: Bring this back once metrics polling does not reset inactivity
     // const metricsDisposable = {
@@ -92,42 +118,47 @@ export class Session {
     // };
 
     // this.addDisposable(metricsDisposable);
-    this.fs = new FileSystem(this.disposable, this.pitcherClient, username);
-    this.terminals = new Terminals(this.disposable, this.pitcherClient, env);
-    this.commands = new Commands(this.disposable, this.pitcherClient, env);
+    this.setup = new Setup(
+      this.disposable,
+      this.agentClient,
+      initialSetupProgress
+    );
+    this.fs = new FileSystem(this.disposable, this.agentClient, username);
+    this.terminals = new Terminals(this.disposable, this.agentClient, env);
+    this.commands = new Commands(this.disposable, this.agentClient, env);
 
-    this.hosts = new Hosts(this.pitcherClient, hostToken);
+    this.hosts = new Hosts(this.agentClient.sandboxId, hostToken);
     this.interpreters = new Interpreters(this.disposable, this.commands);
-    this.git = new Git(this.pitcherClient, this.commands);
-    this.disposable.addDisposable(this.pitcherClient);
+    this.git = new Git(this.agentClient, this.commands);
+    this.disposable.onWillDispose(() => this.agentClient.dispose());
   }
 
   /**
    * The current state of the Sandbox
    */
-  get state(): typeof this.pitcherClient.state {
-    return this.pitcherClient.state;
+  get state(): typeof this.agentClient.state {
+    return this.agentClient.state;
   }
 
   /**
    * An event that is emitted when the state of the Sandbox changes.
    */
   get onStateChange() {
-    return this.pitcherClient.onStateChange.bind(this.pitcherClient);
+    return this.agentClient.onStateChange.bind(this.agentClient);
   }
 
   /**
    * Check if the Sandbox Agent process is up to date. To update a restart is required
    */
   get isUpToDate() {
-    return this.pitcherClient.isUpToDate();
+    return this.agentClient.isUpToDate;
   }
 
   /**
    * The ID of the sandbox.
    */
   get id(): string {
-    return this.pitcherClient.instanceId;
+    return this.agentClient.sandboxId;
   }
 
   /**
@@ -193,14 +224,14 @@ export class Session {
    * reconnect to the sandbox.
    */
   public disconnect() {
-    return this.pitcherClient.disconnect();
+    return this.agentClient.disconnect();
   }
 
   /**
    * Explicitly reconnect to the sandbox.
    */
   public reconnect() {
-    return this.pitcherClient.reconnect();
+    return this.agentClient.reconnect();
   }
 
   private keepAliveInterval: NodeJS.Timeout | null = null;
@@ -210,7 +241,7 @@ export class Session {
   public keepActiveWhileConnected(enabled: boolean) {
     if (enabled && !this.keepAliveInterval) {
       this.keepAliveInterval = setInterval(() => {
-        this.pitcherClient.clients.system.update();
+        this.agentClient.system.update();
       }, 1000 * 30);
 
       this.disposable.onWillDispose(() => {

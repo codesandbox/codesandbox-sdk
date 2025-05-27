@@ -1,48 +1,159 @@
-import { Id, IPitcherClient } from "@codesandbox/pitcher-client";
-import { IAgentClient, IAgentClientShells } from "../agent-client-interface";
-import { shell } from "@codesandbox/pitcher-protocol";
+import { IPitcherClient } from "@codesandbox/pitcher-client";
+import {
+  IAgentClient,
+  IAgentClientFS,
+  IAgentClientGit,
+  IAgentClientPorts,
+  IAgentClientSetup,
+  IAgentClientShells,
+  IAgentClientState,
+  IAgentClientSystem,
+  IAgentClientTasks,
+} from "../agent-client-interface";
+import { Disposable } from "../utils/disposable";
+import { Emitter } from "../utils/event";
 
-class Shells implements IAgentClientShells {
+class BrowserAgentClientShells implements IAgentClientShells {
   onShellExited = this.pitcherClient.clients.shell.onShellExited;
   onShellTerminated = this.pitcherClient.clients.shell.onShellTerminated;
   onShellOut = this.pitcherClient.clients.shell.onShellOut;
   constructor(private pitcherClient: IPitcherClient) {}
-  create(
-    projectPath: string,
-    size: shell.ShellSize,
-    command?: string,
-    type?: shell.ShellProcessType,
-    isSystemShell?: boolean
-  ) {
-    return this.pitcherClient.clients.shell.create(
-      projectPath,
-      size,
-      command,
-      type,
-      isSystemShell
-    );
+  create(...params: Parameters<IAgentClientShells["create"]>) {
+    return this.pitcherClient.clients.shell.create(...params);
   }
-  rename(shellId: Id, name: string): Promise<null> {
-    return this.pitcherClient.clients.shell.rename(shellId, name);
+  rename(...params: Parameters<IAgentClientShells["rename"]>) {
+    return this.pitcherClient.clients.shell.rename(...params);
   }
-  async getShells(): Promise<shell.ShellDTO[]> {
+  async getShells() {
     return this.pitcherClient.clients.shell.getShells();
   }
-  async open(shellId: Id, size: shell.ShellSize): Promise<shell.OpenShellDTO> {
-    return this.pitcherClient.clients.shell.open(shellId, size);
+  open(...params: Parameters<IAgentClientShells["open"]>) {
+    return this.pitcherClient.clients.shell.open(...params);
   }
-  async delete(
-    shellId: Id
-  ): Promise<shell.CommandShellDTO | shell.TerminalShellDTO | null> {
-    return this.pitcherClient.clients.shell.delete(shellId);
+  delete(...params: Parameters<IAgentClientShells["delete"]>) {
+    return this.pitcherClient.clients.shell.delete(...params);
   }
-  async restart(shellId: Id): Promise<null> {
-    return this.pitcherClient.clients.shell.restart(shellId);
+  restart(...params: Parameters<IAgentClientShells["restart"]>) {
+    return this.pitcherClient.clients.shell.restart(...params);
+  }
+  send(...params: Parameters<IAgentClientShells["send"]>) {
+    return this.pitcherClient.clients.shell.send(...params);
   }
 }
 
-export class BrowserAgent implements IAgentClient {
-  shells = new Shells(this.pitcherClient);
-
+class BrowserAgentClientFS implements IAgentClientFS {
   constructor(private pitcherClient: IPitcherClient) {}
+  copy(...params: Parameters<IAgentClientFS["copy"]>) {
+    return this.pitcherClient.clients.fs.copy(...params);
+  }
+  mkdir(...params: Parameters<IAgentClientFS["mkdir"]>) {
+    return this.pitcherClient.clients.fs.mkdir(...params);
+  }
+  readdir(...params: Parameters<IAgentClientFS["readdir"]>) {
+    return this.pitcherClient.clients.fs.readdir(...params);
+  }
+  readFile(...params: Parameters<IAgentClientFS["readFile"]>) {
+    return this.pitcherClient.clients.fs.readFile(...params);
+  }
+  stat(...params: Parameters<IAgentClientFS["stat"]>) {
+    return this.pitcherClient.clients.fs.stat(...params);
+  }
+  remove(...params: Parameters<IAgentClientFS["remove"]>) {
+    return this.pitcherClient.clients.fs.remove(...params);
+  }
+  rename(...params: Parameters<IAgentClientFS["rename"]>) {
+    return this.pitcherClient.clients.fs.rename(...params);
+  }
+  watch(...params: Parameters<IAgentClientFS["watch"]>) {
+    return this.pitcherClient.clients.fs.watch(...params);
+  }
+  writeFile(...params: Parameters<IAgentClientFS["writeFile"]>) {
+    return this.pitcherClient.clients.fs.writeFile(...params);
+  }
+  download(...params: Parameters<IAgentClientFS["download"]>) {
+    return this.pitcherClient.clients.fs.download(...params);
+  }
+}
+
+class BrowserAgentClientGit implements IAgentClientGit {
+  onStatusUpdated = this.pitcherClient.clients.git.onStatusUpdated;
+  getStatus() {
+    return this.pitcherClient.clients.git.getStatus();
+  }
+  constructor(private pitcherClient: IPitcherClient) {}
+}
+
+class BrowserAgentClientPorts implements IAgentClientPorts {
+  onPortsUpdated = this.pitcherClient.clients.port.onPortsUpdated;
+  async getPorts() {
+    return this.pitcherClient.clients.port.getPorts();
+  }
+  constructor(private pitcherClient: IPitcherClient) {}
+}
+
+class BrowserAgentClientSetup implements IAgentClientSetup {
+  onSetupProgressUpdate =
+    this.pitcherClient.clients.setup.onSetupProgressUpdate;
+  constructor(private pitcherClient: IPitcherClient) {}
+  init() {
+    return this.pitcherClient.clients.setup.init();
+  }
+  async getProgress() {
+    return this.pitcherClient.clients.setup.getProgress();
+  }
+}
+
+class BrowserAgentClientTasks implements IAgentClientTasks {
+  onTaskUpdate = this.pitcherClient.clients.task.onTaskUpdate;
+  constructor(private pitcherClient: IPitcherClient) {}
+  async getTasks() {
+    return this.pitcherClient.clients.task.getTasks();
+  }
+  async getTask(taskId: string) {
+    return this.pitcherClient.clients.task.getTask(taskId);
+  }
+  runTask(taskId: string) {
+    return this.pitcherClient.clients.task.runTask(taskId);
+  }
+  stopTask(taskId: string) {
+    return this.pitcherClient.clients.task.stopTask(taskId);
+  }
+}
+
+class BrowserAgentClientSystem implements IAgentClientSystem {
+  constructor(private pitcherClient: IPitcherClient) {}
+  update() {
+    return this.pitcherClient.clients.system.update();
+  }
+}
+
+export class BrowserAgentClient implements IAgentClient {
+  sandboxId = this.pitcherClient.instanceId;
+  workspacePath = this.pitcherClient.instanceId;
+  isUpToDate = this.pitcherClient.isUpToDate();
+  state = this.pitcherClient.state.get().state;
+  private onStateChangeEmitter = new Emitter<IAgentClientState>();
+  onStateChange = this.onStateChangeEmitter.event;
+  shells = new BrowserAgentClientShells(this.pitcherClient);
+  fs = new BrowserAgentClientFS(this.pitcherClient);
+  git = new BrowserAgentClientGit(this.pitcherClient);
+  ports = new BrowserAgentClientPorts(this.pitcherClient);
+  setup = new BrowserAgentClientSetup(this.pitcherClient);
+  tasks = new BrowserAgentClientTasks(this.pitcherClient);
+  system = new BrowserAgentClientSystem(this.pitcherClient);
+  constructor(private pitcherClient: IPitcherClient) {
+    pitcherClient.onStateChange((state) => {
+      this.state = state.state;
+      this.onStateChangeEmitter.fire(state.state);
+    });
+  }
+  disconnect(): Promise<void> {
+    return this.pitcherClient.disconnect();
+  }
+  reconnect(): Promise<void> {
+    return this.pitcherClient.reconnect();
+  }
+  dispose() {
+    this.pitcherClient.dispose();
+  }
 }

@@ -1,18 +1,14 @@
-import { IPitcherClient } from "@codesandbox/pitcher-client";
-import { HostToken } from "../Hosts";
+import { HostToken } from "../HostTokens";
 
 export { HostToken };
 
 export class Hosts {
-  constructor(
-    private pitcherClient: IPitcherClient,
-    private hostToken?: HostToken
-  ) {}
+  constructor(private sandboxId: string, private hostToken?: HostToken) {}
   /**
    * If private Sandbox this will return a URL with a host token.
    */
   getUrl(port: number, protocol: string = "https") {
-    return `${protocol}://${this.pitcherClient.instanceId}-${port}.csb.app${
+    return `${protocol}://${this.sandboxId}-${port}.csb.app${
       this.hostToken ? `?preview_token=${this.hostToken.token}` : ""
     }`;
   }

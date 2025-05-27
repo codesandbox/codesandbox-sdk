@@ -18,10 +18,11 @@ import {
 } from "./api-clients/client";
 import { handleResponse } from "./utils/api";
 import { VMTier } from "./VMTier";
-import { NodeSession } from "./Session";
-import { PitcherProtocol } from "./PitcherProtocol";
-import { createWebSocketClient } from "./PitcherProtocol/WebSocketClient";
 import { version } from "@codesandbox/pitcher-protocol";
+import { createWebSocketClient } from "./NodeAgentClient/WebSocketClient";
+import { AgentConnection } from "./NodeAgentClient/AgentConnection";
+import { Session } from "./Session";
+import { NodeAgentClient } from "./NodeAgentClient";
 
 // Timeout for detecting a pong response, leading to a forced disconnect
 let PONG_DETECTION_TIMEOUT = 15_000;
@@ -147,14 +148,14 @@ export class Sandbox {
   /**
    * Connects to the Sandbox using a WebSocket connection, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
    */
-  async connect(customSession?: SessionCreateOptions): Promise<NodeSession> {
-    const session = customSession
+  async connect(customSession?: SessionCreateOptions): Promise<Session> {
+    const sessionDetails = customSession
       ? await this.createSession(customSession)
       : this.globalSession;
-    const url = `${session.pitcherUrl}/?token=${session.pitcherToken}`;
-    const connection = await createWebSocketClient(url);
-    const pitcherProtocol = new PitcherProtocol(connection);
-    const joinResult = await pitcherProtocol.request({
+    const url = `${sessionDetails.pitcherUrl}/?token=${sessionDetails.pitcherToken}`;
+
+    const agentConnection = await AgentConnection.create(url);
+    const joinResult = await agentConnection.request({
       method: "client/join",
       params: {
         clientInfo: {
@@ -167,13 +168,22 @@ export class Sandbox {
     });
 
     // Now that we have initialized we set an appropriate timeout to more efficiently detect disconnects
-    connection.setPongDetectionTimeout(PONG_DETECTION_TIMEOUT);
+    agentConnection.connection.setPongDetectionTimeout(PONG_DETECTION_TIMEOUT);
 
-    return new NodeSession(pitcherProtocol, {
+    const agentClient = new NodeAgentClient(this.apiClient, agentConnection, {
+      sandboxId: this.id,
+      workspacePath: sessionDetails.userWorkspacePath,
+      reconnectToken: joinResult.reconnectToken,
+      isUpToDate: this.isUpToDate,
+    });
+
+    const session = await Session.create(agentClient, {
       username: customSession ? joinResult.client.username : undefined,
       env: customSession?.env,
       hostToken: customSession?.hostToken,
     });
+
+    return session;
   }
 
   /**

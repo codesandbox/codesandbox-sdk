@@ -1,6 +1,6 @@
 import ora from "ora";
 
-import { CodeSandbox } from "../../../";
+import { CodeSandbox } from "@codesandbox/sdk";
 
 export async function forkSandbox(sandboxId: string) {
   const sdk = new CodeSandbox();
