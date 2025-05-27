@@ -1,6 +1,7 @@
 import { initPitcherClient, protocol } from "@codesandbox/pitcher-client";
 import { DEFAULT_SUBSCRIPTIONS, SandboxBrowserSession } from "../types";
 import { Session } from "../Session";
+import { BrowserAgentClient } from "./BrowserAgentClient";
 
 export * from "../Session";
 
@@ -45,7 +46,8 @@ export async function connectToSandbox(options: {
     options.initStatusCb || (() => {})
   );
 
-  return new Session(pitcherClient, {
+  const agentClient = new BrowserAgentClient(pitcherClient);
+  const session = await Session.create(agentClient, {
     username: options.session.sessionId
       ? // @ts-ignore
         pitcherClient["joinResult"].client.username
@@ -53,4 +55,6 @@ export async function connectToSandbox(options: {
     env: options.session.env,
     hostToken: options.session.hostToken,
   });
+
+  return session;
 }

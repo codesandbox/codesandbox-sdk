@@ -225,6 +225,7 @@ export class WebSocketClient extends Disposable {
     // This is an async operation in Node, but to avoid wrapping every send in a promise, we
     // rely on the error listener to deal with any errors. Any unsent messages will be timed out
     // by our PendingMessage logic
+
     this.ws.send(data);
   }
 

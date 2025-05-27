@@ -1,8 +1,8 @@
-import type { protocol, IPitcherClient } from "@codesandbox/pitcher-client";
 import { Barrier, DisposableStore } from "@codesandbox/pitcher-common";
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 import { IAgentClient } from "../agent-client-interface";
+import * as protocol from "@codesandbox/pitcher-protocol";
 
 type ShellSize = { cols: number; rows: number };
 

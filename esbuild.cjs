@@ -16,12 +16,17 @@ const browserifyPlugin = {
   },
 };
 
+const nodeExternals = [
+  ...Object.keys(require("./package.json").dependencies),
+  ...require("module").builtinModules,
+];
+
 // Build both CJS and ESM versions
 Promise.all([
   // Browser builds:
   // CommonJS build
   esbuild.build({
-    entryPoints: ["src/browser.ts"],
+    entryPoints: ["src/browser/index.ts"],
     bundle: true,
     format: "cjs",
     // .cjs extension is required because "type": "module" is set in package.json
@@ -41,10 +46,10 @@ Promise.all([
 
   // ESM build
   esbuild.build({
-    entryPoints: ["src/browser.ts"],
+    entryPoints: ["src/browser/index.ts"],
     bundle: true,
     format: "esm",
-    outdir: "dist/esm",
+    outfile: "dist/esm/browser.js",
     platform: "browser",
     // pitcher-common currently requires this, but breaks the first experience
     banner: {
@@ -68,7 +73,7 @@ Promise.all([
     platform: "node",
     // .cjs extension is required because "type": "module" is set in package.json
     outfile: "dist/cjs/index.cjs",
-    plugins: [browserifyPlugin],
+    external: nodeExternals,
   }),
 
   // ESM build
@@ -85,29 +90,7 @@ const require = topLevelCreateRequire(import.meta.url);
       `.trim(),
     },
     outfile: "dist/esm/index.js",
-    plugins: [browserifyPlugin],
-  }),
-
-  // Edge:
-  // CommonJS build
-  esbuild.build({
-    entryPoints: ["src/index.ts"],
-    // .cjs extension is required because "type": "module" is set in package.json
-    outfile: "dist/cjs/index.edge.cjs",
-    bundle: true,
-    format: "cjs",
-    platform: "browser",
-    plugins: [browserifyPlugin],
-  }),
-
-  // ESM build
-  esbuild.build({
-    entryPoints: ["src/index.ts"],
-    outfile: "dist/esm/index.edge.js",
-    bundle: true,
-    format: "esm",
-    platform: "browser",
-    plugins: [browserifyPlugin],
+    external: nodeExternals,
   }),
 
   // Bin builds:
@@ -120,6 +103,10 @@ const require = topLevelCreateRequire(import.meta.url);
     banner: {
       js: `#!/usr/bin/env node\n\n`,
     },
+    // ORA is an ESM module so we have to include it in the build
+    external: [...nodeExternals, "@codesandbox/sdk"].filter(
+      (mod) => mod !== "ora"
+    ),
   }),
 ]).catch(() => {
   process.exit(1);

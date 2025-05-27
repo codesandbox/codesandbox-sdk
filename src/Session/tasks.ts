@@ -1,12 +1,8 @@
-import {
-  Emitter,
-  IDisposable,
-  type IPitcherClient,
-  type protocol,
-} from "@codesandbox/pitcher-client";
-
+import * as protocol from "@codesandbox/pitcher-protocol";
 import { Disposable } from "../utils/disposable";
 import { DEFAULT_SHELL_SIZE } from "./terminals";
+import { IAgentClient } from "../agent-client-interface";
+import { Emitter, IDisposable } from "@codesandbox/pitcher-common";
 
 export type TaskDefinition = {
   name: string;
@@ -16,15 +12,11 @@ export type TaskDefinition = {
 
 export class Tasks {
   private disposable = new Disposable();
-  private tasks: Task[] = [];
+  private cachedTasks?: Task[];
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient
+    private agentClient: IAgentClient
   ) {
-    this.tasks = Object.values(
-      this.pitcherClient.clients.task.getTasks().tasks
-    ).map((task) => new Task(this.pitcherClient, task));
-
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
     });
@@ -33,15 +25,25 @@ export class Tasks {
   /**
    * Gets all tasks that are available in the current sandbox.
    */
-  getAll(): Task[] {
-    return this.tasks;
+  async getAll(): Promise<Task[]> {
+    if (!this.cachedTasks) {
+      const tasks = await this.agentClient.tasks.getTasks();
+
+      this.cachedTasks = Object.values(tasks.tasks).map(
+        (task) => new Task(this.agentClient, task)
+      );
+    }
+
+    return this.cachedTasks;
   }
 
   /**
    * Gets a task by its ID.
    */
-  get(taskId: string): Task | undefined {
-    return this.tasks.find((task) => task.id === taskId);
+  async get(taskId: string): Promise<Task | undefined> {
+    const tasks = await this.getAll();
+
+    return tasks.find((task) => task.id === taskId);
   }
 }
 
@@ -82,10 +84,10 @@ export class Task {
     return this.shell?.status || "IDLE";
   }
   constructor(
-    private pitcherClient: IPitcherClient,
+    private agentClient: IAgentClient,
     private data: protocol.task.TaskDTO
   ) {
-    pitcherClient.clients.task.onTaskUpdate(async (task) => {
+    agentClient.tasks.onTaskUpdate(async (task) => {
       if (task.id !== this.id) {
         return;
       }
@@ -104,7 +106,7 @@ export class Task {
         task.shell &&
         task.shell.shellId !== lastShellId
       ) {
-        const openedShell = await this.pitcherClient.clients.shell.open(
+        const openedShell = await this.agentClient.shells.open(
           task.shell.shellId,
           this.openedShell.dimensions
         );
@@ -120,7 +122,7 @@ export class Task {
       }
     });
 
-    pitcherClient.clients.shell.onShellOut(({ shellId, out }) => {
+    this.agentClient.shells.onShellOut(({ shellId, out }) => {
       if (!this.shell || this.shell.shellId !== shellId || !this.openedShell) {
         return;
       }
@@ -135,7 +137,7 @@ export class Task {
       throw new Error("Task is not running");
     }
 
-    const openedShell = await this.pitcherClient.clients.shell.open(
+    const openedShell = await this.agentClient.shells.open(
       this.shell.shellId,
       dimensions
     );
@@ -157,7 +159,7 @@ export class Task {
 
     const [port] = await Promise.all([
       new Promise<protocol.port.Port>((resolve) => {
-        disposer = this.pitcherClient.clients.task.onTaskUpdate((task) => {
+        disposer = this.agentClient.tasks.onTaskUpdate((task) => {
           if (task.id !== this.id) {
             return;
           }
@@ -179,14 +181,14 @@ export class Task {
     return port;
   }
   async run() {
-    await this.pitcherClient.clients.task.runTask(this.id);
+    await this.agentClient.tasks.runTask(this.id);
   }
   async restart() {
     await this.run();
   }
   async stop() {
     if (this.shell) {
-      await this.pitcherClient.clients.task.stopTask(this.id);
+      await this.agentClient.tasks.stopTask(this.id);
     }
   }
 }

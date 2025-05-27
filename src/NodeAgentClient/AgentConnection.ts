@@ -6,6 +6,7 @@ import {
   isErrorPayload,
   isResultPayload,
   decodeMessage,
+  version,
 } from "@codesandbox/pitcher-protocol";
 import type {
   PitcherNotification,
@@ -15,6 +16,9 @@ import type {
 
 import { PendingPitcherMessage } from "./PendingPitcherMessage";
 import { createWebSocketClient, WebSocketClient } from "./WebSocketClient";
+import { IAgentClientState } from "../agent-client-interface";
+import { DEFAULT_SUBSCRIPTIONS } from "../types";
+import { startVm } from "../Sandboxes";
 
 export interface IRequestOptions {
   /**
@@ -27,16 +31,29 @@ export interface IRequestOptions {
  * This class is completely decoupled from the connection itself. Pitcher class is responsible for funneling the messages
  * through the current connection. The connection can change when seamless branching or reconnecting.
  */
-export class PitcherProtocol<
-  Request extends PitcherRequest = PitcherRequest,
-  Response extends PitcherResponse = PitcherResponse,
-  Notification extends PitcherNotification = PitcherNotification
-> {
+export class AgentConnection {
   static async create(url: string) {
     const ws = await createWebSocketClient(url);
 
-    return new PitcherProtocol(ws);
+    return new AgentConnection(ws, url);
   }
+
+  private _state: IAgentClientState = "CONNECTED";
+
+  get state() {
+    return this._state;
+  }
+  set state(state: IAgentClientState) {
+    this._state = state;
+    this.onStateChangeEmitter.fire(state);
+
+    if (state === "DISCONNECTED" || state === "HIBERNATED") {
+      this.connection.dispose();
+    }
+  }
+
+  private onStateChangeEmitter = new Emitter<IAgentClientState>();
+  onStateChange = this.onStateChangeEmitter.event;
 
   private nextMessageId = 0;
   private pendingMessages = new Map<number, PendingPitcherMessage<any, any>>();
@@ -45,7 +62,8 @@ export class PitcherProtocol<
     SliceList<(params: any) => void>
   > = {};
 
-  private messageEmitter: Emitter<Response | Notification> = new Emitter();
+  private messageEmitter: Emitter<PitcherResponse | PitcherNotification> =
+    new Emitter();
   onMessage = this.messageEmitter.event;
 
   private errorEmitter: Emitter<{
@@ -58,26 +76,40 @@ export class PitcherProtocol<
   }> = new Emitter();
   onError = this.errorEmitter.event;
 
-  constructor(private connection: WebSocketClient) {
-    connection.onMessage((message) => {
-      this.receiveMessage(message);
+  constructor(public connection: WebSocketClient, private url: string) {
+    this.subscribeConnection(connection);
+
+    this.onNotification("system/hibernate", () => {
+      this.state = "HIBERNATED";
     });
   }
 
-  onNotification<T extends Notification["method"]>(
+  private subscribeConnection(connection: WebSocketClient) {
+    connection.onMessage((message) => {
+      this.receiveMessage(message);
+    });
+
+    connection.onDisconnected(() => {
+      this.state = "DISCONNECTED";
+    });
+
+    connection.onMissingHeartbeat(() => {
+      if (this.pendingMessages.size === 0) {
+        this.state = "DISCONNECTED";
+      }
+    });
+  }
+
+  onNotification<T extends PitcherNotification["method"]>(
     method: T,
-    cb: (
-      params: Notification extends { method: T }
-        ? Notification["params"]
-        : never
-    ) => void
+    cb: (params: (PitcherNotification & { method: T })["params"]) => void
   ): () => void {
     let listeners = this.notificationListeners[method];
     if (!listeners) {
       listeners = this.notificationListeners[method] = new SliceList();
     }
 
-    const idx = listeners.add(cb);
+    const idx = listeners.add(cb as any);
     return () => {
       this.notificationListeners[method]?.remove(idx);
     };
@@ -88,8 +120,8 @@ export class PitcherProtocol<
     this.messageEmitter.fire(payload);
 
     const method = payload.method as
-      | Response["method"]
-      | Notification["method"];
+      | PitcherResponse["method"]
+      | PitcherNotification["method"];
 
     if (isNotificationPayload(payload)) {
       const listeners = this.notificationListeners[method];
@@ -101,7 +133,7 @@ export class PitcherProtocol<
       return;
     }
 
-    let response: Response;
+    let response: PitcherResponse;
     if (isErrorPayload(payload)) {
       response = {
         status: PitcherResponseStatus.REJECTED,
@@ -111,13 +143,13 @@ export class PitcherProtocol<
           message: payload.error.message,
         },
         method,
-      } as Response;
+      } as PitcherResponse;
     } else if (isResultPayload(payload)) {
       response = {
         status: PitcherResponseStatus.RESOLVED,
         result: payload.result,
         method,
-      } as Response;
+      } as PitcherResponse;
     } else {
       throw new Error("Unable to identify message type");
     }
@@ -130,7 +162,10 @@ export class PitcherProtocol<
 
     // We do not care if we do not have a matching message, this is related to changing connection
   }
-  request<T extends Request>(pitcherRequest: T, options: IRequestOptions = {}) {
+  request<T extends PitcherRequest>(
+    pitcherRequest: T,
+    options: IRequestOptions = {}
+  ) {
     const { timeoutMs } = options;
     const request = this.createRequest(pitcherRequest, timeoutMs);
 
@@ -155,7 +190,7 @@ export class PitcherProtocol<
     }
   }
 
-  private createRequest<T extends Request>(
+  private createRequest<T extends PitcherRequest>(
     request: T,
     timeoutMs?: number
   ): PendingPitcherMessage<T, PitcherResponse> {
@@ -172,6 +207,55 @@ export class PitcherProtocol<
     this.pendingMessages.forEach((pendingMessage) => {
       pendingMessage.dispose();
     });
+  }
+
+  async disconnect() {
+    if (this.pendingMessages.size) {
+      await new Promise<void>((resolve) => {
+        const interval = setInterval(() => {
+          if (this.pendingMessages.size) {
+            return;
+          }
+
+          clearInterval(interval);
+          resolve();
+        }, 50);
+      });
+    }
+
+    this.state = "DISCONNECTED";
+  }
+
+  async reconnect(reconnectToken: string, startVm: () => Promise<string>) {
+    if (!(this.state === "DISCONNECTED" || this.state === "HIBERNATED")) {
+      return;
+    }
+
+    this.state = "CONNECTING";
+    this.connection.dispose();
+    const url = new URL(this.url);
+
+    const token = await startVm();
+
+    url.searchParams.set("token", token);
+    url.searchParams.set("reconnectToken", reconnectToken);
+
+    this.connection = await createWebSocketClient(url.toString());
+    this.subscribeConnection(this.connection);
+
+    await this.request({
+      method: "client/join",
+      params: {
+        clientInfo: {
+          protocolVersion: version,
+          appId: "sdk",
+        },
+        asyncProgress: false,
+        subscriptions: DEFAULT_SUBSCRIPTIONS,
+      },
+    });
+
+    this.state = "CONNECTED";
   }
 
   dispose(): void {

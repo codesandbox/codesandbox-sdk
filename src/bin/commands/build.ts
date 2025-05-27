@@ -1,14 +1,12 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { isBinaryFile } from "isbinaryfile";
-import readline from "readline";
 
-import { Disposable, DisposableStore } from "@codesandbox/pitcher-common";
 import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
 
-import { VMTier, CodeSandbox, Sandbox } from "../../";
+import { VMTier, CodeSandbox, Sandbox } from "@codesandbox/sdk";
 
 import {
   sandboxFork,
@@ -20,6 +18,7 @@ import { getDefaultTemplateId, handleResponse } from "../../utils/api";
 import { BASE_URL, getApiKey } from "../utils/constants";
 import { hashDirectory } from "../utils/hash";
 import { startVm } from "../../Sandboxes";
+import { DisposableStore } from "@codesandbox/pitcher-common";
 
 export type BuildCommandArgs = {
   directory: string;

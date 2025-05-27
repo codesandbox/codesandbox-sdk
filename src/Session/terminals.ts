@@ -1,7 +1,8 @@
-import type { protocol, IPitcherClient } from "@codesandbox/pitcher-client";
+import * as protocol from "@codesandbox/pitcher-protocol";
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 import { isCommandShell, ShellRunOpts } from "./commands";
+import { IAgentClient } from "../agent-client-interface";
 
 export type ShellSize = { cols: number; rows: number };
 
@@ -11,7 +12,7 @@ export class Terminals {
   private disposable = new Disposable();
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient,
+    private agentClient: IAgentClient,
     private env: Record<string, string> = {}
   ) {
     sessionDisposable.onWillDispose(() => {
@@ -36,8 +37,8 @@ export class Terminals {
       commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
     }
 
-    const shell = await this.pitcherClient.clients.shell.create(
-      this.pitcherClient.workspacePath,
+    const shell = await this.agentClient.shells.create(
+      this.agentClient.workspacePath,
       opts?.dimensions ?? DEFAULT_SHELL_SIZE,
       commandWithEnv,
       "TERMINAL",
@@ -45,35 +46,35 @@ export class Terminals {
     );
 
     if (opts?.name) {
-      this.pitcherClient.clients.shell.rename(shell.shellId, opts.name);
+      this.agentClient.shells.rename(shell.shellId, opts.name);
     }
 
-    return new Terminal(shell, this.pitcherClient);
+    return new Terminal(shell, this.agentClient);
   }
 
-  get(shellId: string) {
-    const shell = this.pitcherClient.clients.shell
-      .getShells()
-      .find((shell) => shell.shellId === shellId);
+  async get(shellId: string) {
+    const shells = await this.agentClient.shells.getShells();
+
+    const shell = shells.find((shell) => shell.shellId === shellId);
 
     if (!shell) {
       return;
     }
 
-    return new Terminal(shell, this.pitcherClient);
+    return new Terminal(shell, this.agentClient);
   }
 
   /**
    * Gets all terminals running in the current sandbox
    */
-  getAll() {
-    const shells = this.pitcherClient.clients.shell.getShells();
+  async getAll() {
+    const shells = await this.agentClient.shells.getShells();
 
     return shells
       .filter(
         (shell) => shell.shellType === "TERMINAL" && !isCommandShell(shell)
       )
-      .map((shell) => new Terminal(shell, this.pitcherClient));
+      .map((shell) => new Terminal(shell, this.agentClient));
   }
 }
 
@@ -103,10 +104,10 @@ export class Terminal {
 
   constructor(
     private shell: protocol.shell.ShellDTO & { buffer?: string[] },
-    private pitcherClient: IPitcherClient
+    private agentClient: IAgentClient
   ) {
     this.disposable.addDisposable(
-      this.pitcherClient.clients.shell.onShellOut(({ shellId, out }) => {
+      this.agentClient.shells.onShellOut(({ shellId, out }) => {
         if (shellId === this.shell.shellId) {
           this.onOutputEmitter.fire(out);
 
@@ -123,7 +124,7 @@ export class Terminal {
    * Open the terminal and get its current output, subscribes to future output
    */
   async open(dimensions = DEFAULT_SHELL_SIZE): Promise<string> {
-    const shell = await this.pitcherClient.clients.shell.open(
+    const shell = await this.agentClient.shells.open(
       this.shell.shellId,
       dimensions
     );
@@ -134,11 +135,7 @@ export class Terminal {
   }
 
   async write(input: string, dimensions = DEFAULT_SHELL_SIZE): Promise<void> {
-    await this.pitcherClient.clients.shell.send(
-      this.shell.shellId,
-      input,
-      dimensions
-    );
+    await this.agentClient.shells.send(this.shell.shellId, input, dimensions);
   }
 
   async run(input: string, dimensions = DEFAULT_SHELL_SIZE): Promise<void> {
@@ -148,6 +145,6 @@ export class Terminal {
   // TODO: allow for kill signals
   async kill(): Promise<void> {
     this.disposable.dispose();
-    await this.pitcherClient.clients.shell.delete(this.shell.shellId);
+    await this.agentClient.shells.delete(this.shell.shellId);
   }
 }
