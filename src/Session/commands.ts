@@ -11,6 +11,11 @@ export type ShellRunOpts = {
   name?: string;
   env?: Record<string, string>;
   cwd?: string;
+  /**
+   * Run the command in the global session instead of the current session. This makes
+   * any environment variables available to all users of the Sandbox.
+   */
+  asGlobalSession?: boolean;
 };
 
 export type CommandStatus =
@@ -61,9 +66,13 @@ export class Commands {
       this.agentClient.workspacePath,
       opts?.dimensions ?? DEFAULT_SHELL_SIZE,
       commandWithEnv,
-      "TERMINAL",
+      opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
       true
     );
+
+    if (shell.status === "ERROR" || shell.status === "KILLED") {
+      throw new Error(`Failed to create shell: ${shell.buffer.join("\n")}`);
+    }
 
     const details = {
       type: "command",
@@ -71,13 +80,15 @@ export class Commands {
       name: opts?.name,
     };
 
-    // Only way for us to differentiate between a command and a terminal
-    this.agentClient.shells.rename(
-      shell.shellId,
-      // We embed some details in the name to properly show the command that was run
-      // , the name and that it is an actual command
-      JSON.stringify(details)
-    );
+    if (shell.status !== "FINISHED") {
+      // Only way for us to differentiate between a command and a terminal
+      this.agentClient.shells.rename(
+        shell.shellId,
+        // We embed some details in the name to properly show the command that was run
+        // , the name and that it is an actual command
+        JSON.stringify(details)
+      );
+    }
 
     const cmd = new Command(
       this.agentClient,
