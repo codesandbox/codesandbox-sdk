@@ -1,5 +1,5 @@
 import { Disposable, Emitter } from "@codesandbox/pitcher-common";
-import WebSocket from "isomorphic-ws";
+import WebSocket from "ws";
 
 export type WebsocketData = string | Uint8Array;
 
