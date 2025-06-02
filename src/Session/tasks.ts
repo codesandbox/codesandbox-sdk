@@ -1,8 +1,8 @@
 import * as protocol from "@codesandbox/pitcher-protocol";
-import { Disposable } from "../utils/disposable";
+import { Disposable, IDisposable } from "../utils/disposable";
 import { DEFAULT_SHELL_SIZE } from "./terminals";
 import { IAgentClient } from "../agent-client-interface";
-import { Emitter, IDisposable } from "@codesandbox/pitcher-common";
+import { Emitter } from "../utils/event";
 
 export type TaskDefinition = {
   name: string;

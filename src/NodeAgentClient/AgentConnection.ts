@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Emitter, SliceList } from "@codesandbox/pitcher-common";
 import {
   PitcherResponseStatus,
   isNotificationPayload,
@@ -19,6 +17,8 @@ import { createWebSocketClient, WebSocketClient } from "./WebSocketClient";
 import { IAgentClientState } from "../agent-client-interface";
 import { DEFAULT_SUBSCRIPTIONS } from "../types";
 import { startVm } from "../Sandboxes";
+import { Emitter } from "../utils/event";
+import { SliceList } from "../utils/sliceList";
 
 export interface IRequestOptions {
   /**

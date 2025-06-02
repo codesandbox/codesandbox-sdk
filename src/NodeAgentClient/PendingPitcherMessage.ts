@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Disposable } from "@codesandbox/pitcher-common";
 import {
   PitcherResponseStatus,
   createRequestPayload,
@@ -10,6 +8,7 @@ import type {
   PitcherRequestPayload,
   PitcherErrorCode,
 } from "@codesandbox/pitcher-protocol";
+import { Disposable } from "../utils/disposable";
 
 const PITCHER_MESSAGE_TIMEOUT_MS = 90_000;
 

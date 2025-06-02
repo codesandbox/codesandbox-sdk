@@ -18,7 +18,7 @@ import { getDefaultTemplateId, handleResponse } from "../../utils/api";
 import { BASE_URL, getApiKey } from "../utils/constants";
 import { hashDirectory } from "../utils/hash";
 import { startVm } from "../../Sandboxes";
-import { DisposableStore } from "@codesandbox/pitcher-common";
+import { DisposableStore } from "../../utils/disposable";
 
 export type BuildCommandArgs = {
   directory: string;

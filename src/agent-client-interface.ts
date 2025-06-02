@@ -1,4 +1,3 @@
-import { Id, Event, Emitter } from "@codesandbox/pitcher-common";
 import {
   fs,
   git,
@@ -10,10 +9,11 @@ import {
   setup,
   task,
 } from "@codesandbox/pitcher-protocol";
+import { Event } from "./utils/event";
 
 export interface IAgentClientShells {
   onShellExited: Event<{
-    shellId: Id;
+    shellId: string;
     exitCode: number;
   }>;
   onShellTerminated: Event<shell.ShellTerminateNotification["params"]>;
@@ -25,14 +25,21 @@ export interface IAgentClientShells {
     type?: shell.ShellProcessType,
     isSystemShell?: boolean
   ): Promise<shell.OpenShellDTO>;
-  rename(shellId: Id, name: string): Promise<null>;
+  rename(shellId: shell.ShellId, name: string): Promise<null>;
   getShells(): Promise<shell.ShellDTO[]>;
-  open(shellId: Id, size: shell.ShellSize): Promise<shell.OpenShellDTO>;
+  open(
+    shellId: shell.ShellId,
+    size: shell.ShellSize
+  ): Promise<shell.OpenShellDTO>;
   delete(
-    shellId: Id
+    shellId: shell.ShellId
   ): Promise<shell.CommandShellDTO | shell.TerminalShellDTO | null>;
-  restart(shellId: Id): Promise<null>;
-  send(shellId: Id, input: string, size: shell.ShellSize): Promise<null>;
+  restart(shellId: shell.ShellId): Promise<null>;
+  send(
+    shellId: shell.ShellId,
+    input: string,
+    size: shell.ShellSize
+  ): Promise<null>;
 }
 
 export type RawFsResult<T> =

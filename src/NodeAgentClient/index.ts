@@ -20,13 +20,14 @@ import {
   PickRawFsResult,
 } from "../agent-client-interface";
 import { AgentConnection } from "./AgentConnection";
-import { Emitter, Id } from "@codesandbox/pitcher-common";
 import { Client } from "@hey-api/client-fetch";
 import { startVm } from "../Sandboxes";
+import { Emitter } from "../utils/event";
+import { Id } from "@codesandbox/pitcher-client";
 
 class NodeAgentClientShells implements IAgentClientShells {
   private onShellExitedEmitter = new Emitter<{
-    shellId: Id;
+    shellId: string;
     exitCode: number;
   }>();
   onShellExited = this.onShellExitedEmitter.event;
@@ -73,11 +74,12 @@ class NodeAgentClientShells implements IAgentClientShells {
     });
   }
   delete(
-    shellId: Id
+    shellId: shell.ShellId
   ): Promise<shell.CommandShellDTO | shell.TerminalShellDTO | null> {
     return this.agentConnection.request({
       method: "shell/terminate",
       params: {
+        // We do can not import Id from pitcher-client
         shellId,
       },
     });
@@ -90,7 +92,10 @@ class NodeAgentClientShells implements IAgentClientShells {
 
     return result.shells;
   }
-  open(shellId: Id, size: shell.ShellSize): Promise<shell.OpenShellDTO> {
+  open(
+    shellId: shell.ShellId,
+    size: shell.ShellSize
+  ): Promise<shell.OpenShellDTO> {
     return this.agentConnection.request({
       method: "shell/open",
       params: {
@@ -99,7 +104,7 @@ class NodeAgentClientShells implements IAgentClientShells {
       },
     });
   }
-  rename(shellId: Id, name: string): Promise<null> {
+  rename(shellId: shell.ShellId, name: string): Promise<null> {
     return this.agentConnection.request({
       method: "shell/rename",
       params: {
@@ -108,7 +113,7 @@ class NodeAgentClientShells implements IAgentClientShells {
       },
     });
   }
-  restart(shellId: Id): Promise<null> {
+  restart(shellId: shell.ShellId): Promise<null> {
     return this.agentConnection.request({
       method: "shell/restart",
       params: {
@@ -116,7 +121,11 @@ class NodeAgentClientShells implements IAgentClientShells {
       },
     });
   }
-  send(shellId: Id, input: string, size: shell.ShellSize): Promise<null> {
+  send(
+    shellId: shell.ShellId,
+    input: string,
+    size: shell.ShellSize
+  ): Promise<null> {
     return this.agentConnection.request({
       method: "shell/in",
       params: { shellId, input, size },
