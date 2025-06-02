@@ -149,6 +149,16 @@ export const buildCommand: yargs.CommandModule<
               updateSpinnerMessage(index, "Starting sandbox...", sandboxId)
             );
 
+            // This is a hack, we need to tell the global scheduler that the VM is running
+            // in a different cluster than the one it'd like to default to.
+            const baseUrl = apiClient
+              .getConfig()
+              .baseUrl?.replace("api", "global-scheduler");
+
+            await fetch(
+              `${baseUrl}/api/v1/cluster/${sandboxId}?preferredManager=${cluster}`
+            ).then((res) => res.json());
+
             const startResponse = await startVm(clusterApiClient, sandboxId, {
               vmTier: VMTier.fromName("Micro"),
             });
