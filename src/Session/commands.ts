@@ -162,7 +162,18 @@ export class Command {
   /**
    * The status of the command.
    */
-  status: CommandStatus = "RUNNING";
+  #status: CommandStatus = "RUNNING";
+
+  get status(): CommandStatus {
+    return this.#status;
+  }
+
+  set status(value: CommandStatus) {
+    if (this.#status !== value) {
+      this.#status = value;
+      this.onStatusChangeEmitter.fire(this.#status);
+    }
+  }
 
   /**
    * The command that was run
