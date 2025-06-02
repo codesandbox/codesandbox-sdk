@@ -9,7 +9,6 @@ import {
 } from "./api-clients/client";
 import { Sandbox } from "./Sandbox";
 import {
-  getDefaultTemplateId,
   getDefaultTemplateTag,
   getStartOptions,
   getStartResponse,
