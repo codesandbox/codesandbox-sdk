@@ -185,6 +185,8 @@ export interface SessionCreateOptions {
   id: string;
   permission?: "read" | "write";
   git?: {
+    provider: string;
+    username?: string;
     accessToken?: string;
     email: string;
     name?: string;
@@ -201,31 +203,13 @@ export type SandboxSession = {
   env?: Record<string, string>;
 };
 
-export type CreateSandboxTemplateSourceOpts = CreateSandboxBaseOpts & {
-  source: "template";
+export type CreateSandboxOpts = CreateSandboxBaseOpts & {
   /**
    * What template to fork from, this is the id of another sandbox. Defaults to our
    * [universal template](https://codesandbox.io/s/github/codesandbox/sandbox-templates/tree/main/universal).
    */
   id?: string;
 };
-
-export type CreateSandboxGitSourceOpts = CreateSandboxBaseOpts & {
-  source: "git";
-  url: string;
-  branch: string;
-  templateId?: string;
-  config?: {
-    accessToken: string;
-    email: string;
-    name?: string;
-  };
-  setup?: (session: Session) => Promise<void>;
-};
-
-export type CreateSandboxOpts =
-  | CreateSandboxTemplateSourceOpts
-  | CreateSandboxGitSourceOpts;
 
 export type SandboxOpts = {
   id: string;
