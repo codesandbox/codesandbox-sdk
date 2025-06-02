@@ -51,12 +51,20 @@ export function getBaseUrl(token: string) {
   return "https://api.together.ai/csb/sdk";
 }
 
+export function getDefaultTemplateTag(apiClient: Client): string {
+  if (apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
+    return "7ngcrf";
+  }
+
+  return "pt_LAVK5kxK8XciqgV2642xRk";
+}
+
 export function getDefaultTemplateId(apiClient: Client): string {
   if (apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
     return "7ngcrf";
   }
 
-  return "pt_UAYyadeQTA9jw8bXqzgy6v";
+  return "pcz35m";
 }
 
 export function handleResponse<D, E>(
