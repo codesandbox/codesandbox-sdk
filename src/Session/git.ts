@@ -60,6 +60,17 @@ export class Git {
    * Push all changes to git
    */
   async push() {
-    await this.commands.run(["git push"]);
+    await this.commands.run(["git push -u origin HEAD"]);
+  }
+
+  async clone(opts: { url: string; branch: string }) {
+    await this.commands.run([
+      "rm -rf .git",
+      "git init",
+      `git remote add origin ${opts.url}`,
+      "git fetch origin",
+      `git checkout -b ${opts.branch}`,
+      `git reset --hard origin/${opts.branch}`,
+    ]);
   }
 }

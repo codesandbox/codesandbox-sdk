@@ -56,7 +56,7 @@ export function getDefaultTemplateId(apiClient: Client): string {
     return "7ngcrf";
   }
 
-  return "pt_CW2BcBSPRoGb3AS6Fv7oXs";
+  return "pt_TRkPA6ypYZ7cRLQYgCmRHs";
 }
 
 export function handleResponse<D, E>(

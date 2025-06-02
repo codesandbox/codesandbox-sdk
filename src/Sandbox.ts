@@ -183,6 +183,37 @@ export class Sandbox {
       hostToken: customSession?.hostToken,
     });
 
+    if (customSession?.git) {
+      const netrc = await session.commands.runBackground([
+        `mkdir -p ~/private`,
+        `cat > ~/private/.netrc <<EOF
+machine ${customSession.git.provider}
+login ${customSession.git.username || "x-access-token"}
+password ${customSession.git.accessToken}
+EOF`,
+        `chmod 600 ~/private/.netrc`,
+        `cd ~`,
+        `ln -sfn private/.netrc .netrc`,
+      ]);
+      netrc.onOutput(console.log);
+      console.log(await netrc.open());
+      await netrc.waitUntilComplete();
+
+      const config = await session.commands.runBackground([
+        `cat > ~/private/.gitconfig <<EOF
+[user]
+    name  = ${customSession.git.name || customSession.id}
+    email = ${customSession.git.email}
+EOF`,
+        `chmod 600 ~/private/.gitconfig`,
+        `cd "~"`,
+        `ln -sfn private/.gitconfig .gitconfig`,
+      ]);
+      config.onOutput(console.log);
+      console.log(await config.open());
+      await config.waitUntilComplete();
+    }
+
     return session;
   }
 
