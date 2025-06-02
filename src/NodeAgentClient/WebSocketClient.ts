@@ -1,5 +1,6 @@
-import { Disposable, Emitter } from "@codesandbox/pitcher-common";
 import WebSocket from "ws";
+import { Disposable } from "../utils/disposable";
+import { Emitter } from "../utils/event";
 
 export type WebsocketData = string | Uint8Array;
 

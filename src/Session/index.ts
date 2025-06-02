@@ -12,7 +12,7 @@ import { HostToken } from "../HostTokens";
 import { Hosts } from "./hosts";
 import { IAgentClient } from "../agent-client-interface";
 import { setup } from "@codesandbox/pitcher-protocol";
-import { Barrier } from "@codesandbox/pitcher-common";
+import { Barrier } from "../utils/barrier";
 
 export * from "./filesystem";
 export * from "./ports";
