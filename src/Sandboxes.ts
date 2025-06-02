@@ -10,6 +10,7 @@ import {
 import { Sandbox } from "./Sandbox";
 import {
   getDefaultTemplateId,
+  getDefaultTemplateTag,
   getStartOptions,
   getStartResponse,
   handleResponse,
@@ -60,7 +61,7 @@ export async function startVm(
  */
 export class Sandboxes {
   get defaultTemplateId() {
-    return getDefaultTemplateId(this.apiClient);
+    return getDefaultTemplateTag(this.apiClient);
   }
 
   constructor(private apiClient: Client) {}
