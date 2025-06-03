@@ -97,9 +97,7 @@ Promise.all([
       js: `#!/usr/bin/env node\n\n`,
     },
     // ORA is an ESM module so we have to include it in the build
-    external: [...nodeExternals, "@codesandbox/sdk"].filter(
-      (mod) => mod !== "ora"
-    ),
+    external: [...nodeExternals, "@codesandbox/sdk", "isbinaryfile"],
   }),
 ]).catch(() => {
   process.exit(1);

@@ -6,7 +6,6 @@ import { buildCommand } from "./commands/build";
 import { sandboxesCommand } from "./commands/sandbox";
 import { previewHostsCommand } from "./commands/previewHosts";
 import { hostTokensCommand } from "./commands/hostTokens";
-import { CodeSandbox } from "@codesandbox/sdk";
 import { Dashboard } from "./ui/Dashboard";
 import React from "react";
 import { SDKProvider } from "./ui/sdkContext";
@@ -14,13 +13,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 if (process.argv.length === 2) {
   // Clear the screen before rendering the dashboard
-  process.stdout.write('\x1Bc');
-  
-  const sdk = new CodeSandbox();
+  process.stdout.write("\x1Bc");
+
   const queryClient = new QueryClient();
+
   render(
     <QueryClientProvider client={queryClient}>
-      <SDKProvider value={sdk}>
+      <SDKProvider>
         <Dashboard />
       </SDKProvider>
     </QueryClientProvider>,
