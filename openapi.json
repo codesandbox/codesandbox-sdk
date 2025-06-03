@@ -72,6 +72,51 @@
         "title": "VMUpdateHibernationTimeoutRequest",
         "type": "object"
       },
+      "VMAssignTagAliasResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "alias": { "type": "string" },
+                  "namespace": { "type": "string" },
+                  "tag_alias_id": { "type": "string" },
+                  "tag_id": { "type": "string" },
+                  "team_id": { "type": "string" }
+                },
+                "required": [
+                  "tag_alias_id",
+                  "team_id",
+                  "tag_id",
+                  "namespace",
+                  "alias"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMAssignTagAliasResponse",
+        "type": "object"
+      },
       "PreviewToken": {
         "properties": {
           "expires_at": { "nullable": true, "type": "string" },
@@ -488,6 +533,13 @@
           }
         },
         "title": "TokenUpdateRequest",
+        "type": "object"
+      },
+      "VMAssignTagAliasRequest": {
+        "description": "Assign a tag alias to a VM",
+        "properties": { "tag_id": { "type": "string" } },
+        "required": ["tag_id"],
+        "title": "VMAssignTagAliasRequest",
         "type": "object"
       },
       "VMHibernateResponse": {
@@ -1878,6 +1930,57 @@
         "security": [{ "authorization": ["preview_token:manage"] }],
         "summary": "Update a Preview Token",
         "tags": []
+      }
+    },
+    "/vm/alias/{namespace}/{alias}": {
+      "put": {
+        "callbacks": {},
+        "description": "Assign a tag alias to a VM tag.\n",
+        "operationId": "vm/assign_tag_alias",
+        "parameters": [
+          {
+            "description": "Tag alias namespace",
+            "example": "my-project",
+            "in": "path",
+            "name": "namespace",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "description": "Tag alias",
+            "example": "latest",
+            "in": "path",
+            "name": "alias",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VMAssignTagAliasRequest"
+              }
+            }
+          },
+          "description": "VM Assign Tag Alias Request",
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMAssignTagAliasResponse"
+                }
+              }
+            },
+            "description": "VM Assign Tag Alias Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Assign a tag alias to a VM tag",
+        "tags": ["vm"]
       }
     },
     "/vm/clusters": {
