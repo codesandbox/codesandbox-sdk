@@ -26,6 +26,7 @@ import {
   SessionCreateOptions,
 } from "./types";
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
+import { sleep } from "./utils/sleep";
 
 export async function startVm(
   apiClient: Client,
@@ -144,8 +145,34 @@ export class Sandboxes {
    * Will resolve once the sandbox is restarted with its setup running.
    */
   public async restart(sandboxId: string, opts?: StartSandboxOpts) {
-    await this.shutdown(sandboxId);
-    const startResponse = await startVm(this.apiClient, sandboxId, opts);
+    let didRestart = false;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await this.shutdown(sandboxId);
+        didRestart = true;
+      } catch (e) {
+        await sleep(500);
+      }
+    }
+
+    if (!didRestart) {
+      throw new Error("Failed to shutdown VM after 3 attempts");
+    }
+
+    let startResponse: PitcherManagerResponse | undefined;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        startResponse = await startVm(this.apiClient, sandboxId, opts);
+      } catch (e) {
+        await sleep(500);
+      }
+    }
+
+    if (!startResponse) {
+      throw new Error("Failed to start VM after 3 attempts");
+    }
 
     return new Sandbox(sandboxId, this.apiClient, startResponse);
   }

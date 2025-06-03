@@ -61,6 +61,10 @@ export class Session {
   }
   private disposable = new Disposable();
 
+  get workspacePath() {
+    return this.agentClient.workspacePath;
+  }
+
   /**
    * Namespace for all filesystem operations on this Sandbox
    */
