@@ -29,6 +29,21 @@ export type VmUpdateHibernationTimeoutRequest = {
     hibernation_timeout_seconds: number;
 };
 
+export type VmAssignTagAliasResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        alias: string;
+        namespace: string;
+        tag_alias_id: string;
+        tag_id: string;
+        team_id: string;
+    };
+};
+
 export type PreviewToken = {
     expires_at: string | null;
     last_used_at: string | null;
@@ -241,6 +256,13 @@ export type TokenUpdateRequest = {
      * Which scopes to grant this token. The given scopes will replace the current scopes, revoking any that are no longer present in the list.
      */
     scopes?: Array<'sandbox_create' | 'sandbox_edit_code' | 'sandbox_read' | 'vm_manage'>;
+};
+
+/**
+ * Assign a tag alias to a VM
+ */
+export type VmAssignTagAliasRequest = {
+    tag_id: string;
 };
 
 export type VmHibernateResponse = {
@@ -949,6 +971,34 @@ export type PreviewTokenUpdateResponses = {
 };
 
 export type PreviewTokenUpdateResponse2 = PreviewTokenUpdateResponses[keyof PreviewTokenUpdateResponses];
+
+export type VmAssignTagAliasData = {
+    /**
+     * VM Assign Tag Alias Request
+     */
+    body?: VmAssignTagAliasRequest;
+    path: {
+        /**
+         * Tag alias namespace
+         */
+        namespace: string;
+        /**
+         * Tag alias
+         */
+        alias: string;
+    };
+    query?: never;
+    url: '/vm/alias/{namespace}/{alias}';
+};
+
+export type VmAssignTagAliasResponses = {
+    /**
+     * VM Assign Tag Alias Response
+     */
+    200: VmAssignTagAliasResponse;
+};
+
+export type VmAssignTagAliasResponse2 = VmAssignTagAliasResponses[keyof VmAssignTagAliasResponses];
 
 export type VmListClustersData = {
     body?: never;
