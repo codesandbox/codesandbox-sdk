@@ -16,10 +16,15 @@ import {
   vmUpdateHibernationTimeout,
   vmUpdateSpecs,
 } from "./api-clients/client";
-import { handleResponse, startVm } from "./utils/api";
+import { handleResponse } from "./utils/api";
 import { VMTier } from "./VMTier";
-import { WebSocketSession } from "./sessions/WebSocketSession";
-import { RestSession } from "./sessions/RestSession";
+import { version } from "@codesandbox/pitcher-protocol";
+import { AgentConnection } from "./NodeAgentClient/AgentConnection";
+import { Session } from "./Session";
+import { NodeAgentClient } from "./NodeAgentClient";
+
+// Timeout for detecting a pong response, leading to a forced disconnect
+let PONG_DETECTION_TIMEOUT = 15_000;
 
 export class Sandbox {
   /**
@@ -102,7 +107,7 @@ export class Sandbox {
     opts: SessionCreateOptions
   ): Promise<SandboxSession> {
     if (opts.id.length > 20) {
-      throw new Error("Session ID must be 32 characters or less");
+      throw new Error("Session ID must be 20 characters or less");
     }
 
     const response = await vmCreateSession({
@@ -142,85 +147,73 @@ export class Sandbox {
   /**
    * Connects to the Sandbox using a WebSocket connection, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
    */
-  async connect(
-    customSession?: SessionCreateOptions
-  ): Promise<WebSocketSession> {
-    let hasConnected = false;
-    const session = customSession
+  async connect(customSession?: SessionCreateOptions): Promise<Session> {
+    const sessionDetails = customSession
       ? await this.createSession(customSession)
       : this.globalSession;
+    const url = `${sessionDetails.pitcherUrl}/?token=${sessionDetails.pitcherToken}`;
 
-    const pitcherClient = await initPitcherClient(
-      {
-        appId: "sdk",
-        instanceId: this.id,
-        onFocusChange() {
-          return () => {};
+    const agentConnection = await AgentConnection.create(url);
+    const joinResult = await agentConnection.request({
+      method: "client/join",
+      params: {
+        clientInfo: {
+          protocolVersion: version,
+          appId: "sdk",
         },
-        requestPitcherInstance: async () => {
-          // If we reconnect we have to resume the Sandbox and get new session details
-          if (hasConnected) {
-            this.pitcherManagerResponse = await startVm(
-              this.apiClient,
-              this.id
-            );
-          }
-
-          const headers = this.apiClient.getConfig().headers as Headers;
-
-          if (headers.get("x-pitcher-manager-url")) {
-            // This is a hack, we need to tell the global scheduler that the VM is running
-            // in a different cluster than the one it'd like to default to.
-
-            const preferredManager = headers
-              .get("x-pitcher-manager-url")
-              ?.replace("/api/v1", "")
-              .replace("https://", "");
-            const baseUrl = this.apiClient
-              .getConfig()
-              .baseUrl?.replace("api", "global-scheduler");
-
-            await fetch(
-              `${baseUrl}/api/v1/cluster/${session.sandboxId}?preferredManager=${preferredManager}`
-            ).then((res) => res.json());
-          }
-
-          hasConnected = true;
-
-          return {
-            bootupType: this.bootupType,
-            pitcherURL: session.pitcherUrl,
-            workspacePath: session.userWorkspacePath,
-            userWorkspacePath: session.userWorkspacePath,
-            pitcherManagerVersion:
-              this.pitcherManagerResponse.pitcherManagerVersion,
-            pitcherVersion: this.pitcherManagerResponse.pitcherVersion,
-            latestPitcherVersion:
-              this.pitcherManagerResponse.latestPitcherVersion,
-            pitcherToken: session.pitcherToken,
-            cluster: this.cluster,
-          };
-        },
+        asyncProgress: true,
         subscriptions: DEFAULT_SUBSCRIPTIONS,
       },
-      () => {}
-    );
+    });
 
-    return new WebSocketSession(pitcherClient, {
+    // Now that we have initialized we set an appropriate timeout to more efficiently detect disconnects
+    agentConnection.connection.setPongDetectionTimeout(PONG_DETECTION_TIMEOUT);
+
+    const agentClient = new NodeAgentClient(this.apiClient, agentConnection, {
+      sandboxId: this.id,
+      workspacePath: sessionDetails.userWorkspacePath,
+      reconnectToken: joinResult.reconnectToken,
+      isUpToDate: this.isUpToDate,
+    });
+
+    const session = await Session.create(agentClient, {
+      username: customSession ? joinResult.client.username : undefined,
       env: customSession?.env,
       hostToken: customSession?.hostToken,
     });
-  }
 
-  /**
-   * Returns a REST API client connected to this Sandbox, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
-   */
-  async createRestSession(customSession?: SessionCreateOptions) {
-    const session = customSession
-      ? await this.createSession(customSession)
-      : this.globalSession;
+    if (customSession?.git) {
+      const netrc = await session.commands.runBackground([
+        `mkdir -p ~/private`,
+        `cat > ~/private/.netrc <<EOF
+machine ${customSession.git.provider}
+login ${customSession.git.username || "x-access-token"}
+password ${customSession.git.accessToken}
+EOF`,
+        `chmod 600 ~/private/.netrc`,
+        `cd ~`,
+        `ln -sfn private/.netrc .netrc`,
+      ]);
+      netrc.onOutput(console.log);
+      console.log(await netrc.open());
+      await netrc.waitUntilComplete();
 
-    return new RestSession(session);
+      const config = await session.commands.runBackground([
+        `cat > ~/private/.gitconfig <<EOF
+[user]
+    name  = ${customSession.git.name || customSession.id}
+    email = ${customSession.git.email}
+EOF`,
+        `chmod 600 ~/private/.gitconfig`,
+        `cd "~"`,
+        `ln -sfn private/.gitconfig .gitconfig`,
+      ]);
+      config.onOutput(console.log);
+      console.log(await config.open());
+      await config.waitUntilComplete();
+    }
+
+    return session;
   }
 
   /**
@@ -236,6 +229,7 @@ export class Sandbox {
     return {
       id: this.id,
       env: customSession?.env,
+      sessionId: customSession?.id,
       hostToken: customSession?.hostToken,
       bootupType: this.bootupType,
       cluster: this.cluster,

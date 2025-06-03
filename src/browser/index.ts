@@ -1,8 +1,9 @@
 import { initPitcherClient, protocol } from "@codesandbox/pitcher-client";
-import { DEFAULT_SUBSCRIPTIONS, SandboxBrowserSession } from "./types";
-import { WebSocketSession } from "./sessions/WebSocketSession";
+import { DEFAULT_SUBSCRIPTIONS, SandboxBrowserSession } from "../types";
+import { Session } from "../Session";
+import { BrowserAgentClient } from "./BrowserAgentClient";
 
-export * from "./sessions/WebSocketSession";
+export * from "../Session";
 
 export { createPreview, Preview } from "./previews";
 
@@ -14,7 +15,7 @@ export async function connectToSandbox(options: {
   getSession: (id: string) => Promise<SandboxBrowserSession>;
   onFocusChange?: (cb: (isFocused: boolean) => void) => () => void;
   initStatusCb?: (event: protocol.system.InitStatus) => void;
-}): Promise<WebSocketSession> {
+}): Promise<Session> {
   let hasConnected = false;
   const pitcherClient = await initPitcherClient(
     {
@@ -45,8 +46,15 @@ export async function connectToSandbox(options: {
     options.initStatusCb || (() => {})
   );
 
-  return new WebSocketSession(pitcherClient, {
+  const agentClient = new BrowserAgentClient(pitcherClient);
+  const session = await Session.create(agentClient, {
+    username: options.session.sessionId
+      ? // @ts-ignore
+        pitcherClient["joinResult"].client.username
+      : undefined,
     env: options.session.env,
     hostToken: options.session.hostToken,
   });
+
+  return session;
 }
