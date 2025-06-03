@@ -1,4 +1,4 @@
-import { Disposable } from "../../utils/disposable";
+import { Disposable } from "../utils/disposable";
 import { Commands, ShellRunOpts } from "./commands";
 
 export class Interpreters {

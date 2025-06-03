@@ -2,7 +2,6 @@ import { promises as fs } from "fs";
 import path from "path";
 import { isBinaryFile } from "isbinaryfile";
 
-import { Disposable, DisposableStore } from "@codesandbox/pitcher-common";
 import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
@@ -11,6 +10,7 @@ import { VMTier, CodeSandbox, Sandbox } from "@codesandbox/sdk";
 
 import {
   sandboxFork,
+  vmAssignTagAlias,
   vmCreateTag,
   vmListClusters,
   VmUpdateSpecsRequest,
@@ -18,12 +18,14 @@ import {
 import { getDefaultTemplateId, handleResponse } from "../../utils/api";
 import { BASE_URL, getApiKey } from "../utils/constants";
 import { hashDirectory } from "../utils/hash";
-import { startVm } from "../../utils/api";
+import { startVm } from "../../Sandboxes";
+import { DisposableStore } from "../../utils/disposable";
 
 export type BuildCommandArgs = {
   directory: string;
   name?: string;
   path?: string;
+  alias?: string;
   ports?: number[];
   fromSandbox?: string;
   skipFiles?: boolean;
@@ -63,6 +65,11 @@ export const buildCommand: yargs.CommandModule<
         type: "string",
         choices: VMTier.All.map((t) => t.name),
       })
+      .option("alias", {
+        describe:
+          "Alias that should point to the created template. Alias namespace defaults to template directory, but you can explicitly pass `namespace@alias`",
+        type: "string",
+      })
       .positional("directory", {
         describe: "Path to the project that we'll create a snapshot from",
         type: "string",
@@ -79,6 +86,12 @@ export const buildCommand: yargs.CommandModule<
         },
       })
     );
+
+    let alias: { namespace: string; alias: string } | undefined;
+
+    if (argv.alias) {
+      alias = createAlias(argv.directory, argv.alias);
+    }
 
     try {
       const clustersData = handleResponse(
@@ -107,6 +120,15 @@ export const buildCommand: yargs.CommandModule<
 
       const sandboxIds = await Promise.all(
         clusters.map(async ({ host: cluster, slug }, index) => {
+          const clusterApiClient: Client = createClient(
+            createConfig({
+              baseUrl: BASE_URL,
+              headers: {
+                Authorization: `Bearer ${API_KEY}`,
+                "x-pitcher-manager-url": `https://${cluster}/api/v1`,
+              },
+            })
+          );
           const sdk = new CodeSandbox(API_KEY, {
             baseUrl: BASE_URL,
             headers: {
@@ -125,7 +147,7 @@ export const buildCommand: yargs.CommandModule<
 
             spinner.start(updateSpinnerMessage(index, "Creating sandbox..."));
             sandboxId = await createSandbox({
-              apiClient,
+              apiClient: clusterApiClient,
               shaTag: tag,
               fromSandbox: argv.fromSandbox,
               collectionPath: argv.path,
@@ -139,10 +161,24 @@ export const buildCommand: yargs.CommandModule<
               updateSpinnerMessage(index, "Starting sandbox...", sandboxId)
             );
 
-            const startResponse = await startVm(apiClient, sandboxId, {
+            // This is a hack, we need to tell the global scheduler that the VM is running
+            // in a different cluster than the one it'd like to default to.
+            const baseUrl = apiClient
+              .getConfig()
+              .baseUrl?.replace("api", "global-scheduler");
+
+            await fetch(
+              `${baseUrl}/api/v1/cluster/${sandboxId}?preferredManager=${cluster}`
+            ).then((res) => res.json());
+
+            const startResponse = await startVm(clusterApiClient, sandboxId, {
               vmTier: VMTier.fromName("Micro"),
             });
-            let sandbox = new Sandbox(sandboxId, apiClient, startResponse);
+            let sandbox = new Sandbox(
+              sandboxId,
+              clusterApiClient,
+              startResponse
+            );
             let session = await sandbox.connect();
 
             spinner.start(
@@ -297,6 +333,25 @@ export const buildCommand: yargs.CommandModule<
         }),
         "Failed to create template"
       );
+
+      if (alias) {
+        await vmAssignTagAlias({
+          client: apiClient,
+          path: {
+            alias: alias.alias,
+            namespace: alias.namespace,
+          },
+          body: {
+            tag_id: data.tag_id,
+          },
+        });
+
+        console.log(
+          `Alias ${alias.namespace}@${alias.alias} updated to: ${data.tag_id}`
+        );
+        process.exit(0);
+      }
+
       console.log("Template created: " + data.tag_id);
       process.exit(0);
     } catch (error) {
@@ -315,6 +370,37 @@ type CreateSandboxParams = {
   vmTier?: VMTier;
   ipcountry?: string;
 };
+
+function createAlias(directory: string, alias: string) {
+  const aliasParts = alias.split("@");
+
+  if (aliasParts.length > 2) {
+    throw new Error(
+      `Alias name "${alias}" is invalid, must be in the format of name@tag`
+    );
+  }
+
+  const namespace =
+    aliasParts.length === 2 ? aliasParts[0] : path.basename(directory);
+  const tag = aliasParts.length === 2 ? aliasParts[1] : alias;
+
+  if (namespace.length > 64 || tag.length > 64) {
+    throw new Error(
+      `Alias name "${namespace}" or tag "${tag}" is too long, must be 64 characters or less`
+    );
+  }
+
+  if (!/^[a-zA-Z0-9-_]+$/.test(namespace) || !/^[a-zA-Z0-9-_]+$/.test(tag)) {
+    throw new Error(
+      `Alias name "${namespace}" or tag "${tag}" is invalid, must only contain upper/lower case letters, numbers, dashes and underscores`
+    );
+  }
+
+  return {
+    namespace,
+    alias,
+  };
+}
 
 async function createSandbox({
   apiClient,
