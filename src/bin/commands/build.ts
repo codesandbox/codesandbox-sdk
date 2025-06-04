@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { isBinaryFile } from "isbinaryfile";
+import * as readline from "readline";
 
 import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
 import ora from "ora";
@@ -118,8 +119,55 @@ export const buildCommand: yargs.CommandModule<
         return `\n${spinnerMessages.join("\n")}`;
       }
 
-      const sandboxIds = await Promise.all(
+      const sandboxes = await Promise.all(
         clusters.map(async ({ host: cluster, slug }, index) => {
+          const clusterApiClient: Client = createClient(
+            createConfig({
+              baseUrl: BASE_URL,
+              headers: {
+                Authorization: `Bearer ${API_KEY}`,
+                "x-pitcher-manager-url": `https://${cluster}/api/v1`,
+              },
+            })
+          );
+
+          try {
+            const { hash, files: filePaths } = await hashDirectory(
+              argv.directory
+            );
+            const shortHash = hash.slice(0, 6);
+            const tag = `sha:${shortHash}-${slug}`;
+
+            spinner.start(updateSpinnerMessage(index, "Creating sandbox..."));
+
+            const sandboxId = await createSandbox({
+              apiClient: clusterApiClient,
+              shaTag: tag,
+              fromSandbox: argv.fromSandbox,
+              collectionPath: argv.path,
+              name: argv.name,
+              vmTier: argv.vmTier
+                ? VMTier.fromName(argv.vmTier)
+                : VMTier.fromName("Micro"),
+            });
+
+            return { sandboxId, filePaths, cluster };
+          } catch (error) {
+            spinner.fail(
+              updateSpinnerMessage(
+                index,
+                error instanceof Error
+                  ? error.message
+                  : "Unknown error occurred"
+              )
+            );
+            throw error;
+          }
+        })
+      );
+
+      const results = await Promise.allSettled(
+        sandboxes.map(async ({ sandboxId, filePaths, cluster }, index) => {
           const clusterApiClient: Client = createClient(
             createConfig({
               baseUrl: BASE_URL,
@@ -136,27 +184,7 @@ export const buildCommand: yargs.CommandModule<
             },
           });
 
-          let sandboxId: string | undefined;
-
           try {
-            const { hash, files: filePaths } = await hashDirectory(
-              argv.directory
-            );
-            const shortHash = hash.slice(0, 6);
-            const tag = `sha:${shortHash}-${slug}`;
-
-            spinner.start(updateSpinnerMessage(index, "Creating sandbox..."));
-            sandboxId = await createSandbox({
-              apiClient: clusterApiClient,
-              shaTag: tag,
-              fromSandbox: argv.fromSandbox,
-              collectionPath: argv.path,
-              name: argv.name,
-              vmTier: argv.vmTier
-                ? VMTier.fromName(argv.vmTier)
-                : VMTier.fromName("Micro"),
-            });
-
             spinner.start(
               updateSpinnerMessage(index, "Starting sandbox...", sandboxId)
             );
@@ -209,6 +237,7 @@ export const buildCommand: yargs.CommandModule<
                 ? VMTier.fromName(argv.vmTier)
                 : VMTier.fromName("Micro"),
             });
+
             session = await sandbox.connect();
 
             const disposableStore = new DisposableStore();
@@ -295,11 +324,7 @@ export const buildCommand: yargs.CommandModule<
             }
 
             spinner.start(
-              updateSpinnerMessage(
-                index,
-                "Creating memory snapshot...",
-                sandboxId
-              )
+              updateSpinnerMessage(index, "Creating snapshot...", sandboxId)
             );
             await sdk.sandboxes.hibernate(sandbox.id);
             spinner.start(
@@ -308,27 +333,75 @@ export const buildCommand: yargs.CommandModule<
 
             return sandbox.id;
           } catch (error) {
-            spinner.fail(
+            spinner.start(
               updateSpinnerMessage(
                 index,
-                error instanceof Error
-                  ? error.message
-                  : "Unknown error occurred",
+                "Failed, please manually verify at https://codesandbox.io/s/" +
+                  sandboxId,
                 sandboxId
               )
             );
+
             throw error;
           }
         })
       );
 
-      spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+      const failedSandboxes = sandboxes.filter(
+        (_, index) => results[index].status === "rejected"
+      );
+
+      if (failedSandboxes.length > 0) {
+        spinner.info(`\n${spinnerMessages.join("\n")}`);
+
+        await waitForEnter(
+          `\nThere was an issue preparing the sandboxes. Verify ${failedSandboxes
+            .map((sandbox) => sandbox.sandboxId)
+            .join(", ")} and press ENTER to create snapshot...\n`
+        );
+
+        failedSandboxes.forEach(({ sandboxId }) => {
+          updateSpinnerMessage(
+            sandboxes.findIndex((sandbox) => sandbox.sandboxId === sandboxId),
+            "Creating snapshot...",
+            sandboxId
+          );
+        });
+
+        spinner.start(`\n${spinnerMessages.join("\n")}`);
+
+        await Promise.all(
+          failedSandboxes.map(async ({ sandboxId, cluster }) => {
+            const sdk = new CodeSandbox(API_KEY, {
+              baseUrl: BASE_URL,
+              headers: {
+                "x-pitcher-manager-url": `https://${cluster}/api/v1`,
+              },
+            });
+
+            await sdk.sandboxes.hibernate(sandboxId);
+
+            spinner.start(
+              updateSpinnerMessage(
+                sandboxes.findIndex(
+                  (sandbox) => sandbox.sandboxId === sandboxId
+                ),
+                "Snapshot created",
+                sandboxId
+              )
+            );
+          })
+        );
+        spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+      } else {
+        spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+      }
 
       const data = handleResponse(
         await vmCreateTag({
           client: apiClient,
           body: {
-            vm_ids: sandboxIds,
+            vm_ids: sandboxes.map((sandbox) => sandbox.sandboxId),
           },
         }),
         "Failed to create template"
@@ -370,6 +443,20 @@ type CreateSandboxParams = {
   vmTier?: VMTier;
   ipcountry?: string;
 };
+
+function waitForEnter(message: string) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise<void>((resolve) => {
+    rl.question(message, () => {
+      rl.close();
+      resolve();
+    });
+  });
+}
 
 function createAlias(directory: string, alias: string) {
   const aliasParts = alias.split("@");

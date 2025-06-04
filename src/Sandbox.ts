@@ -144,6 +144,19 @@ export class Sandbox {
     return session;
   }
 
+  private getCustomEnv(customSession?: SessionCreateOptions) {
+    if (!customSession) {
+      return undefined;
+    }
+
+    return customSession.git
+      ? {
+          ...customSession.env,
+          GIT_CONFIG: "$HOME/private/.gitconfig",
+        }
+      : customSession.env;
+  }
+
   /**
    * Connects to the Sandbox using a WebSocket connection, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
    */
@@ -178,39 +191,48 @@ export class Sandbox {
 
     const session = await Session.create(agentClient, {
       username: customSession ? joinResult.client.username : undefined,
-      env: customSession?.env,
+      env: this.getCustomEnv(customSession),
       hostToken: customSession?.hostToken,
     });
 
     if (customSession?.git) {
-      const netrc = await session.commands.runBackground([
-        `mkdir -p ~/private`,
-        `cat > ~/private/.netrc <<EOF
-machine ${customSession.git.provider}
-login ${customSession.git.username || "x-access-token"}
-password ${customSession.git.accessToken}
-EOF`,
-        `chmod 600 ~/private/.netrc`,
-        `cd ~`,
-        `ln -sfn private/.netrc .netrc`,
-      ]);
-      netrc.onOutput(console.log);
-      console.log(await netrc.open());
-      await netrc.waitUntilComplete();
+      try {
+        await session.fs.mkdir("/root/private");
+      } catch {}
 
-      const config = await session.commands.runBackground([
-        `cat > ~/private/.gitconfig <<EOF
-[user]
+      await Promise.all([
+        session.fs.writeTextFile(
+          "/root/private/.gitcredentials",
+          `https://${customSession.git.username || "x-access-token"}:${
+            customSession.git.accessToken
+          }@${customSession.git.provider}\n`,
+          {
+            create: true,
+            overwrite: true,
+          }
+        ),
+        session.fs.writeTextFile(
+          "/root/private/.gitconfig",
+          `[user]
     name  = ${customSession.git.name || customSession.id}
     email = ${customSession.git.email}
-EOF`,
-        `chmod 600 ~/private/.gitconfig`,
-        `cd "~"`,
-        `ln -sfn private/.gitconfig .gitconfig`,
+[credential]
+    helper = store --file ~/private/.gitcredentials`,
+          {
+            create: true,
+            overwrite: true,
+          }
+        ),
       ]);
-      config.onOutput(console.log);
-      console.log(await config.open());
-      await config.waitUntilComplete();
+    }
+
+    return session;
+  }
+
+  /**
+   * Returns a browser session connected to this Sandbox, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
+        }\n[credential]\n    helper = store --file ~/private/.gitcredentials\n"`
+      );
     }
 
     return session;
@@ -228,7 +250,7 @@ EOF`,
 
     return {
       id: this.id,
-      env: customSession?.env,
+      env: this.getCustomEnv(customSession),
       sessionId: customSession?.id,
       hostToken: customSession?.hostToken,
       bootupType: this.bootupType,
