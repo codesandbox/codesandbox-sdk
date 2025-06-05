@@ -154,6 +154,7 @@ export class Sandboxes {
       try {
         await this.shutdown(sandboxId);
         didRestart = true;
+        break;
       } catch (e) {
         await sleep(500);
       }
@@ -168,6 +169,7 @@ export class Sandboxes {
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         startResponse = await startVm(this.apiClient, sandboxId, opts);
+        break;
       } catch (e) {
         await sleep(500);
       }
