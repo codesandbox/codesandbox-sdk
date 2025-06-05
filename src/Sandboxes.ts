@@ -71,7 +71,11 @@ export class Sandboxes {
     const templateId = opts?.id || this.defaultTemplateId;
     const privacy = opts?.privacy || "unlisted";
     const tags = opts?.tags || ["sdk"];
-    const path = opts?.path || "/SDK";
+    let path = opts?.path || "/SDK";
+
+    if (!path.startsWith("/")) {
+      path = "/" + path;
+    }
 
     // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
     const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
