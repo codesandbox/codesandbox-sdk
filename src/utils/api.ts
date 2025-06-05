@@ -56,7 +56,8 @@ export function getDefaultTemplateTag(apiClient: Client): string {
     return "7ngcrf";
   }
 
-  return "pt_LAVK5kxK8XciqgV2642xRk";
+  // Universal template created 2025-06-05
+  return "universal@latest";
 }
 
 export function getDefaultTemplateId(apiClient: Client): string {
