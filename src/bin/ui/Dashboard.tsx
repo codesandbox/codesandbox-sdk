@@ -25,13 +25,23 @@ export function Dashboard() {
   const runningVmsQuery = useQuery({
     queryKey: ["runningVms"],
     queryFn: getRunningVms,
-    refetchInterval: 2000, // Poll every 2 seconds
   });
 
   const [sandboxId, setSandboxId] = useState("");
   const [showSandbox, setShowSandbox] = useState(false);
   const [isFocused, setIsFocused] = useState(true);
   const [stdoutWidth, stdoutHeight] = useTerminalSize();
+
+  useEffect(() => {
+    // have to manually do this because of environment
+    const interval = setInterval(() => {
+      runningVmsQuery.refetch();
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
 
   useInput((input, key) => {
     if (!showSandbox) {
@@ -49,7 +59,7 @@ export function Dashboard() {
   });
 
   if (showSandbox) {
-    const state = runningVmsQuery.isFetching
+    const state = runningVmsQuery.isLoading
       ? "PENDING"
       : runningVmsQuery.data?.vms.find((vm) => vm.id === sandboxId)
       ? "RUNNING"

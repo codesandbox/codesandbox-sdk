@@ -9,7 +9,12 @@ import { hostTokensCommand } from "./commands/hostTokens";
 import { Dashboard } from "./ui/Dashboard";
 import React from "react";
 import { SDKProvider } from "./ui/sdkContext";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  focusManager,
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 
 if (process.argv.length === 2) {
   // Clear the screen before rendering the dashboard
