@@ -32,27 +32,48 @@ export async function startVm(
   sandboxId: string,
   startOpts?: StartSandboxOpts
 ): Promise<PitcherManagerResponse> {
-  const startResult = await vmStart({
-    client: apiClient,
-    body: startOpts
-      ? {
-          ipcountry: startOpts.ipcountry,
-          tier: startOpts.vmTier?.name,
-          hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
-          automatic_wakeup_config: startOpts.automaticWakeupConfig,
-        }
-      : undefined,
-    path: {
-      id: sandboxId,
-    },
-  });
+  // 2 minutes is the configuration for the API and Manager
+  const TIMEOUT_SECONDS = 120;
+  const controller = new AbortController();
+  const signal = controller.signal;
+  const timeoutHandle = setTimeout(() => {
+    controller.abort();
+  }, TIMEOUT_SECONDS * 1000);
 
-  const response = handleResponse(
-    startResult,
-    `Failed to start sandbox ${sandboxId}`
-  );
+  try {
+    const startResult = await vmStart({
+      client: apiClient,
+      body: startOpts
+        ? {
+            ipcountry: startOpts.ipcountry,
+            tier: startOpts.vmTier?.name,
+            hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
+            automatic_wakeup_config: startOpts.automaticWakeupConfig,
+          }
+        : undefined,
+      path: {
+        id: sandboxId,
+      },
+      signal,
+    });
 
-  return getStartResponse(response);
+    const response = handleResponse(
+      startResult,
+      `Failed to start sandbox ${sandboxId}`
+    );
+
+    return getStartResponse(response);
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(
+        `Request took longer than ${TIMEOUT_SECONDS}s, so we aborted.`
+      );
+    }
+
+    throw err;
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
 }
 
 /**

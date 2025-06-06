@@ -150,10 +150,7 @@ export class Sandbox {
     }
 
     return customSession.git
-      ? {
-          ...customSession.env,
-          GIT_CONFIG: "$HOME/private/.gitconfig",
-        }
+      ? { GIT_CONFIG: "$HOME/private/.gitconfig", ...customSession.env }
       : customSession.env;
   }
 
@@ -216,6 +213,8 @@ export class Sandbox {
           `[user]
     name  = ${customSession.git.name || customSession.id}
     email = ${customSession.git.email}
+[init]
+    defaultBranch = main
 [credential]
     helper = store --file ~/private/.gitcredentials`,
           {
