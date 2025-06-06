@@ -27,10 +27,13 @@ export class Tasks {
    */
   async getAll(): Promise<Task[]> {
     if (!this.cachedTasks) {
-      const tasks = await this.agentClient.tasks.getTasks();
+      const [tasks, ports] = await Promise.all([
+        this.agentClient.tasks.getTasks(),
+        this.agentClient.ports.getPorts(),
+      ]);
 
       this.cachedTasks = Object.values(tasks.tasks).map(
-        (task) => new Task(this.agentClient, task)
+        (task) => new Task(this.agentClient, task, ports)
       );
     }
 
@@ -78,6 +81,15 @@ export class Task {
     return Boolean(this.data.runAtStart);
   }
   get ports() {
+    const configuredPort = this.data.preview?.port;
+
+    // If we have configured a specific port, we only return that port. This is used where
+    // the environment is not able to assign port automatically (e.g. Next JS)
+    if (configuredPort) {
+      return this._ports.filter((port) => port.port === configuredPort);
+    }
+
+    // Otherwise, we return the ports assigned to the task
     return this.data.ports;
   }
   get status() {
@@ -85,52 +97,66 @@ export class Task {
   }
   constructor(
     private agentClient: IAgentClient,
-    private data: protocol.task.TaskDTO
+    private data: protocol.task.TaskDTO,
+    private _ports: protocol.port.Port[]
   ) {
-    agentClient.tasks.onTaskUpdate(async (task) => {
-      if (task.id !== this.id) {
-        return;
-      }
+    this.disposable.addDisposable(
+      agentClient.ports.onPortsUpdated((ports) => {
+        this._ports = ports;
+      })
+    );
+    this.disposable.addDisposable(
+      agentClient.tasks.onTaskUpdate(async (task) => {
+        if (task.id !== this.id) {
+          return;
+        }
 
-      const lastStatus = this.status;
-      const lastShellId = this.shell?.shellId;
+        const lastStatus = this.status;
+        const lastShellId = this.shell?.shellId;
 
-      this.data = task;
+        this.data = task;
 
-      if (lastStatus !== this.status) {
-        this.onStatusChangeEmitter.fire(this.status);
-      }
+        if (lastStatus !== this.status) {
+          this.onStatusChangeEmitter.fire(this.status);
+        }
 
-      if (
-        this.openedShell &&
-        task.shell &&
-        task.shell.shellId !== lastShellId
-      ) {
-        const openedShell = await this.agentClient.shells.open(
-          task.shell.shellId,
-          this.openedShell.dimensions
-        );
+        if (
+          this.openedShell &&
+          task.shell &&
+          task.shell.shellId !== lastShellId
+        ) {
+          const openedShell = await this.agentClient.shells.open(
+            task.shell.shellId,
+            this.openedShell.dimensions
+          );
 
-        this.openedShell = {
-          shellId: openedShell.shellId,
-          output: openedShell.buffer,
-          dimensions: this.openedShell.dimensions,
-        };
+          this.openedShell = {
+            shellId: openedShell.shellId,
+            output: openedShell.buffer,
+            dimensions: this.openedShell.dimensions,
+          };
 
-        this.onOutputEmitter.fire("\x1B[2J\x1B[3J\x1B[1;1H");
-        openedShell.buffer.forEach((out) => this.onOutputEmitter.fire(out));
-      }
-    });
+          this.onOutputEmitter.fire("\x1B[2J\x1B[3J\x1B[1;1H");
+          openedShell.buffer.forEach((out) => this.onOutputEmitter.fire(out));
+        }
+      })
+    );
 
-    this.agentClient.shells.onShellOut(({ shellId, out }) => {
-      if (!this.shell || this.shell.shellId !== shellId || !this.openedShell) {
-        return;
-      }
+    this.disposable.addDisposable(
+      this.agentClient.shells.onShellOut(({ shellId, out }) => {
+        if (
+          !this.shell ||
+          this.shell.shellId !== shellId ||
+          !this.openedShell
+        ) {
+          return;
+        }
 
-      // Update output for shell
-      this.openedShell.output.push(out);
-      this.onOutputEmitter.fire(out);
-    });
+        // Update output for shell
+        this.openedShell.output.push(out);
+        this.onOutputEmitter.fire(out);
+      })
+    );
   }
   async open(dimensions = DEFAULT_SHELL_SIZE) {
     if (!this.shell) {
@@ -169,6 +195,7 @@ export class Task {
             resolve(task.ports[0]);
           }
         });
+        this.disposable.addDisposable(disposer);
       }),
       new Promise<protocol.port.Port>((resolve, reject) => {
         setTimeout(() => {
@@ -190,5 +217,8 @@ export class Task {
     if (this.shell) {
       await this.agentClient.tasks.stopTask(this.id);
     }
+  }
+  dispose() {
+    this.disposable.dispose();
   }
 }

@@ -372,61 +372,56 @@ export const buildCommand: yargs.CommandModule<
         }
       );
 
-      if (argv.ci) {
-        await Promise.all(tasks);
-        spinner.succeed(`\n${spinnerMessages.join("\n")}`);
-      } else {
-        const results = await Promise.allSettled(tasks);
+      const results = await Promise.allSettled(tasks);
 
-        const failedSandboxes = sandboxes.filter(
-          (_, index) => results[index].status === "rejected"
+      const failedSandboxes = sandboxes.filter(
+        (_, index) => results[index].status === "rejected"
+      );
+
+      if (failedSandboxes.length > 0) {
+        spinner.info(`\n${spinnerMessages.join("\n")}`);
+
+        await waitForEnter(
+          `\nThere was an issue preparing the sandboxes. Verify ${failedSandboxes
+            .map((sandbox) => sandbox.sandboxId)
+            .join(", ")} and press ENTER to create snapshot...\n`
         );
 
-        if (failedSandboxes.length > 0) {
-          spinner.info(`\n${spinnerMessages.join("\n")}`);
-
-          await waitForEnter(
-            `\nThere was an issue preparing the sandboxes. Verify ${failedSandboxes
-              .map((sandbox) => sandbox.sandboxId)
-              .join(", ")} and press ENTER to create snapshot...\n`
+        failedSandboxes.forEach(({ sandboxId }) => {
+          updateSpinnerMessage(
+            sandboxes.findIndex((sandbox) => sandbox.sandboxId === sandboxId),
+            "Creating snapshot...",
+            sandboxId
           );
+        });
 
-          failedSandboxes.forEach(({ sandboxId }) => {
-            updateSpinnerMessage(
-              sandboxes.findIndex((sandbox) => sandbox.sandboxId === sandboxId),
-              "Creating snapshot...",
-              sandboxId
+        spinner.start(`\n${spinnerMessages.join("\n")}`);
+
+        await Promise.all(
+          failedSandboxes.map(async ({ sandboxId, cluster }) => {
+            const sdk = new CodeSandbox(API_KEY, {
+              baseUrl: BASE_URL,
+              headers: {
+                "x-pitcher-manager-url": `https://${cluster}/api/v1`,
+              },
+            });
+
+            await sdk.sandboxes.hibernate(sandboxId);
+
+            spinner.start(
+              updateSpinnerMessage(
+                sandboxes.findIndex(
+                  (sandbox) => sandbox.sandboxId === sandboxId
+                ),
+                "Snapshot created",
+                sandboxId
+              )
             );
-          });
-
-          spinner.start(`\n${spinnerMessages.join("\n")}`);
-
-          await Promise.all(
-            failedSandboxes.map(async ({ sandboxId, cluster }) => {
-              const sdk = new CodeSandbox(API_KEY, {
-                baseUrl: BASE_URL,
-                headers: {
-                  "x-pitcher-manager-url": `https://${cluster}/api/v1`,
-                },
-              });
-
-              await sdk.sandboxes.hibernate(sandboxId);
-
-              spinner.start(
-                updateSpinnerMessage(
-                  sandboxes.findIndex(
-                    (sandbox) => sandbox.sandboxId === sandboxId
-                  ),
-                  "Snapshot created",
-                  sandboxId
-                )
-              );
-            })
-          );
-          spinner.succeed(`\n${spinnerMessages.join("\n")}`);
-        } else {
-          spinner.succeed(`\n${spinnerMessages.join("\n")}`);
-        }
+          })
+        );
+        spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+      } else {
+        spinner.succeed(`\n${spinnerMessages.join("\n")}`);
       }
 
       const data = handleResponse(
