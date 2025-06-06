@@ -62,8 +62,6 @@ export class Commands {
       commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
     }
 
-    console.log("WTF", commandWithEnv);
-
     const shell = await this.agentClient.shells.create(
       this.agentClient.workspacePath,
       opts?.dimensions ?? DEFAULT_SHELL_SIZE,
