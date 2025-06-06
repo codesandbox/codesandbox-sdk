@@ -145,15 +145,7 @@ export class Sandbox {
   }
 
   private getCustomEnv(customSession?: SessionCreateOptions) {
-    if (!customSession) {
-      return undefined;
-    }
-
-    return customSession.git
-      ? {
-          ...customSession.env,
-        }
-      : customSession.env;
+    return customSession?.env;
   }
 
   /**
