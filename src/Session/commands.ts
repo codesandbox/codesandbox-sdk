@@ -55,12 +55,14 @@ export class Commands {
     let commandWithEnv = Object.keys(allEnv).length
       ? `env ${Object.entries(allEnv)
           .map(([key, value]) => `${key}=${value}`)
-          .join(" ")} ${command}`
+          .join(" ")} bash -c '${command}'`
       : command;
 
     if (opts?.cwd) {
       commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
     }
+
+    console.log("WTF", commandWithEnv);
 
     const shell = await this.agentClient.shells.create(
       this.agentClient.workspacePath,
