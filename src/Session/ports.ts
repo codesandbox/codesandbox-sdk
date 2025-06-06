@@ -1,8 +1,6 @@
-import type { IPitcherClient } from "@codesandbox/pitcher-client";
-
-import { Disposable } from "../../utils/disposable";
-import { Emitter } from "../../utils/event";
-import { HostToken } from "../../Hosts";
+import { Disposable } from "../utils/disposable";
+import { Emitter } from "../utils/event";
+import { IAgentClient } from "../agent-client-interface";
 
 export type Port = {
   host: string;
@@ -28,18 +26,20 @@ export class Ports {
 
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient
+    private agentClient: IAgentClient
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
     });
 
-    pitcherClient.clients.port.getPorts().forEach((port) => {
-      this.lastOpenedPorts.add(port.port);
+    agentClient.ports.getPorts().then((ports) => {
+      ports.forEach((port) => {
+        this.lastOpenedPorts.add(port.port);
+      });
     });
 
     this.disposable.addDisposable(
-      pitcherClient.clients.port.onPortsUpdated((ports) => {
+      agentClient.ports.onPortsUpdated((ports) => {
         const openedPorts = ports.filter(
           (port) => !this.lastOpenedPorts.has(port.port)
         );
@@ -71,17 +71,19 @@ export class Ports {
   /**
    * Get a port by number.
    */
-  get(port: number) {
-    return this.getAll().find((p) => p.port === port);
+  async get(port: number) {
+    const ports = await this.getAll();
+
+    return ports.find((p) => p.port === port);
   }
 
   /**
    * Get all ports.
    */
-  getAll(): Port[] {
-    return this.pitcherClient.clients.port
-      .getPorts()
-      .map(({ port, url }) => ({ port, host: url }));
+  async getAll(): Promise<Port[]> {
+    const ports = await this.agentClient.ports.getPorts();
+
+    return ports.map(({ port, url }) => ({ port, host: url }));
   }
 
   /**
@@ -97,11 +99,9 @@ export class Ports {
     port: number,
     options?: { timeoutMs?: number }
   ): Promise<Port> {
-    await this.pitcherClient.clients.port.readyPromise;
-
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       // Check if port is already open
-      const portInfo = this.getAll().find((p) => p.port === port);
+      const portInfo = (await this.getAll()).find((p) => p.port === port);
 
       if (portInfo) {
         resolve(portInfo);

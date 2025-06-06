@@ -43,7 +43,11 @@ export class HostTokens extends Disposable {
     port: number,
     protocol: string = "https"
   ): string {
-    return `${protocol}://${token.sandboxId}-${port}.csb.app?preview_token=${token.token}`;
+    const domain = this.apiClient.getConfig().baseUrl?.includes(".stream")
+      ? "csb.dev"
+      : "csb.app";
+
+    return `${protocol}://${token.sandboxId}-${port}.${domain}?preview_token=${token.token}`;
   }
 
   /**

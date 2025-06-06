@@ -1,7 +1,8 @@
-import type { protocol, IPitcherClient } from "@codesandbox/pitcher-client";
-import { Barrier, DisposableStore } from "@codesandbox/pitcher-common";
-import { Disposable } from "../../utils/disposable";
-import { Emitter } from "../../utils/event";
+import { Disposable, DisposableStore } from "../utils/disposable";
+import { Emitter } from "../utils/event";
+import { IAgentClient } from "../agent-client-interface";
+import * as protocol from "@codesandbox/pitcher-protocol";
+import { Barrier } from "../utils/barrier";
 
 type ShellSize = { cols: number; rows: number };
 
@@ -30,7 +31,7 @@ export class Commands {
   private disposable = new Disposable();
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient,
+    private agentClient: IAgentClient,
     private env: Record<string, string> = {}
   ) {
     sessionDisposable.onWillDispose(() => {
@@ -54,15 +55,15 @@ export class Commands {
     let commandWithEnv = Object.keys(allEnv).length
       ? `env ${Object.entries(allEnv)
           .map(([key, value]) => `${key}=${value}`)
-          .join(" ")} ${command}`
+          .join(" ")} bash -c '${command}'`
       : command;
 
     if (opts?.cwd) {
       commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
     }
 
-    const shell = await this.pitcherClient.clients.shell.create(
-      this.pitcherClient.workspacePath,
+    const shell = await this.agentClient.shells.create(
+      this.agentClient.workspacePath,
       opts?.dimensions ?? DEFAULT_SHELL_SIZE,
       commandWithEnv,
       opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
@@ -81,7 +82,7 @@ export class Commands {
 
     if (shell.status !== "FINISHED") {
       // Only way for us to differentiate between a command and a terminal
-      this.pitcherClient.clients.shell.rename(
+      this.agentClient.shells.rename(
         shell.shellId,
         // We embed some details in the name to properly show the command that was run
         // , the name and that it is an actual command
@@ -90,7 +91,7 @@ export class Commands {
     }
 
     const cmd = new Command(
-      this.pitcherClient,
+      this.agentClient,
       shell as protocol.shell.CommandShellDTO,
       details
     );
@@ -110,16 +111,15 @@ export class Commands {
   /**
    * Get all running commands.
    */
-  getAll(): Command[] {
-    const shells = this.pitcherClient.clients.shell.getShells();
+  async getAll(): Promise<Command[]> {
+    const shells = await this.agentClient.shells.getShells();
 
     return shells
       .filter(
         (shell) => shell.shellType === "TERMINAL" && isCommandShell(shell)
       )
       .map(
-        (shell) =>
-          new Command(this.pitcherClient, shell, JSON.parse(shell.name))
+        (shell) => new Command(this.agentClient, shell, JSON.parse(shell.name))
       );
   }
 }
@@ -186,7 +186,7 @@ export class Command {
   name?: string;
 
   constructor(
-    private pitcherClient: IPitcherClient,
+    private agentClient: IAgentClient,
     private shell: protocol.shell.ShellDTO & { buffer?: string[] },
     details: { command: string; name?: string }
   ) {
@@ -194,7 +194,7 @@ export class Command {
     this.name = details.name;
 
     this.disposable.addDisposable(
-      pitcherClient.clients.shell.onShellExited(({ shellId, exitCode }) => {
+      agentClient.shells.onShellExited(({ shellId, exitCode }) => {
         if (shellId === this.shell.shellId) {
           this.status = exitCode === 0 ? "FINISHED" : "ERROR";
           this.barrier.open();
@@ -203,7 +203,7 @@ export class Command {
     );
 
     this.disposable.addDisposable(
-      pitcherClient.clients.shell.onShellTerminated(({ shellId }) => {
+      agentClient.shells.onShellTerminated(({ shellId }) => {
         if (shellId === this.shell.shellId) {
           this.status = "KILLED";
           this.barrier.open();
@@ -212,7 +212,7 @@ export class Command {
     );
 
     this.disposable.addDisposable(
-      this.pitcherClient.clients.shell.onShellOut(({ shellId, out }) => {
+      this.agentClient.shells.onShellOut(({ shellId, out }) => {
         if (shellId !== this.shell.shellId || out.startsWith("[CODESANDBOX]")) {
           return;
         }
@@ -231,7 +231,7 @@ export class Command {
    * Open the command and get its current output, subscribes to future output
    */
   async open(dimensions = DEFAULT_SHELL_SIZE): Promise<string> {
-    const shell = await this.pitcherClient.clients.shell.open(
+    const shell = await this.agentClient.shells.open(
       this.shell.shellId,
       dimensions
     );
@@ -260,7 +260,7 @@ export class Command {
    */
   async kill(): Promise<void> {
     this.disposable.dispose();
-    await this.pitcherClient.clients.shell.delete(this.shell.shellId);
+    await this.agentClient.shells.delete(this.shell.shellId);
   }
 
   /**
@@ -271,6 +271,6 @@ export class Command {
       throw new Error("Command is not running");
     }
 
-    await this.pitcherClient.clients.shell.restart(this.shell.shellId);
+    await this.agentClient.shells.restart(this.shell.shellId);
   }
 }

@@ -16,45 +16,64 @@ import {
 } from "./utils/api";
 
 import {
-  CreateSandboxGitSourceOpts,
   CreateSandboxOpts,
-  CreateSandboxTemplateSourceOpts,
   PaginationOpts,
   SandboxInfo,
   SandboxListOpts,
   SandboxListResponse,
   SandboxPrivacy,
   StartSandboxOpts,
-  SessionCreateOptions,
 } from "./types";
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
+import { sleep } from "./utils/sleep";
 
 export async function startVm(
   apiClient: Client,
   sandboxId: string,
   startOpts?: StartSandboxOpts
 ): Promise<PitcherManagerResponse> {
-  const startResult = await vmStart({
-    client: apiClient,
-    body: startOpts
-      ? {
-          ipcountry: startOpts.ipcountry,
-          tier: startOpts.vmTier?.name,
-          hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
-          automatic_wakeup_config: startOpts.automaticWakeupConfig,
-        }
-      : undefined,
-    path: {
-      id: sandboxId,
-    },
-  });
+  // 2 minutes is the configuration for the API and Manager
+  const TIMEOUT_SECONDS = 120;
+  const controller = new AbortController();
+  const signal = controller.signal;
+  const timeoutHandle = setTimeout(() => {
+    controller.abort();
+  }, TIMEOUT_SECONDS * 1000);
 
-  const response = handleResponse(
-    startResult,
-    `Failed to start sandbox ${sandboxId}`
-  );
+  try {
+    const startResult = await vmStart({
+      client: apiClient,
+      body: startOpts
+        ? {
+            ipcountry: startOpts.ipcountry,
+            tier: startOpts.vmTier?.name,
+            hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
+            automatic_wakeup_config: startOpts.automaticWakeupConfig,
+          }
+        : undefined,
+      path: {
+        id: sandboxId,
+      },
+      signal,
+    });
 
-  return getStartResponse(response);
+    const response = handleResponse(
+      startResult,
+      `Failed to start sandbox ${sandboxId}`
+    );
+
+    return getStartResponse(response);
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(
+        `Request took longer than ${TIMEOUT_SECONDS}s, so we aborted.`
+      );
+    }
+
+    throw err;
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
 }
 
 /**
@@ -67,54 +86,17 @@ export class Sandboxes {
 
   constructor(private apiClient: Client) {}
 
-  private async createGitSandbox(
-    opts: CreateSandboxGitSourceOpts & StartSandboxOpts
-  ) {
-    const sandbox = await this.createTemplateSandbox({
-      ...opts,
-      source: "template",
-      id: opts.templateId || this.defaultTemplateId,
-    });
-
-    // We do not want users to pass gitAccessToken on global user, because it
-    // can be read by other users
-    const sessionCreateOptions: SessionCreateOptions = {
-      id: "clone-repo-user",
-      permission: "write",
-    };
-    if (opts.config) {
-      sessionCreateOptions.git = {
-        accessToken: opts.config.accessToken,
-        email: opts.config.email,
-        name: opts.config.name,
-      };
-    }
-
-    const session = await sandbox.connect(sessionCreateOptions);
-
-    await session.commands.run([
-      "rm -rf .git",
-      "git init",
-      `git remote add origin ${opts.url}`,
-      "git fetch origin",
-      `git checkout -b ${opts.branch}`,
-      `git reset --hard origin/${opts.branch}`,
-    ]);
-
-    await opts.setup?.(session);
-
-    session.disconnect();
-
-    return sandbox;
-  }
-
   private async createTemplateSandbox(
-    opts: CreateSandboxTemplateSourceOpts & StartSandboxOpts
+    opts?: CreateSandboxOpts & StartSandboxOpts
   ) {
-    const templateId = opts.id || this.defaultTemplateId;
-    const privacy = opts.privacy || "unlisted";
-    const tags = opts.tags || ["sdk"];
-    const path = opts.path || "/SDK";
+    const templateId = opts?.id || this.defaultTemplateId;
+    const privacy = opts?.privacy || "unlisted";
+    const tags = opts?.tags || ["sdk"];
+    let path = opts?.path || "/SDK";
+
+    if (!path.startsWith("/")) {
+      path = "/" + path;
+    }
 
     // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
     const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
@@ -175,7 +157,6 @@ export class Sandboxes {
    */
   public async fork(sandboxId: string, opts?: StartSandboxOpts) {
     return this.create({
-      source: "template",
       id: sandboxId,
       ...opts,
     });
@@ -188,8 +169,36 @@ export class Sandboxes {
    * Will resolve once the sandbox is restarted with its setup running.
    */
   public async restart(sandboxId: string, opts?: StartSandboxOpts) {
-    await this.shutdown(sandboxId);
-    const startResponse = await startVm(this.apiClient, sandboxId, opts);
+    let didRestart = false;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await this.shutdown(sandboxId);
+        didRestart = true;
+        break;
+      } catch (e) {
+        await sleep(500);
+      }
+    }
+
+    if (!didRestart) {
+      throw new Error("Failed to shutdown VM after 3 attempts");
+    }
+
+    let startResponse: PitcherManagerResponse | undefined;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        startResponse = await startVm(this.apiClient, sandboxId, opts);
+        break;
+      } catch (e) {
+        await sleep(500);
+      }
+    }
+
+    if (!startResponse) {
+      throw new Error("Failed to start VM after 3 attempts");
+    }
 
     return new Sandbox(sandboxId, this.apiClient, startResponse);
   }
@@ -210,22 +219,10 @@ export class Sandboxes {
   }
 
   /**
-   * Create a sandbox from a template or git repository. By default we will create a sandbox from the default template.
+   * Create a sandbox from a template. By default we will create a sandbox from the default universal template.
    */
-  async create(
-    opts: CreateSandboxOpts & StartSandboxOpts = { source: "template" }
-  ): Promise<Sandbox> {
-    switch (opts.source) {
-      case "git": {
-        return this.createGitSandbox(opts);
-      }
-      case "template": {
-        return this.createTemplateSandbox(opts);
-      }
-      default: {
-        throw new Error("Invalid source");
-      }
-    }
+  async create(opts?: CreateSandboxOpts & StartSandboxOpts): Promise<Sandbox> {
+    return this.createTemplateSandbox(opts);
   }
 
   /**

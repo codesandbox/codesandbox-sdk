@@ -18,9 +18,13 @@ import {
 } from "./api-clients/client";
 import { handleResponse } from "./utils/api";
 import { VMTier } from "./VMTier";
-import { WebSocketSession } from "./sessions/WebSocketSession";
-import { RestSession } from "./sessions/RestSession";
-import { startVm } from "./Sandboxes";
+import { version } from "@codesandbox/pitcher-protocol";
+import { AgentConnection } from "./NodeAgentClient/AgentConnection";
+import { Session } from "./Session";
+import { NodeAgentClient } from "./NodeAgentClient";
+
+// Timeout for detecting a pong response, leading to a forced disconnect
+let PONG_DETECTION_TIMEOUT = 15_000;
 
 export class Sandbox {
   /**
@@ -140,92 +144,81 @@ export class Sandbox {
     return session;
   }
 
-  /**
-   * Connects to the Sandbox using a WebSocket connection, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
-   */
-  async connect(
-    customSession?: SessionCreateOptions
-  ): Promise<WebSocketSession> {
-    let hasConnected = false;
-    const session = customSession
-      ? await this.createSession(customSession)
-      : this.globalSession;
-
-    const pitcherClient = await initPitcherClient(
-      {
-        appId: "sdk",
-        instanceId: this.id,
-        onFocusChange() {
-          return () => {};
-        },
-        requestPitcherInstance: async () => {
-          // If we reconnect we have to resume the Sandbox and get new session details
-          if (hasConnected) {
-            this.pitcherManagerResponse = await startVm(
-              this.apiClient,
-              this.id
-            );
-          }
-
-          const headers = this.apiClient.getConfig().headers as Headers;
-
-          if (headers.get("x-pitcher-manager-url")) {
-            // This is a hack, we need to tell the global scheduler that the VM is running
-            // in a different cluster than the one it'd like to default to.
-
-            const preferredManager = headers
-              .get("x-pitcher-manager-url")
-              ?.replace("/api/v1", "")
-              .replace("https://", "");
-            const baseUrl = this.apiClient
-              .getConfig()
-              .baseUrl?.replace("api", "global-scheduler");
-
-            await fetch(
-              `${baseUrl}/api/v1/cluster/${session.sandboxId}?preferredManager=${preferredManager}`
-            ).then((res) => res.json());
-          }
-
-          hasConnected = true;
-
-          return {
-            bootupType: this.bootupType,
-            pitcherURL: session.pitcherUrl,
-            workspacePath: session.userWorkspacePath,
-            userWorkspacePath: session.userWorkspacePath,
-            pitcherManagerVersion:
-              this.pitcherManagerResponse.pitcherManagerVersion,
-            pitcherVersion: this.pitcherManagerResponse.pitcherVersion,
-            latestPitcherVersion:
-              this.pitcherManagerResponse.latestPitcherVersion,
-            pitcherToken: session.pitcherToken,
-            cluster: this.cluster,
-          };
-        },
-        subscriptions: DEFAULT_SUBSCRIPTIONS,
-      },
-      () => {}
-    );
-
-    return new WebSocketSession(pitcherClient, {
-      username: customSession
-        ? // @ts-ignore
-          pitcherClient["joinResult"].client.username
-        : undefined,
-      env: customSession?.env,
-      hostToken: customSession?.hostToken,
-    });
+  private getCustomEnv(customSession?: SessionCreateOptions) {
+    return customSession?.env;
   }
 
   /**
-   * Returns a REST API client connected to this Sandbox, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
+   * Connects to the Sandbox using a WebSocket connection, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
    */
-  async createRestSession(customSession?: SessionCreateOptions) {
-    const session = customSession
+  async connect(customSession?: SessionCreateOptions): Promise<Session> {
+    const sessionDetails = customSession
       ? await this.createSession(customSession)
       : this.globalSession;
+    const url = `${sessionDetails.pitcherUrl}/?token=${sessionDetails.pitcherToken}`;
 
-    return new RestSession(session);
+    const agentConnection = await AgentConnection.create(url);
+    const joinResult = await agentConnection.request({
+      method: "client/join",
+      params: {
+        clientInfo: {
+          protocolVersion: version,
+          appId: "sdk",
+        },
+        asyncProgress: true,
+        subscriptions: DEFAULT_SUBSCRIPTIONS,
+      },
+    });
+
+    // Now that we have initialized we set an appropriate timeout to more efficiently detect disconnects
+    agentConnection.connection.setPongDetectionTimeout(PONG_DETECTION_TIMEOUT);
+
+    const agentClient = new NodeAgentClient(this.apiClient, agentConnection, {
+      sandboxId: this.id,
+      workspacePath: sessionDetails.userWorkspacePath,
+      reconnectToken: joinResult.reconnectToken,
+      isUpToDate: this.isUpToDate,
+    });
+
+    const session = await Session.create(agentClient, {
+      username: customSession ? joinResult.client.username : undefined,
+      env: this.getCustomEnv(customSession),
+      hostToken: customSession?.hostToken,
+    });
+
+    if (customSession?.git) {
+      try {
+        await session.commands.run("mkdir -p $HOME/private");
+      } catch {}
+
+      await Promise.all([
+        session.commands.run(
+          `echo "https://${customSession.git.username || "x-access-token"}:${
+            customSession.git.accessToken
+          }@${customSession.git.provider}" > $HOME/private/.gitcredentials`
+        ),
+        session.commands.run(
+          `echo "[user]
+    name  = ${customSession.git.name || customSession.id}
+    email = ${customSession.git.email}
+[init]
+    defaultBranch = main
+[credential]
+    helper = store --file ~/private/.gitcredentials" > $HOME/.gitconfig`
+        ),
+      ]);
+    }
+
+    return session;
+  }
+
+  /**
+   * Returns a browser session connected to this Sandbox, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
+        }\n[credential]\n    helper = store --file ~/private/.gitcredentials\n"`
+      );
+    }
+
+    return session;
   }
 
   /**
@@ -240,7 +233,7 @@ export class Sandbox {
 
     return {
       id: this.id,
-      env: customSession?.env,
+      env: this.getCustomEnv(customSession),
       sessionId: customSession?.id,
       hostToken: customSession?.hostToken,
       bootupType: this.bootupType,

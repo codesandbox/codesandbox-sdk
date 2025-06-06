@@ -1,6 +1,6 @@
 import ora from "ora";
 import Table from "cli-table3";
-import { CodeSandbox } from "../../../";
+import { CodeSandbox } from "@codesandbox/sdk";
 
 function formatDate(date: Date): string {
   return date.toLocaleString();

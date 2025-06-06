@@ -8,12 +8,11 @@ export { VMTier } from "./VMTier";
 export * from "./Sandbox";
 export * from "./types";
 
-import { HostTokens } from "./Hosts";
+import { HostTokens } from "./HostTokens";
 import { createClient, createConfig } from "@hey-api/client-fetch";
 import { getBaseUrl } from "./utils/api";
 
-export * from "./sessions/WebSocketSession";
-export * from "./sessions/RestSession";
+export * from "./Session";
 
 function ensure<T>(value: T | undefined, message: string): T {
   if (!value) {

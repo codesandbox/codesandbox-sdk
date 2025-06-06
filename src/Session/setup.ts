@@ -1,17 +1,12 @@
-import {
-  Barrier,
-  type IPitcherClient,
-  type protocol,
-} from "@codesandbox/pitcher-client";
-
-import { Disposable } from "../../utils/disposable";
-import { Emitter } from "../../utils/event";
+import * as protocol from "@codesandbox/pitcher-protocol";
+import { Disposable } from "../utils/disposable";
+import { Emitter } from "../utils/event";
 import { DEFAULT_SHELL_SIZE } from "./terminals";
+import { IAgentClient } from "../agent-client-interface";
 
 export class Setup {
   private disposable = new Disposable();
-  private steps: Promise<Step[]>;
-  private setupProgress: protocol.setup.SetupProgress;
+  private steps: Step[];
   private readonly onSetupProgressChangeEmitter = this.disposable.addDisposable(
     new Emitter<void>()
   );
@@ -25,46 +20,14 @@ export class Setup {
   }
   constructor(
     sessionDisposable: Disposable,
-    private pitcherClient: IPitcherClient
+    private agentClient: IAgentClient,
+    private setupProgress: protocol.setup.SetupProgress
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
     });
-
-    // We have a race condition where we might not have the steps yet and need
-    // an event to tell us when they have started. But we might also have all the steps,
-    // where no new event will arrive. So we use a barrier to manage this
-    const initialStepsBarrier = new Barrier<Step[]>();
-
-    this.setupProgress = this.pitcherClient.clients.setup.getProgress();
-    this.steps = initialStepsBarrier
-      .wait()
-      .then((result) => (result.status === "resolved" ? result.value : []));
-
-    let hasInitializedSteps = Boolean(this.setupProgress.steps.length);
-
-    if (hasInitializedSteps) {
-      initialStepsBarrier.open(
-        this.setupProgress.steps.map(
-          (step, index) => new Step(index, step, pitcherClient)
-        )
-      );
-    }
-
-    this.disposable.addDisposable(
-      pitcherClient.clients.setup.onSetupProgressUpdate((progress) => {
-        if (!hasInitializedSteps) {
-          hasInitializedSteps = true;
-          initialStepsBarrier.open(
-            progress.steps.map(
-              (step, index) => new Step(index, step, pitcherClient)
-            )
-          );
-        }
-
-        this.setupProgress = progress;
-        this.onSetupProgressChangeEmitter.fire();
-      })
+    this.steps = this.setupProgress.steps.map(
+      (step, index) => new Step(index, step, agentClient)
     );
   }
 
@@ -73,7 +36,7 @@ export class Setup {
   }
 
   async run(): Promise<void> {
-    await this.pitcherClient.clients.setup.init();
+    await this.agentClient.setup.init();
   }
 
   async waitUntilComplete(): Promise<void> {
@@ -128,10 +91,10 @@ export class Step {
   constructor(
     stepIndex: number,
     private step: protocol.setup.Step,
-    private pitcherClient: IPitcherClient
+    private agentClient: IAgentClient
   ) {
     this.disposable.addDisposable(
-      this.pitcherClient.clients.setup.onSetupProgressUpdate((progress) => {
+      this.agentClient.setup.onSetupProgressUpdate((progress) => {
         const oldStep = this.step;
         const newStep = progress.steps[stepIndex];
 
@@ -147,7 +110,7 @@ export class Step {
       })
     );
     this.disposable.addDisposable(
-      this.pitcherClient.clients.shell.onShellOut(({ shellId, out }) => {
+      this.agentClient.shells.onShellOut(({ shellId, out }) => {
         if (shellId === this.step.shellId) {
           this.onOutputEmitter.fire(out);
 
@@ -162,10 +125,7 @@ export class Step {
 
   async open(dimensions = DEFAULT_SHELL_SIZE): Promise<string> {
     const open = async (shellId: protocol.shell.ShellId) => {
-      const shell = await this.pitcherClient.clients.shell.open(
-        shellId,
-        dimensions
-      );
+      const shell = await this.agentClient.shells.open(shellId, dimensions);
 
       this.output = shell.buffer;
 
