@@ -150,7 +150,9 @@ export class Sandbox {
     }
 
     return customSession.git
-      ? { GIT_CONFIG: "$HOME/private/.gitconfig", ...customSession.env }
+      ? {
+          ...customSession.env,
+        }
       : customSession.env;
   }
 
@@ -194,33 +196,23 @@ export class Sandbox {
 
     if (customSession?.git) {
       try {
-        await session.fs.mkdir("/root/private");
+        await session.commands.run("mkdir -p $HOME/private");
       } catch {}
 
       await Promise.all([
-        session.fs.writeTextFile(
-          "/root/private/.gitcredentials",
-          `https://${customSession.git.username || "x-access-token"}:${
+        session.commands.run(
+          `echo "https://${customSession.git.username || "x-access-token"}:${
             customSession.git.accessToken
-          }@${customSession.git.provider}\n`,
-          {
-            create: true,
-            overwrite: true,
-          }
+          }@${customSession.git.provider}" > $HOME/private/.gitcredentials`
         ),
-        session.fs.writeTextFile(
-          "/root/private/.gitconfig",
-          `[user]
+        session.commands.run(
+          `echo "[user]
     name  = ${customSession.git.name || customSession.id}
     email = ${customSession.git.email}
 [init]
     defaultBranch = main
 [credential]
-    helper = store --file ~/private/.gitcredentials`,
-          {
-            create: true,
-            overwrite: true,
-          }
+    helper = store --file ~/private/.gitcredentials" > $HOME/.gitconfig`
         ),
       ]);
     }

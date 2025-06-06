@@ -359,10 +359,12 @@ export const buildCommand: yargs.CommandModule<
             spinner.start(
               updateSpinnerMessage(
                 index,
-                "Failed, please manually verify at https://codesandbox.io/s/" +
-                  sandboxId +
-                  " - " +
-                  String(error),
+                argv.ci
+                  ? String(error)
+                  : "Failed, please manually verify at https://codesandbox.io/s/" +
+                      sandboxId +
+                      " - " +
+                      String(error),
                 sandboxId
               )
             );
@@ -378,7 +380,7 @@ export const buildCommand: yargs.CommandModule<
         (_, index) => results[index].status === "rejected"
       );
 
-      if (failedSandboxes.length > 0) {
+      if (!argv.ci && failedSandboxes.length > 0) {
         spinner.info(`\n${spinnerMessages.join("\n")}`);
 
         await waitForEnter(
