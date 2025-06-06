@@ -7,7 +7,6 @@ export async function forkSandbox(sandboxId: string) {
 
   const spinner = ora("Forking sandbox...").start();
   const sandbox2 = await sdk.sandboxes.create({
-    source: "template",
     id: sandboxId,
   });
   spinner.succeed("Sandbox forked successfully");
