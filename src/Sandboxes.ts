@@ -140,6 +140,7 @@ export class Sandboxes {
 
   /**
    * Forks a sandbox. This will create a new sandbox from the given sandbox.
+   * @deprecated This will be removed shortly to avoid having multiple ways of doing the same thing
    */
   public async fork(sandboxId: string, opts?: StartSandboxOpts) {
     return this.create({
