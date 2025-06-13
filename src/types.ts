@@ -1,7 +1,7 @@
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 import { VMTier } from "./VMTier";
 import { HostToken } from "./HostTokens";
-import { Session } from "./Session";
+import { Config } from "@hey-api/client-fetch";
 
 export interface SystemMetricsStatus {
   cpu: {
@@ -63,7 +63,7 @@ export interface ClientOpts {
    *
    * @default fetch
    */
-  fetch?: typeof fetch;
+  fetch?: Config["fetch"];
 
   /**
    * Additional headers to send with each request
@@ -174,13 +174,6 @@ export type CreateSandboxBaseOpts = {
   path?: string;
 };
 
-export type SandboxSessionData = {
-  id: string;
-  pitcher_token: string;
-  pitcher_url: string;
-  user_workspace_path: string;
-};
-
 export interface SessionCreateOptions {
   id: string;
   permission?: "read" | "write";
@@ -195,12 +188,11 @@ export interface SessionCreateOptions {
   hostToken?: HostToken;
 }
 
-export type SandboxSession = {
+export type SandboxSessionDTO = {
   sandboxId: string;
   pitcherToken: string;
   pitcherUrl: string;
   userWorkspacePath: string;
-  env?: Record<string, string>;
 };
 
 export type CreateSandboxOpts = CreateSandboxBaseOpts & {
@@ -216,12 +208,10 @@ export type SandboxOpts = {
   bootupType: PitcherManagerResponse["bootupType"];
   cluster: string;
   isUpToDate: boolean;
-  globalSession: SandboxSession;
 };
 
-export type SandboxBrowserSession = PitcherManagerResponse & {
-  id: string;
+export type SandboxSession = PitcherManagerResponse & {
+  sandboxId: string;
   sessionId?: string;
-  env?: Record<string, string>;
   hostToken?: HostToken;
 };

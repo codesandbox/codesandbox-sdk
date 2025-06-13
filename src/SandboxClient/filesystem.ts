@@ -1,4 +1,4 @@
-import { type IAgentClient } from "../agent-client-interface";
+import { type IAgentClient } from "../node/agent-client-interface";
 
 import { Disposable } from "../utils/disposable";
 import { Emitter, type Event } from "../utils/event";

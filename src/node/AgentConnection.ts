@@ -5,18 +5,17 @@ import {
   isResultPayload,
   decodeMessage,
   version,
-} from "@codesandbox/pitcher-protocol";
+} from "../pitcher-protocol";
 import type {
   PitcherNotification,
   PitcherRequest,
   PitcherResponse,
-} from "@codesandbox/pitcher-protocol";
+} from "../pitcher-protocol";
 
 import { PendingPitcherMessage } from "./PendingPitcherMessage";
 import { createWebSocketClient, WebSocketClient } from "./WebSocketClient";
-import { IAgentClientState } from "../agent-client-interface";
+import { IAgentClientState } from "./agent-client-interface";
 import { DEFAULT_SUBSCRIPTIONS } from "../types";
-import { startVm } from "../Sandboxes";
 import { Emitter } from "../utils/event";
 import { SliceList } from "../utils/sliceList";
 

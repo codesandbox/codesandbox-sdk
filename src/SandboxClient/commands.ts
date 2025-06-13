@@ -1,7 +1,7 @@
 import { Disposable, DisposableStore } from "../utils/disposable";
 import { Emitter } from "../utils/event";
-import { IAgentClient } from "../agent-client-interface";
-import * as protocol from "@codesandbox/pitcher-protocol";
+import { IAgentClient } from "../node/agent-client-interface";
+import * as protocol from "../pitcher-protocol";
 import { Barrier } from "../utils/barrier";
 
 type ShellSize = { cols: number; rows: number };
@@ -31,8 +31,7 @@ export class Commands {
   private disposable = new Disposable();
   constructor(
     sessionDisposable: Disposable,
-    private agentClient: IAgentClient,
-    private env: Record<string, string> = {}
+    private agentClient: IAgentClient
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
@@ -49,14 +48,16 @@ export class Commands {
 
     command = Array.isArray(command) ? command.join(" && ") : command;
 
-    const allEnv = Object.assign(this.env, opts?.env ?? {});
+    const allEnv = Object.assign(opts?.env ?? {});
 
     // TODO: use a new shell API that natively supports cwd & env
     let commandWithEnv = Object.keys(allEnv).length
-      ? `env ${Object.entries(allEnv)
+      ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
+          allEnv
+        )
           .map(([key, value]) => `${key}=${value}`)
           .join(" ")} bash -c '${command}'`
-      : command;
+      : `source $HOME/.private/.env 2>/dev/null || true && ${command}`;
 
     if (opts?.cwd) {
       commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;

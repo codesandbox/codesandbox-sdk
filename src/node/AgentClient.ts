@@ -7,7 +7,7 @@ import {
   setup,
   shell,
   task,
-} from "@codesandbox/pitcher-protocol";
+} from "../pitcher-protocol";
 import {
   IAgentClient,
   IAgentClientFS,
@@ -18,12 +18,10 @@ import {
   IAgentClientSystem,
   IAgentClientTasks,
   PickRawFsResult,
-} from "../agent-client-interface";
+} from "./agent-client-interface";
 import { AgentConnection } from "./AgentConnection";
-import { Client } from "@hey-api/client-fetch";
-import { startVm } from "../Sandboxes";
 import { Emitter } from "../utils/event";
-import { Id } from "@codesandbox/pitcher-client";
+import { SandboxSession } from "../types";
 
 class NodeAgentClientShells implements IAgentClientShells {
   private onShellExitedEmitter = new Emitter<{
@@ -414,7 +412,7 @@ export class NodeAgentClient implements IAgentClient {
   ports = new NodeAgentClientPorts(this.agentConnection);
 
   constructor(
-    private apiClient: Client,
+    private getSession: (sandboxId: string) => Promise<SandboxSession>,
     private agentConnection: AgentConnection,
     private params: {
       sandboxId: string;
@@ -433,9 +431,9 @@ export class NodeAgentClient implements IAgentClient {
   }
   async reconnect(): Promise<void> {
     await this.agentConnection.reconnect(this.reconnectToken, async () => {
-      const response = await startVm(this.apiClient, this.sandboxId);
+      const session = await this.getSession(this.params.sandboxId);
 
-      return response.pitcherToken;
+      return session.pitcherToken;
     });
   }
   dispose() {

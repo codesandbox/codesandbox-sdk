@@ -1,8 +1,8 @@
-import * as protocol from "@codesandbox/pitcher-protocol";
+import * as protocol from "../pitcher-protocol";
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 import { DEFAULT_SHELL_SIZE } from "./terminals";
-import { IAgentClient } from "../agent-client-interface";
+import { IAgentClient } from "../node/agent-client-interface";
 
 export class Setup {
   private disposable = new Disposable();
