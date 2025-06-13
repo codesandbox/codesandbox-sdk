@@ -13,6 +13,7 @@ import {
   getStartOptions,
   getStartResponse,
   handleResponse,
+  withCustomTimeout,
 } from "./utils/api";
 
 import {
@@ -32,16 +33,8 @@ export async function startVm(
   sandboxId: string,
   startOpts?: StartSandboxOpts
 ): Promise<PitcherManagerResponse> {
-  // 2 minutes is the configuration for the API and Manager
-  const TIMEOUT_SECONDS = 120;
-  const controller = new AbortController();
-  const signal = controller.signal;
-  const timeoutHandle = setTimeout(() => {
-    controller.abort();
-  }, TIMEOUT_SECONDS * 1000);
-
-  try {
-    const startResult = await vmStart({
+  const startResult = await withCustomTimeout((signal) =>
+    vmStart({
       client: apiClient,
       body: startOpts
         ? {
@@ -55,25 +48,15 @@ export async function startVm(
         id: sandboxId,
       },
       signal,
-    });
+    })
+  );
 
-    const response = handleResponse(
-      startResult,
-      `Failed to start sandbox ${sandboxId}`
-    );
+  const response = handleResponse(
+    startResult,
+    `Failed to start sandbox ${sandboxId}`
+  );
 
-    return getStartResponse(response);
-  } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      throw new Error(
-        `Request took longer than ${TIMEOUT_SECONDS}s, so we aborted.`
-      );
-    }
-
-    throw err;
-  } finally {
-    clearTimeout(timeoutHandle);
-  }
+  return getStartResponse(response);
 }
 
 /**
@@ -142,12 +125,15 @@ export class Sandboxes {
    * Shuts down a sandbox. Files will be saved, and the sandbox will be stopped.
    */
   async shutdown(sandboxId: string): Promise<void> {
-    const response = await vmShutdown({
-      client: this.apiClient,
-      path: {
-        id: sandboxId,
-      },
-    });
+    const response = await withCustomTimeout((signal) =>
+      vmShutdown({
+        client: this.apiClient,
+        path: {
+          id: sandboxId,
+        },
+        signal,
+      })
+    );
 
     handleResponse(response, `Failed to shutdown sandbox ${sandboxId}`);
   }
@@ -208,12 +194,15 @@ export class Sandboxes {
    * you resume the sandbox it will continue from the last state it was in.
    */
   async hibernate(sandboxId: string): Promise<void> {
-    const response = await vmHibernate({
-      client: this.apiClient,
-      path: {
-        id: sandboxId,
-      },
-    });
+    const response = await withCustomTimeout((signal) =>
+      vmHibernate({
+        client: this.apiClient,
+        path: {
+          id: sandboxId,
+        },
+        signal,
+      })
+    );
 
     handleResponse(response, `Failed to hibernate sandbox ${sandboxId}`);
   }

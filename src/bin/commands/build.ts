@@ -2,8 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { isBinaryFile } from "isbinaryfile";
 import * as readline from "readline";
-
-import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
+import { type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
 
@@ -16,8 +15,12 @@ import {
   vmListClusters,
   VmUpdateSpecsRequest,
 } from "../../api-clients/client";
-import { getDefaultTemplateId, handleResponse } from "../../utils/api";
-import { BASE_URL, getApiKey } from "../utils/constants";
+import {
+  createApiClient,
+  getDefaultTemplateId,
+  handleResponse,
+} from "../../utils/api";
+import { getInferredApiKey } from "../../utils/constants";
 import { hashDirectory } from "../utils/hash";
 import { startVm } from "../../Sandboxes";
 import { DisposableStore } from "../../utils/disposable";
@@ -84,15 +87,8 @@ export const buildCommand: yargs.CommandModule<
       }),
 
   handler: async (argv) => {
-    const API_KEY = getApiKey();
-    const apiClient: Client = createClient(
-      createConfig({
-        baseUrl: BASE_URL,
-        headers: {
-          Authorization: `Bearer ${API_KEY}`,
-        },
-      })
-    );
+    const apiKey = getInferredApiKey();
+    const apiClient: Client = createApiClient(apiKey);
 
     let alias: { namespace: string; alias: string } | undefined;
 
@@ -127,15 +123,11 @@ export const buildCommand: yargs.CommandModule<
 
       const sandboxes = await Promise.all(
         clusters.map(async ({ host: cluster, slug }, index) => {
-          const clusterApiClient: Client = createClient(
-            createConfig({
-              baseUrl: BASE_URL,
-              headers: {
-                Authorization: `Bearer ${API_KEY}`,
-                "x-pitcher-manager-url": `https://${cluster}/api/v1`,
-              },
-            })
-          );
+          const clusterApiClient: Client = createApiClient(apiKey, {
+            headers: {
+              "x-pitcher-manager-url": `https://${cluster}/api/v1`,
+            },
+          });
 
           try {
             const { hash, files: filePaths } = await hashDirectory(
@@ -174,17 +166,12 @@ export const buildCommand: yargs.CommandModule<
 
       const tasks = sandboxes.map(
         async ({ sandboxId, filePaths, cluster }, index) => {
-          const clusterApiClient: Client = createClient(
-            createConfig({
-              baseUrl: BASE_URL,
-              headers: {
-                Authorization: `Bearer ${API_KEY}`,
-                "x-pitcher-manager-url": `https://${cluster}/api/v1`,
-              },
-            })
-          );
-          const sdk = new CodeSandbox(API_KEY, {
-            baseUrl: BASE_URL,
+          const clusterApiClient: Client = createApiClient(apiKey, {
+            headers: {
+              "x-pitcher-manager-url": `https://${cluster}/api/v1`,
+            },
+          });
+          const sdk = new CodeSandbox(apiKey, {
             headers: {
               "x-pitcher-manager-url": `https://${cluster}/api/v1`,
             },
@@ -211,13 +198,13 @@ export const buildCommand: yargs.CommandModule<
               }),
               "Failed to start sandbox"
             );
-            let sandbox = new Sandbox(
+            let sandboxVM = new Sandbox(
               sandboxId,
               clusterApiClient,
               startResponse
             );
 
-            let session = await sandbox.connect();
+            let session = await sandboxVM.connect();
 
             spinner.start(
               updateSpinnerMessage(
@@ -246,8 +233,8 @@ export const buildCommand: yargs.CommandModule<
             spinner.start(
               updateSpinnerMessage(index, "Restarting sandbox...", sandboxId)
             );
-            sandbox = await withCustomError(
-              sdk.sandboxes.restart(sandbox.id, {
+            sandboxVM = await withCustomError(
+              sdk.sandboxes.restart(sandboxVM.id, {
                 vmTier: argv.vmTier
                   ? VMTier.fromName(argv.vmTier)
                   : VMTier.fromName("Micro"),
@@ -256,7 +243,7 @@ export const buildCommand: yargs.CommandModule<
             );
 
             session = await withCustomError(
-              sandbox.connect(),
+              sandboxVM.connect(),
               "Failed to connect to sandbox"
             );
 
@@ -347,14 +334,14 @@ export const buildCommand: yargs.CommandModule<
               updateSpinnerMessage(index, "Creating snapshot...", sandboxId)
             );
             await withCustomError(
-              sdk.sandboxes.hibernate(sandbox.id),
+              sdk.sandboxes.hibernate(sandboxVM.id),
               "Failed to hibernate"
             );
             spinner.start(
               updateSpinnerMessage(index, "Snapshot created", sandboxId)
             );
 
-            return sandbox.id;
+            return sandboxVM.id;
           } catch (error) {
             spinner.start(
               updateSpinnerMessage(
@@ -401,8 +388,7 @@ export const buildCommand: yargs.CommandModule<
 
         await Promise.all(
           failedSandboxes.map(async ({ sandboxId, cluster }) => {
-            const sdk = new CodeSandbox(API_KEY, {
-              baseUrl: BASE_URL,
+            const sdk = new CodeSandbox(apiKey, {
               headers: {
                 "x-pitcher-manager-url": `https://${cluster}/api/v1`,
               },

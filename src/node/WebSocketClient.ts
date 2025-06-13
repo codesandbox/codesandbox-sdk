@@ -1,4 +1,4 @@
-import WebSocket from "ws";
+import WebSocket from "isomorphic-ws";
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 

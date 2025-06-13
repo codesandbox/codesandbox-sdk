@@ -10,8 +10,8 @@ import { Commands } from "./commands";
 import { Git } from "./git";
 import { HostToken } from "../HostTokens";
 import { Hosts } from "./hosts";
-import { IAgentClient } from "../agent-client-interface";
-import { setup } from "@codesandbox/pitcher-protocol";
+import { IAgentClient } from "../node/agent-client-interface";
+import { setup } from "../pitcher-protocol";
 import { Barrier } from "../utils/barrier";
 
 export * from "./filesystem";
@@ -24,20 +24,19 @@ export * from "./git";
 export * from "./interpreters";
 export * from "./hosts";
 
-type SessionParams = {
-  env?: Record<string, string>;
+type SandboxClientParams = {
   hostToken?: HostToken;
   username?: string;
 };
 
-export class Session {
-  static async create(agentClient: IAgentClient, params: SessionParams) {
+export class SandboxClient {
+  static async create(agentClient: IAgentClient, params: SandboxClientParams) {
     let setupProgress = await agentClient.setup.getProgress();
 
     let hasInitializedSteps = Boolean(setupProgress.steps.length);
 
     if (hasInitializedSteps) {
-      return new Session(agentClient, params, setupProgress);
+      return new SandboxClient(agentClient, params, setupProgress);
     }
 
     // We have a race condition where we might not have the steps yet and need
@@ -57,7 +56,7 @@ export class Session {
       throw new Error("Failed to get setup progress");
     }
 
-    return new Session(agentClient, params, response.value);
+    return new SandboxClient(agentClient, params, response.value);
   }
   private disposable = new Disposable();
 
@@ -112,7 +111,7 @@ export class Session {
 
   constructor(
     protected agentClient: IAgentClient,
-    { env, hostToken, username }: SessionParams,
+    { hostToken, username }: SandboxClientParams,
     initialSetupProgress: setup.SetupProgress
   ) {
     // TODO: Bring this back once metrics polling does not reset inactivity
@@ -128,8 +127,8 @@ export class Session {
       initialSetupProgress
     );
     this.fs = new FileSystem(this.disposable, this.agentClient, username);
-    this.terminals = new Terminals(this.disposable, this.agentClient, env);
-    this.commands = new Commands(this.disposable, this.agentClient, env);
+    this.terminals = new Terminals(this.disposable, this.agentClient);
+    this.commands = new Commands(this.disposable, this.agentClient);
 
     this.hosts = new Hosts(this.agentClient.sandboxId, hostToken);
     this.interpreters = new Interpreters(this.disposable, this.commands);

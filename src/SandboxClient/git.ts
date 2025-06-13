@@ -1,5 +1,5 @@
 import { Commands } from "./commands";
-import { IAgentClient } from "../agent-client-interface";
+import { IAgentClient } from "../node/agent-client-interface";
 
 /**
  * An interface to interact with the git repository.

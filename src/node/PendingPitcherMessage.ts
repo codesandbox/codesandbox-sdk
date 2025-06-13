@@ -1,13 +1,13 @@
 import {
   PitcherResponseStatus,
   createRequestPayload,
-} from "@codesandbox/pitcher-protocol";
+} from "../pitcher-protocol";
 import type {
   PitcherRequest,
   PitcherResponse,
   PitcherRequestPayload,
   PitcherErrorCode,
-} from "@codesandbox/pitcher-protocol";
+} from "../pitcher-protocol";
 import { Disposable } from "../utils/disposable";
 
 const PITCHER_MESSAGE_TIMEOUT_MS = 90_000;

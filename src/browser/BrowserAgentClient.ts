@@ -9,7 +9,7 @@ import {
   IAgentClientState,
   IAgentClientSystem,
   IAgentClientTasks,
-} from "../agent-client-interface";
+} from "../node/agent-client-interface";
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 

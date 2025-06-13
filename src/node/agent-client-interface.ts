@@ -8,8 +8,8 @@ import {
   shell,
   setup,
   task,
-} from "@codesandbox/pitcher-protocol";
-import { Event } from "./utils/event";
+} from "../pitcher-protocol";
+import { Event } from "../utils/event";
 
 export interface IAgentClientShells {
   onShellExited: Event<{

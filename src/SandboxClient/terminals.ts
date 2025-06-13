@@ -1,8 +1,8 @@
-import * as protocol from "@codesandbox/pitcher-protocol";
+import * as protocol from "../pitcher-protocol";
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 import { isCommandShell, ShellRunOpts } from "./commands";
-import { IAgentClient } from "../agent-client-interface";
+import { IAgentClient } from "../node/agent-client-interface";
 
 export type ShellSize = { cols: number; rows: number };
 
@@ -12,8 +12,7 @@ export class Terminals {
   private disposable = new Disposable();
   constructor(
     sessionDisposable: Disposable,
-    private agentClient: IAgentClient,
-    private env: Record<string, string> = {}
+    private agentClient: IAgentClient
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
@@ -24,14 +23,16 @@ export class Terminals {
     command: "bash" | "zsh" | "fish" | "ksh" | "dash" = "bash",
     opts?: ShellRunOpts
   ): Promise<Terminal> {
-    const allEnv = Object.assign(this.env, opts?.env ?? {});
+    const allEnv = Object.assign(opts?.env ?? {});
 
     // TODO: use a new shell API that natively supports cwd & env
     let commandWithEnv = Object.keys(allEnv).length
-      ? `env ${Object.entries(allEnv)
+      ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
+          allEnv
+        )
           .map(([key, value]) => `${key}=${value}`)
           .join(" ")} ${command}`
-      : command;
+      : `source $HOME/.private/.env 2>/dev/null || true && ${command}`;
 
     if (opts?.cwd) {
       commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
