@@ -1,7 +1,7 @@
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 import { VMTier } from "./VMTier";
-import type { WebSocketSession } from "./sessions/WebSocketSession";
-import { HostToken } from "./Hosts";
+import { HostToken } from "./HostTokens";
+import { Config } from "@hey-api/client-fetch";
 
 export interface SystemMetricsStatus {
   cpu: {
@@ -63,7 +63,7 @@ export interface ClientOpts {
    *
    * @default fetch
    */
-  fetch?: typeof fetch;
+  fetch?: Config["fetch"];
 
   /**
    * Additional headers to send with each request
@@ -174,17 +174,12 @@ export type CreateSandboxBaseOpts = {
   path?: string;
 };
 
-export type SandboxSessionData = {
-  id: string;
-  pitcher_token: string;
-  pitcher_url: string;
-  user_workspace_path: string;
-};
-
 export interface SessionCreateOptions {
   id: string;
   permission?: "read" | "write";
   git?: {
+    provider: string;
+    username?: string;
     accessToken?: string;
     email: string;
     name?: string;
@@ -193,16 +188,14 @@ export interface SessionCreateOptions {
   hostToken?: HostToken;
 }
 
-export type SandboxSession = {
+export type SandboxSessionDTO = {
   sandboxId: string;
   pitcherToken: string;
   pitcherUrl: string;
   userWorkspacePath: string;
-  env?: Record<string, string>;
 };
 
-export type CreateSandboxTemplateSourceOpts = CreateSandboxBaseOpts & {
-  source: "template";
+export type CreateSandboxOpts = CreateSandboxBaseOpts & {
   /**
    * What template to fork from, this is the id of another sandbox. Defaults to our
    * [universal template](https://codesandbox.io/s/github/codesandbox/sandbox-templates/tree/main/universal).
@@ -210,34 +203,15 @@ export type CreateSandboxTemplateSourceOpts = CreateSandboxBaseOpts & {
   id?: string;
 };
 
-export type CreateSandboxGitSourceOpts = CreateSandboxBaseOpts & {
-  source: "git";
-  url: string;
-  branch: string;
-  templateId?: string;
-  config?: {
-    accessToken: string;
-    email: string;
-    name?: string;
-  };
-  setup?: (session: WebSocketSession) => Promise<void>;
-};
-
-export type CreateSandboxOpts =
-  | CreateSandboxTemplateSourceOpts
-  | CreateSandboxGitSourceOpts;
-
 export type SandboxOpts = {
   id: string;
   bootupType: PitcherManagerResponse["bootupType"];
   cluster: string;
   isUpToDate: boolean;
-  globalSession: SandboxSession;
 };
 
-export type SandboxBrowserSession = PitcherManagerResponse & {
-  id: string;
+export type SandboxSession = PitcherManagerResponse & {
+  sandboxId: string;
   sessionId?: string;
-  env?: Record<string, string>;
   hostToken?: HostToken;
 };

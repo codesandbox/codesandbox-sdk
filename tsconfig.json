@@ -5,7 +5,7 @@
     "outDir": "dist",
     "lib": ["dom", "es2020"],
     "jsx": "react-jsx",
-    "jsxImportSource": "preact",
+    "jsxImportSource": "react",
     "moduleResolution": "node",
     "skipLibCheck": true,
     "importHelpers": true,
@@ -15,7 +15,10 @@
     "inlineSources": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "strict": true
+    "strict": true,
+    "paths": {
+      "@codesandbox/sdk": ["./src/sdk"]
+    }
   },
   "include": ["src"],
   "exclude": [
