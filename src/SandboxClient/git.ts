@@ -42,18 +42,34 @@ export class Git {
   }
 
   /**
+   * Checkout a new branch and set upstream
+   */
+  async createBranch(branch: string) {
+    await this.commands.run([
+      "git checkout -b " + branch,
+      "git push --set-upstream origin " + branch,
+    ]);
+  }
+
+  /**
    * Checkout a branch
    */
-  async checkout(branch: string, isNewBranch = false) {
+  async checkout(
+    ref: string,
+    /**
+     * @deprecated Use createBranch instead
+     */
+    isNewBranch = false
+  ) {
     if (isNewBranch) {
       await this.commands.run([
-        "git checkout -b " + branch,
-        "git push --set-upstream origin " + branch,
+        "git checkout -b " + ref,
+        "git push --set-upstream origin " + ref,
       ]);
       return;
     }
 
-    await this.commands.run(["git checkout " + branch]);
+    await this.commands.run(["git checkout " + ref]);
   }
 
   /**
