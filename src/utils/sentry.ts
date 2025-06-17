@@ -12,7 +12,8 @@ export async function instrumentedFetch(
   request: Request,
   client: "SDK" | "CLI"
 ) {
-  const res = await fetch(request);
+  // We are cloning the request to be able to read its body on errors
+  const res = await fetch(request.clone());
 
   if (res.status >= 400) {
     const err = new Error(`HTTP ${res.status}`);
