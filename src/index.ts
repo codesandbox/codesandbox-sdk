@@ -25,7 +25,7 @@ export class CodeSandbox {
 
   constructor(apiToken?: string, opts: ClientOpts = {}) {
     const apiKey = apiToken || getInferredApiKey();
-    const apiClient = createApiClient(apiKey, opts);
+    const apiClient = createApiClient("SDK", apiKey, opts);
 
     this.sandboxes = new Sandboxes(apiClient);
     this.hosts = new HostTokens(apiClient);

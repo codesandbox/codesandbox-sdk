@@ -9,8 +9,9 @@ import {
   createConfig,
 } from "@hey-api/client-fetch";
 import { getInferredBaseUrl } from "./constants";
+import { instrumentedFetch } from "./sentry";
 
-async function fetchOverride(request: Request) {
+async function enhanceFetch(request: Request, client: "SDK" | "CLI") {
   // Clone the request to modify headers
   const headers = new Headers(request.headers);
   const existingUserAgent = headers.get("User-Agent") || "";
@@ -25,18 +26,23 @@ async function fetchOverride(request: Request) {
   );
 
   // Create new request with updated headers
-  return fetch(
+  return instrumentedFetch(
     new Request(request, {
       headers,
-    })
+    }),
+    client
   );
 }
 
-export function createApiClient(apiKey: string, config: Config = {}) {
+export function createApiClient(
+  client: "SDK" | "CLI",
+  apiKey: string,
+  config: Config = {}
+) {
   return createClient(
     createConfig({
       baseUrl: config.baseUrl || getInferredBaseUrl(apiKey),
-      fetch: fetchOverride,
+      fetch: (request) => enhanceFetch(request, client),
       ...config,
       headers: {
         Authorization: `Bearer ${apiKey}`,

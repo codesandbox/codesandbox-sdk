@@ -44,6 +44,25 @@ export type VmAssignTagAliasResponse = {
     };
 };
 
+export type TemplateCreateRequest = {
+    /**
+     * Template description. Maximum 255 characters. Defaults to description of original sandbox.
+     */
+    description?: string;
+    /**
+     * Short ID of the sandbox to fork.
+     */
+    forkOf: string;
+    /**
+     * Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.
+     */
+    tags?: Array<string>;
+    /**
+     * Template title. Maximum 255 characters. Defaults to title of original sandbox with (forked).
+     */
+    title?: string;
+};
+
 export type PreviewToken = {
     expires_at: string | null;
     last_used_at: string | null;
@@ -120,7 +139,15 @@ export type VmListRunningVmsResponse = {
         concurrent_vm_count: number;
         concurrent_vm_limit: number;
         vms: Array<{
+            credit_basis?: string;
             id?: string;
+            last_active_at?: number;
+            session_started_at?: number;
+            specs?: {
+                cpu?: number;
+                memory?: number;
+                storage?: number;
+            };
         }>;
     };
 };
@@ -233,6 +260,25 @@ export type MetaInformation = {
         scopes: Array<string>;
         team: string | null;
         version: string;
+    };
+    /**
+     * Current workspace rate limits
+     */
+    rate_limits?: {
+        concurrent_vms: {
+            limit?: number;
+            remaining?: number;
+        };
+        requests_hourly: {
+            limit?: number;
+            remaining?: number;
+            reset?: number;
+        };
+        sandboxes_hourly: {
+            limit?: number;
+            remaining?: number;
+            reset?: number;
+        };
     };
 };
 
@@ -533,6 +579,21 @@ export type TokenCreateResponse = {
         team_id: string;
         token: string;
         token_id: string;
+    };
+};
+
+export type TemplateCreateResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        sandboxes: Array<{
+            cluster: string;
+            id: string;
+        }>;
+        tag: string;
     };
 };
 
@@ -971,6 +1032,25 @@ export type PreviewTokenUpdateResponses = {
 };
 
 export type PreviewTokenUpdateResponse2 = PreviewTokenUpdateResponses[keyof PreviewTokenUpdateResponses];
+
+export type TemplatesCreateData = {
+    /**
+     * Template Create Request
+     */
+    body?: TemplateCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/templates';
+};
+
+export type TemplatesCreateResponses = {
+    /**
+     * Template Create Response
+     */
+    201: TemplateCreateResponse;
+};
+
+export type TemplatesCreateResponse = TemplatesCreateResponses[keyof TemplatesCreateResponses];
 
 export type VmAssignTagAliasData = {
     /**

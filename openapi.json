@@ -117,6 +117,36 @@
         "title": "VMAssignTagAliasResponse",
         "type": "object"
       },
+      "TemplateCreateRequest": {
+        "properties": {
+          "description": {
+            "default": "[Template description]",
+            "description": "Template description. Maximum 255 characters. Defaults to description of original sandbox.",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "forkOf": {
+            "description": "Short ID of the sandbox to fork.",
+            "example": "pt_1234567890",
+            "type": "string"
+          },
+          "tags": {
+            "default": [],
+            "description": "Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.",
+            "items": { "type": "string" },
+            "type": "array"
+          },
+          "title": {
+            "default": "[Template title]",
+            "description": "Template title. Maximum 255 characters. Defaults to title of original sandbox with (forked).",
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": ["forkOf"],
+        "title": "TemplateCreateRequest",
+        "type": "object"
+      },
       "PreviewToken": {
         "properties": {
           "expires_at": { "nullable": true, "type": "string" },
@@ -284,10 +314,29 @@
                   "concurrent_vm_limit": { "type": "integer" },
                   "vms": {
                     "items": {
-                      "properties": { "id": { "type": "string" } },
+                      "properties": {
+                        "credit_basis": { "type": "string" },
+                        "id": { "type": "string" },
+                        "last_active_at": { "type": "integer" },
+                        "session_started_at": { "type": "integer" },
+                        "specs": {
+                          "properties": {
+                            "cpu": { "type": "integer" },
+                            "memory": { "type": "integer" },
+                            "storage": { "type": "integer" }
+                          },
+                          "type": "object"
+                        }
+                      },
                       "type": "object"
                     },
-                    "required": ["id"],
+                    "required": [
+                      "id",
+                      "last_active_at",
+                      "session_started_at",
+                      "specs",
+                      "credit_basis"
+                    ],
                     "type": "array"
                   }
                 },
@@ -491,6 +540,40 @@
               "version": { "type": "string" }
             },
             "required": ["scopes", "team", "version"],
+            "type": "object"
+          },
+          "rate_limits": {
+            "description": "Current workspace rate limits",
+            "properties": {
+              "concurrent_vms": {
+                "properties": {
+                  "limit": { "type": "integer" },
+                  "remaining": { "type": "integer" }
+                },
+                "type": "object"
+              },
+              "requests_hourly": {
+                "properties": {
+                  "limit": { "type": "integer" },
+                  "remaining": { "type": "integer" },
+                  "reset": { "type": "integer" }
+                },
+                "type": "object"
+              },
+              "sandboxes_hourly": {
+                "properties": {
+                  "limit": { "type": "integer" },
+                  "remaining": { "type": "integer" },
+                  "reset": { "type": "integer" }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "concurrent_vms",
+              "sandboxes_hourly",
+              "requests_hourly"
+            ],
             "type": "object"
           }
         },
@@ -1118,6 +1201,52 @@
           }
         ],
         "title": "TokenCreateResponse",
+        "type": "object"
+      },
+      "TemplateCreateResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "sandboxes": {
+                    "items": {
+                      "properties": {
+                        "cluster": { "type": "string" },
+                        "id": { "type": "string" }
+                      },
+                      "required": ["id", "cluster"],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "tag": { "type": "string" }
+                },
+                "required": ["tag", "sandboxes"],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "TemplateCreateResponse",
         "type": "object"
       },
       "TokenCreateRequest": {
@@ -1930,6 +2059,38 @@
         "security": [{ "authorization": ["preview_token:manage"] }],
         "summary": "Update a Preview Token",
         "tags": []
+      }
+    },
+    "/templates": {
+      "post": {
+        "callbacks": {},
+        "description": "Create a new template in the current workspace (creates 3 sandboxes and tags them)\n",
+        "operationId": "templates/create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TemplateCreateRequest" }
+            }
+          },
+          "description": "Template Create Request",
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateCreateResponse"
+                }
+              }
+            },
+            "description": "Template Create Response"
+          }
+        },
+        "security": [{ "authorization": ["template:create"] }],
+        "summary": "Create a template",
+        "tags": ["templates"]
       }
     },
     "/vm/alias/{namespace}/{alias}": {
