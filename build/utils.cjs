@@ -1,6 +1,7 @@
 module.exports.nodeExternals = [
   ...Object.keys(require("../package.json").dependencies),
   ...require("module").builtinModules,
+  ...require("module").builtinModules.map((mod) => `node:${mod}`),
 ];
 
 module.exports.define = {

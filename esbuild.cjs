@@ -37,6 +37,8 @@ window.process = {
 `,
   },
   plugins: [browserPlugin],
+  // pitcher-client seems to have some dynamic dependency on @sentry/node
+  external: ["@sentry/node"],
 });
 
 const browserEsmBuild = esbuild.build({
@@ -55,6 +57,8 @@ window.process = {
 `,
   },
   plugins: [browserPlugin],
+  // pitcher-client seems to have some dynamic dependency on @sentry/node
+  external: ["@sentry/node"],
 });
 
 /**

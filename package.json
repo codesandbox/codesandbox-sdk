@@ -38,8 +38,6 @@
   "types": "./dist/esm/index.d.ts",
   "scripts": {
     "build": "npm run clean && npm run build:esbuild && npm run build:cjs:types && npm run build:esm:types && chmod +x dist/bin/codesandbox.mjs",
-    "build:cjs": "tsc -p ./tsconfig.build-cjs.json",
-    "build:esm": "tsc -p ./tsconfig.build-esm.json",
     "build:esbuild": "node esbuild.cjs",
     "build:cjs:types": "tsc -p ./tsconfig.build-cjs.json --emitDeclarationOnly",
     "build:esm:types": "tsc -p ./tsconfig.build-esm.json --emitDeclarationOnly",
@@ -96,6 +94,7 @@
   },
   "dependencies": {
     "@inkjs/ui": "^2.0.0",
+    "@sentry/node": "^9.29.0",
     "@tanstack/react-query": "^5.76.1",
     "ink": "^5.2.1",
     "isbinaryfile": "^5.0.4",

@@ -10,7 +10,6 @@ import {
   IAgentClientSystem,
   IAgentClientTasks,
 } from "../node/agent-client-interface";
-import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 
 class BrowserAgentClientShells implements IAgentClientShells {

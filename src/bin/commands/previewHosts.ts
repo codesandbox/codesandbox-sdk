@@ -4,6 +4,9 @@ import { previewHostList, previewHostUpdate } from "../../api-clients/client";
 import { createApiClient, handleResponse } from "../../utils/api";
 import { getInferredApiKey } from "../../utils/constants";
 
+const apiKey = getInferredApiKey();
+const apiClient = createApiClient("CLI", apiKey);
+
 export const previewHostsCommand: yargs.CommandModule = {
   command: "preview-hosts",
   describe:
@@ -14,8 +17,6 @@ export const previewHostsCommand: yargs.CommandModule = {
         command: "list",
         describe: "List current preview hosts",
         handler: async () => {
-          const apiKey = getInferredApiKey();
-          const apiClient = createApiClient(apiKey);
           const resp = await previewHostList({ client: apiClient });
           const data = handleResponse(resp, "Failed to list preview hosts");
           const hosts = data.preview_hosts.map(({ host }) => host);
@@ -36,8 +37,6 @@ export const previewHostsCommand: yargs.CommandModule = {
             demandOption: true,
           }),
         handler: async (argv) => {
-          const apiKey = getInferredApiKey();
-          const apiClient = createApiClient(apiKey);
           const resp = await previewHostList({ client: apiClient });
           const data = handleResponse(resp, "Failed to list preview hosts");
           let hosts = data.preview_hosts.map(({ host }) => host);
@@ -64,8 +63,6 @@ export const previewHostsCommand: yargs.CommandModule = {
             demandOption: true,
           }),
         handler: async (argv) => {
-          const apiKey = getInferredApiKey();
-          const apiClient = createApiClient(apiKey);
           const resp = await previewHostList({ client: apiClient });
           const data = handleResponse(resp, "Failed to list preview hosts");
           let hosts = data.preview_hosts.map(({ host }) => host);
@@ -86,8 +83,6 @@ export const previewHostsCommand: yargs.CommandModule = {
         command: "clear",
         describe: "Clear all preview hosts",
         handler: async () => {
-          const apiKey = getInferredApiKey();
-          const apiClient = createApiClient(apiKey);
           const resp = await previewHostList({ client: apiClient });
           const data = handleResponse(resp, "Failed to list preview hosts");
           const hosts = data.preview_hosts.map(({ host }) => host);

@@ -10,6 +10,7 @@ import { VMTier, CodeSandbox, Sandbox } from "@codesandbox/sdk";
 
 import {
   sandboxFork,
+  templatesCreate,
   vmAssignTagAlias,
   vmCreateTag,
   vmListClusters,
@@ -59,12 +60,6 @@ export const buildCommand: yargs.CommandModule<
         type: "number",
         array: true,
       })
-      .option("path", {
-        describe:
-          "Which folder (in the dashboard) the sandbox will be created in",
-        default: "SDK-Templates",
-        type: "string",
-      })
       .option("vm-tier", {
         describe: "Base specs to use for the template sandbox",
         type: "string",
@@ -88,7 +83,7 @@ export const buildCommand: yargs.CommandModule<
 
   handler: async (argv) => {
     const apiKey = getInferredApiKey();
-    const apiClient: Client = createApiClient(apiKey);
+    const apiClient: Client = createApiClient("CLI", apiKey);
 
     let alias: { namespace: string; alias: string } | undefined;
 
@@ -96,81 +91,38 @@ export const buildCommand: yargs.CommandModule<
       alias = createAlias(argv.directory, argv.alias);
     }
 
+    const { hash, files: filePaths } = await hashDirectory(argv.directory);
+    const tag = `sha:${hash.slice(0, 6)}`;
+
     try {
-      const clustersData = handleResponse(
-        await vmListClusters({
+      const templateData = handleResponse(
+        await templatesCreate({
           client: apiClient,
+          body: {
+            forkOf: argv.fromSandbox || getDefaultTemplateId(apiClient),
+            title: argv.name,
+            // We filter out sdk-templates on the dashboard
+            tags: ["sdk-template", tag],
+          },
         }),
-        "Failed to list clusters"
+        "Failed to create template"
       );
 
-      const clusters = clustersData.clusters;
-
       const spinner = ora({ stream: process.stdout });
-      let spinnerMessages: string[] = clusters.map(() => "");
+      let spinnerMessages: string[] = templateData.sandboxes.map(() => "");
 
       function updateSpinnerMessage(
         index: number,
         message: string,
-        sandboxId?: string
+        sandboxId: string
       ) {
-        spinnerMessages[index] = `[cluster: ${
-          clusters[index].slug
-        }, sandboxId: ${sandboxId || "-"}]: ${message}`;
+        spinnerMessages[index] = `[sandboxId: ${sandboxId}]: ${message}`;
 
         return `\n${spinnerMessages.join("\n")}`;
       }
 
-      const sandboxes = await Promise.all(
-        clusters.map(async ({ host: cluster, slug }, index) => {
-          const clusterApiClient: Client = createApiClient(apiKey, {
-            headers: {
-              "x-pitcher-manager-url": `https://${cluster}/api/v1`,
-            },
-          });
-
-          try {
-            const { hash, files: filePaths } = await hashDirectory(
-              argv.directory
-            );
-            const shortHash = hash.slice(0, 6);
-            const tag = `sha:${shortHash}-${slug}`;
-
-            spinner.start(updateSpinnerMessage(index, "Creating sandbox..."));
-
-            const sandboxId = await createSandbox({
-              apiClient: clusterApiClient,
-              shaTag: tag,
-              fromSandbox: argv.fromSandbox,
-              collectionPath: argv.path,
-              name: argv.name,
-              vmTier: argv.vmTier
-                ? VMTier.fromName(argv.vmTier)
-                : VMTier.fromName("Micro"),
-            });
-
-            return { sandboxId, filePaths, cluster };
-          } catch (error) {
-            spinner.fail(
-              updateSpinnerMessage(
-                index,
-                error instanceof Error
-                  ? error.message
-                  : "Unknown error occurred"
-              )
-            );
-            throw error;
-          }
-        })
-      );
-
-      const tasks = sandboxes.map(
-        async ({ sandboxId, filePaths, cluster }, index) => {
-          const clusterApiClient: Client = createApiClient(apiKey, {
-            headers: {
-              "x-pitcher-manager-url": `https://${cluster}/api/v1`,
-            },
-          });
+      const tasks = templateData.sandboxes.map(
+        async ({ id, cluster }, index) => {
           const sdk = new CodeSandbox(apiKey, {
             headers: {
               "x-pitcher-manager-url": `https://${cluster}/api/v1`,
@@ -179,39 +131,21 @@ export const buildCommand: yargs.CommandModule<
 
           try {
             spinner.start(
-              updateSpinnerMessage(index, "Starting sandbox...", sandboxId)
+              updateSpinnerMessage(index, "Starting sandbox...", id)
             );
 
-            // This is a hack, we need to tell the global scheduler that the VM is running
-            // in a different cluster than the one it'd like to default to.
-            const baseUrl = apiClient
-              .getConfig()
-              .baseUrl?.replace("api", "global-scheduler");
-
-            await fetch(
-              `${baseUrl}/api/v1/cluster/${sandboxId}?preferredManager=${cluster}`
-            ).then((res) => res.json());
-
             const startResponse = await withCustomError(
-              startVm(clusterApiClient, sandboxId, {
+              startVm(apiClient, id, {
                 vmTier: VMTier.fromName("Micro"),
               }),
               "Failed to start sandbox"
             );
-            let sandboxVM = new Sandbox(
-              sandboxId,
-              clusterApiClient,
-              startResponse
-            );
+            let sandboxVM = new Sandbox(id, apiClient, startResponse);
 
             let session = await sandboxVM.connect();
 
             spinner.start(
-              updateSpinnerMessage(
-                index,
-                "Writing files to sandbox...",
-                sandboxId
-              )
+              updateSpinnerMessage(index, "Writing files to sandbox...", id)
             );
             try {
               let i = 0;
@@ -231,10 +165,10 @@ export const buildCommand: yargs.CommandModule<
             }
 
             spinner.start(
-              updateSpinnerMessage(index, "Restarting sandbox...", sandboxId)
+              updateSpinnerMessage(index, "Restarting sandbox...", id)
             );
             sandboxVM = await withCustomError(
-              sdk.sandboxes.restart(sandboxVM.id, {
+              sdk.sandboxes.restart(id, {
                 vmTier: argv.vmTier
                   ? VMTier.fromName(argv.vmTier)
                   : VMTier.fromName("Micro"),
@@ -261,7 +195,7 @@ export const buildCommand: yargs.CommandModule<
                     `Running setup ${steps.indexOf(step) + 1} / ${
                       steps.length
                     } - ${step.name}...`,
-                    sandboxId
+                    id
                   )
                 );
 
@@ -292,7 +226,7 @@ export const buildCommand: yargs.CommandModule<
                   `Waiting for ${
                     isMultiplePorts ? "ports" : "port"
                   } ${ports.join(", ")} to open...`,
-                  sandboxId
+                  id
                 )
               );
             };
@@ -324,24 +258,22 @@ export const buildCommand: yargs.CommandModule<
                 updateSpinnerMessage(
                   index,
                   "No ports to open, waiting 5 seconds for tasks to run...",
-                  sandboxId
+                  id
                 )
               );
               await new Promise((resolve) => setTimeout(resolve, 5000));
             }
 
             spinner.start(
-              updateSpinnerMessage(index, "Creating snapshot...", sandboxId)
+              updateSpinnerMessage(index, "Creating snapshot...", id)
             );
             await withCustomError(
-              sdk.sandboxes.hibernate(sandboxVM.id),
+              sdk.sandboxes.hibernate(id),
               "Failed to hibernate"
             );
-            spinner.start(
-              updateSpinnerMessage(index, "Snapshot created", sandboxId)
-            );
+            spinner.start(updateSpinnerMessage(index, "Snapshot created", id));
 
-            return sandboxVM.id;
+            return id;
           } catch (error) {
             spinner.start(
               updateSpinnerMessage(
@@ -349,10 +281,10 @@ export const buildCommand: yargs.CommandModule<
                 argv.ci
                   ? String(error)
                   : "Failed, please manually verify at https://codesandbox.io/s/" +
-                      sandboxId +
+                      id +
                       " - " +
                       String(error),
-                sandboxId
+                id
               )
             );
 
@@ -363,7 +295,7 @@ export const buildCommand: yargs.CommandModule<
 
       const results = await Promise.allSettled(tasks);
 
-      const failedSandboxes = sandboxes.filter(
+      const failedSandboxes = templateData.sandboxes.filter(
         (_, index) => results[index].status === "rejected"
       );
 
@@ -372,37 +304,37 @@ export const buildCommand: yargs.CommandModule<
 
         await waitForEnter(
           `\nThere was an issue preparing the sandboxes. Verify ${failedSandboxes
-            .map((sandbox) => sandbox.sandboxId)
+            .map((sandbox) => sandbox.id)
             .join(", ")} and press ENTER to create snapshot...\n`
         );
 
-        failedSandboxes.forEach(({ sandboxId }) => {
+        failedSandboxes.forEach(({ id }) => {
           updateSpinnerMessage(
-            sandboxes.findIndex((sandbox) => sandbox.sandboxId === sandboxId),
+            templateData.sandboxes.findIndex((sandbox) => sandbox.id === id),
             "Creating snapshot...",
-            sandboxId
+            id
           );
         });
 
         spinner.start(`\n${spinnerMessages.join("\n")}`);
 
         await Promise.all(
-          failedSandboxes.map(async ({ sandboxId, cluster }) => {
+          failedSandboxes.map(async ({ id, cluster }) => {
             const sdk = new CodeSandbox(apiKey, {
               headers: {
                 "x-pitcher-manager-url": `https://${cluster}/api/v1`,
               },
             });
 
-            await sdk.sandboxes.hibernate(sandboxId);
+            await sdk.sandboxes.hibernate(id);
 
             spinner.start(
               updateSpinnerMessage(
-                sandboxes.findIndex(
-                  (sandbox) => sandbox.sandboxId === sandboxId
+                templateData.sandboxes.findIndex(
+                  (sandbox) => sandbox.id === id
                 ),
                 "Snapshot created",
-                sandboxId
+                id
               )
             );
           })
@@ -416,7 +348,7 @@ export const buildCommand: yargs.CommandModule<
         await vmCreateTag({
           client: apiClient,
           body: {
-            vm_ids: sandboxes.map((sandbox) => sandbox.sandboxId),
+            vm_ids: templateData.sandboxes.map((sandbox) => sandbox.id),
           },
         }),
         "Failed to create template"
@@ -447,16 +379,6 @@ export const buildCommand: yargs.CommandModule<
       process.exit(1);
     }
   },
-};
-
-type CreateSandboxParams = {
-  apiClient: Client;
-  shaTag: string;
-  fromSandbox?: string;
-  collectionPath?: string;
-  name?: string;
-  vmTier?: VMTier;
-  ipcountry?: string;
 };
 
 function withCustomError<T extends Promise<any>>(promise: T, message: string) {
@@ -508,65 +430,4 @@ function createAlias(directory: string, alias: string) {
     namespace,
     alias,
   };
-}
-
-async function createSandbox({
-  apiClient,
-  shaTag,
-  collectionPath,
-  fromSandbox,
-  name,
-}: CreateSandboxParams) {
-  const sanitizedCollectionPath = collectionPath
-    ? collectionPath.startsWith("/")
-      ? collectionPath
-      : `/${collectionPath}`
-    : "/SDK-Templates";
-
-  const sandbox = handleResponse(
-    await sandboxFork({
-      client: apiClient,
-      path: {
-        id: fromSandbox || getDefaultTemplateId(apiClient),
-      },
-      body: {
-        title: name,
-        privacy: 1,
-        tags: ["sdk", shaTag],
-        path: sanitizedCollectionPath,
-      },
-    }),
-    "Failed to fork sandbox"
-  );
-
-  return sandbox.id;
-}
-
-async function getFiles(
-  filePaths: string[],
-  rootPath: string
-): Promise<Record<string, { code: string }>> {
-  if (filePaths.length > 30) {
-    return {};
-  }
-
-  let hasBinaryFile = false;
-  const files: Record<string, { code: string }> = {};
-  await Promise.all(
-    filePaths.map(async (filePath) => {
-      const content = await fs.readFile(path.join(rootPath, filePath));
-
-      if (await isBinaryFile(content)) {
-        hasBinaryFile = true;
-      }
-
-      files[filePath] = { code: content.toString() };
-    })
-  );
-
-  if (hasBinaryFile) {
-    return {};
-  }
-
-  return files;
 }

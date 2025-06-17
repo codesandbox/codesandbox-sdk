@@ -1,6 +1,6 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { render, Text } from "ink";
+import { render } from "ink";
 
 import { buildCommand } from "./commands/build";
 import { sandboxesCommand } from "./commands/sandbox";
