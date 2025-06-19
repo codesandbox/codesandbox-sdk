@@ -159,8 +159,6 @@ export const buildCommand: yargs.CommandModule<
             buffer.push(...output.split("\n").map(stripAnsi));
 
             await step.waitUntilComplete();
-
-            throw new Error(`Setup BAD STEP: ${step.name}`);
           } catch (error) {
             const logPath = argv.logPath || process.cwd();
             const timestamp = new Date().toISOString().replace(/:/g, "-");
