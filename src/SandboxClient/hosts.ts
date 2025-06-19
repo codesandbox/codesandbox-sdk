@@ -1,6 +1,6 @@
-import { HostToken } from "../HostTokens";
+import type { HostToken } from "../HostTokens";
 
-export { HostToken };
+export type { HostToken };
 
 export class Hosts {
   constructor(private sandboxId: string, private hostToken?: HostToken) {}

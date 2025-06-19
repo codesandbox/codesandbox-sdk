@@ -69,11 +69,11 @@ export class HostTokens extends Disposable {
   }
 
   /**
-   * Generate a new host token that can be used to access private sandbox hosts. By default the token never expires.
+   * Generate a new host token that can be used to access private sandbox hosts.
    */
   async createToken(
     sandboxId: string,
-    opts: { expiresAt?: Date } = {}
+    opts: { expiresAt: Date }
   ): Promise<HostToken> {
     const response = handleResponse(
       await previewTokenCreate({
@@ -82,7 +82,7 @@ export class HostTokens extends Disposable {
           id: sandboxId,
         },
         body: {
-          expires_at: opts.expiresAt?.toISOString(),
+          expires_at: opts.expiresAt.toISOString(),
         },
       }),
       "Failed to create preview token"
