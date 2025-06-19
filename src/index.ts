@@ -1,6 +1,6 @@
 import { Sandboxes } from "./Sandboxes";
 
-export { Sandboxes as SandboxClient };
+export { Sandboxes };
 
 export { VMTier } from "./VMTier";
 

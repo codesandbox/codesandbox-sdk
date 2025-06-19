@@ -1,3 +1,4 @@
+const fs = require("fs");
 const esbuild = require("esbuild");
 const { nodeExternals, define } = require("./build/utils.cjs");
 const {
@@ -47,6 +48,7 @@ const browserEsmBuild = esbuild.build({
   format: "esm",
   outfile: "dist/esm/browser.js",
   platform: "browser",
+  metafile: true,
   // pitcher-common currently requires this, but breaks the first experience
   banner: {
     js: `if (typeof window !== "undefined" && !window.process) {

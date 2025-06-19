@@ -83,12 +83,16 @@ export class Commands {
 
     if (shell.status !== "FINISHED") {
       // Only way for us to differentiate between a command and a terminal
-      this.agentClient.shells.rename(
-        shell.shellId,
-        // We embed some details in the name to properly show the command that was run
-        // , the name and that it is an actual command
-        JSON.stringify(details)
-      );
+      this.agentClient.shells
+        .rename(
+          shell.shellId,
+          // We embed some details in the name to properly show the command that was run
+          // , the name and that it is an actual command
+          JSON.stringify(details)
+        )
+        .catch(() => {
+          // It is already done
+        });
     }
 
     const cmd = new Command(

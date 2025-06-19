@@ -1,12 +1,12 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { isBinaryFile } from "isbinaryfile";
+import stripAnsi from "strip-ansi";
 import * as readline from "readline";
 import { type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
 
-import { VMTier, CodeSandbox, Sandbox } from "@codesandbox/sdk";
+import { VMTier, CodeSandbox, Sandbox, SandboxClient } from "@codesandbox/sdk";
 
 import {
   templatesCreate,
@@ -34,6 +34,8 @@ export type BuildCommandArgs = {
   fromSandbox?: string;
   skipFiles?: boolean;
   vmTier?: VmUpdateSpecsRequest["tier"];
+  vmBuildTier?: VmUpdateSpecsRequest["tier"];
+  logPath?: string;
 };
 
 export const buildCommand: yargs.CommandModule<
@@ -63,6 +65,11 @@ export const buildCommand: yargs.CommandModule<
         type: "string",
         choices: VMTier.All.map((t) => t.name),
       })
+      .option("vm-build-tier", {
+        describe: "Specs to use for building the template sandbox.",
+        type: "string",
+        choices: VMTier.All.map((t) => t.name),
+      })
       .option("alias", {
         describe:
           "Alias that should point to the created template. Alias namespace defaults to template directory, but you can explicitly pass `namespace@alias`",
@@ -72,6 +79,10 @@ export const buildCommand: yargs.CommandModule<
         describe: "CI mode, will exit process if any error occurs",
         default: false,
         type: "boolean",
+      })
+      .option("log-path", {
+        describe: "Relative path to log file, if any",
+        type: "string",
       })
       .positional("directory", {
         describe: "Path to the project that we'll create a snapshot from",
@@ -83,11 +94,17 @@ export const buildCommand: yargs.CommandModule<
     const apiKey = getInferredApiKey();
     const apiClient: Client = createApiClient("CLI", apiKey);
     const sdk = new CodeSandbox(apiKey);
+    const sandboxTier = argv.vmTier
+      ? VMTier.fromName(argv.vmTier)
+      : VMTier.Micro;
+    const buildTier = argv.vmBuildTier
+      ? VMTier.fromName(argv.vmBuildTier)
+      : sandboxTier;
 
     let alias: { namespace: string; alias: string } | undefined;
 
     if (argv.alias) {
-      alias = createAlias(argv.directory, argv.alias);
+      alias = createAlias(path.resolve(argv.directory), argv.alias);
     }
 
     const { hash, files: filePaths } = await hashDirectory(argv.directory);
@@ -118,14 +135,58 @@ export const buildCommand: yargs.CommandModule<
         return `\n${spinnerMessages.join("\n")}`;
       }
 
+      const waitForSetup = async (sandbox: SandboxClient, index: number) => {
+        const steps = await sandbox.setup.getSteps();
+
+        for (const step of steps) {
+          const buffer: string[] = [];
+
+          try {
+            spinner.start(
+              updateSpinnerMessage(
+                index,
+                `Running setup ${steps.indexOf(step) + 1} / ${steps.length} - ${
+                  step.name
+                }...`
+              )
+            );
+
+            step.onOutput((output) => {
+              buffer.push(stripAnsi(output));
+            });
+            const output = await step.open();
+
+            buffer.push(...output.split("\n").map(stripAnsi));
+
+            await step.waitUntilComplete();
+
+            throw new Error(`Setup BAD STEP: ${step.name}`);
+          } catch (error) {
+            const logPath = argv.logPath || process.cwd();
+            const timestamp = new Date().toISOString().replace(/:/g, "-");
+            const logFilename = path.join(
+              logPath,
+              `setup-failure-${step.name}-${timestamp}.log`
+            );
+
+            try {
+              await fs.writeFile(logFilename, buffer.join("\n"));
+              console.error(`Log saved to: ${logFilename}`);
+            } catch (writeError) {
+              console.error(`Failed to write log file: ${writeError}`);
+            }
+
+            throw new Error(`Setup step failed: ${step.name}`);
+          }
+        }
+      };
+
       const tasks = templateData.sandboxes.map(async ({ id }, index) => {
         try {
           spinner.start(updateSpinnerMessage(index, "Starting sandbox..."));
 
           const startResponse = await withCustomError(
-            startVm(apiClient, id, {
-              vmTier: VMTier.fromName("Micro"),
-            }),
+            startVm(apiClient, id),
             "Failed to start sandbox"
           );
           let sandboxVM = new Sandbox(id, apiClient, startResponse);
@@ -135,6 +196,7 @@ export const buildCommand: yargs.CommandModule<
           spinner.start(
             updateSpinnerMessage(index, "Writing files to sandbox...")
           );
+
           try {
             let i = 0;
             for (const filePath of filePaths) {
@@ -152,12 +214,11 @@ export const buildCommand: yargs.CommandModule<
             throw new Error(`Failed to write files to sandbox: ${error}`);
           }
 
-          spinner.start(updateSpinnerMessage(index, "Restarting sandbox..."));
+          spinner.start(updateSpinnerMessage(index, "Building sandbox..."));
+
           sandboxVM = await withCustomError(
             sdk.sandboxes.restart(id, {
-              vmTier: argv.vmTier
-                ? VMTier.fromName(argv.vmTier)
-                : VMTier.fromName("Micro"),
+              vmTier: buildTier,
             }),
             "Failed to restart sandbox"
           );
@@ -167,40 +228,22 @@ export const buildCommand: yargs.CommandModule<
             "Failed to connect to sandbox"
           );
 
-          const disposableStore = new DisposableStore();
+          await waitForSetup(session, index);
 
-          const steps = await session.setup.getSteps();
+          spinner.start(updateSpinnerMessage(index, "Creating fork state..."));
+          sandboxVM = await withCustomError(
+            sdk.sandboxes.restart(id, {
+              vmTier: sandboxTier,
+            }),
+            "Failed to restart sandbox"
+          );
 
-          for (const step of steps) {
-            const buffer: string[] = [];
+          session = await withCustomError(
+            sandboxVM.connect(),
+            "Failed to connect to sandbox"
+          );
 
-            try {
-              spinner.start(
-                updateSpinnerMessage(
-                  index,
-                  `Running setup ${steps.indexOf(step) + 1} / ${
-                    steps.length
-                  } - ${step.name}...`
-                )
-              );
-
-              disposableStore.add(
-                step.onOutput((output) => {
-                  buffer.push(output);
-                })
-              );
-
-              const output = await step.open();
-
-              buffer.push(...output.split("\n"));
-
-              await step.waitUntilComplete();
-            } catch (error) {
-              throw new Error(`Setup step failed: ${step.name}`);
-            }
-          }
-
-          disposableStore.dispose();
+          await waitForSetup(session, index);
 
           const ports = argv.ports || [];
           const updatePortSpinner = () => {
@@ -279,7 +322,7 @@ export const buildCommand: yargs.CommandModule<
       );
 
       if (!argv.ci && failedSandboxes.length > 0) {
-        spinner.info(`\n${spinnerMessages.join("\n")}`);
+        spinner.start(`\n${spinnerMessages.join("\n")}`);
 
         await waitForEnter(
           `\nThere was an issue preparing the sandboxes. Verify ${failedSandboxes
@@ -331,6 +374,7 @@ export const buildCommand: yargs.CommandModule<
           `Alias ${alias.namespace}@${alias.alias} updated to: ${templateData.tag}`
         );
         process.exit(0);
+        return;
       }
 
       console.log("Template created: " + templateData.tag);
@@ -373,17 +417,17 @@ function createAlias(directory: string, alias: string) {
 
   const namespace =
     aliasParts.length === 2 ? aliasParts[0] : path.basename(directory);
-  const tag = aliasParts.length === 2 ? aliasParts[1] : alias;
+  alias = aliasParts.length === 2 ? aliasParts[1] : alias;
 
-  if (namespace.length > 64 || tag.length > 64) {
+  if (namespace.length > 64 || alias.length > 64) {
     throw new Error(
-      `Alias name "${namespace}" or tag "${tag}" is too long, must be 64 characters or less`
+      `Alias name "${namespace}" or tag "${alias}" is too long, must be 64 characters or less`
     );
   }
 
-  if (!/^[a-zA-Z0-9-_]+$/.test(namespace) || !/^[a-zA-Z0-9-_]+$/.test(tag)) {
+  if (!/^[a-zA-Z0-9-_]+$/.test(namespace) || !/^[a-zA-Z0-9-_]+$/.test(alias)) {
     throw new Error(
-      `Alias name "${namespace}" or tag "${tag}" is invalid, must only contain upper/lower case letters, numbers, dashes and underscores`
+      `Alias name "${namespace}" or tag "${alias}" is invalid, must only contain upper/lower case letters, numbers, dashes and underscores`
     );
   }
 
