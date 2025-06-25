@@ -1,6 +1,5 @@
 import { promises as fs } from "fs";
 import path from "path";
-import stripAnsi from "strip-ansi";
 import * as readline from "readline";
 import { type Client } from "@hey-api/client-fetch";
 import ora from "ora";
@@ -11,7 +10,6 @@ import { VMTier, CodeSandbox, Sandbox, SandboxClient } from "@codesandbox/sdk";
 import {
   templatesCreate,
   vmAssignTagAlias,
-  vmCreateTag,
   VmUpdateSpecsRequest,
 } from "../../api-clients/client";
 import {
@@ -22,7 +20,6 @@ import {
 import { getInferredApiKey } from "../../utils/constants";
 import { hashDirectory } from "../utils/hash";
 import { startVm } from "../../Sandboxes";
-import { DisposableStore } from "../../utils/disposable";
 
 export type BuildCommandArgs = {
   directory: string;
@@ -37,6 +34,17 @@ export type BuildCommandArgs = {
   vmBuildTier?: VmUpdateSpecsRequest["tier"];
   logPath?: string;
 };
+
+function stripAnsiCodes(str: string) {
+  // Matches ESC [ params … finalChar
+  //   \x1B       = ESC
+  //   \[         = literal “[”
+  //   [0-?]*     = any parameter bytes (digits, ;, ?)
+  //   [ -/]*     = any intermediate bytes (space through /)
+  //   [@-~]      = final byte ( @ A–Z [ \ ] ^ _ ` a–z { | } ~ )
+  const CSI_REGEX = /\x1B\[[0-?]*[ -/]*[@-~]/g;
+  return str.replace(CSI_REGEX, "");
+}
 
 export const buildCommand: yargs.CommandModule<
   Record<string, never>,
@@ -152,11 +160,11 @@ export const buildCommand: yargs.CommandModule<
             );
 
             step.onOutput((output) => {
-              buffer.push(stripAnsi(output));
+              buffer.push(stripAnsiCodes(output));
             });
             const output = await step.open();
 
-            buffer.push(...output.split("\n").map(stripAnsi));
+            buffer.push(...output.split("\n").map(stripAnsiCodes));
 
             await step.waitUntilComplete();
           } catch (error) {
