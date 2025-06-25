@@ -222,9 +222,6 @@ export class Sandbox {
     return this.createSession(customSession);
   }
 
-  /**
-   * Connects to the Sandbox using a WebSocket connection, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
-   */
   async createSession(
     customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
@@ -233,11 +230,10 @@ export class Sandbox {
       customSession
     );
 
-    /*
     if (customSession) {
       const client = await this.initializeCustomSession(customSession, session);
       client?.disconnect();
-    }*/
+    }
 
     return session;
   }
