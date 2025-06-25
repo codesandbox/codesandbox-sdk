@@ -4,7 +4,7 @@ import * as readline from "readline";
 import { type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
-
+import { instrumentedFetch } from "../utils/sentry";
 import { VMTier, CodeSandbox, Sandbox, SandboxClient } from "@codesandbox/sdk";
 
 import {
@@ -100,7 +100,7 @@ export const buildCommand: yargs.CommandModule<
 
   handler: async (argv) => {
     const apiKey = getInferredApiKey();
-    const apiClient: Client = createApiClient("CLI", apiKey);
+    const apiClient: Client = createApiClient(apiKey, {}, instrumentedFetch);
     const sdk = new CodeSandbox(apiKey);
     const sandboxTier = argv.vmTier
       ? VMTier.fromName(argv.vmTier)
