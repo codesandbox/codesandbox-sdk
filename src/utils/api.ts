@@ -9,9 +9,11 @@ import {
   createConfig,
 } from "@hey-api/client-fetch";
 import { getInferredBaseUrl } from "./constants";
-import { instrumentedFetch } from "./sentry";
 
-async function enhanceFetch(request: Request, client: "SDK" | "CLI") {
+async function enhanceFetch(
+  request: Request,
+  instrumentation?: (request: Request) => Promise<Response>
+) {
   // Clone the request to modify headers
   const headers = new Headers(request.headers);
   const existingUserAgent = headers.get("User-Agent") || "";
@@ -25,24 +27,29 @@ async function enhanceFetch(request: Request, client: "SDK" | "CLI") {
     }`.trim()
   );
 
-  // Create new request with updated headers
-  return instrumentedFetch(
-    new Request(request, {
-      headers,
-    }),
-    client
-  );
+  // Create new request with updated headers and optionally add instrumentation
+  return instrumentation
+    ? instrumentation(
+        new Request(request, {
+          headers,
+        })
+      )
+    : fetch(
+        new Request(request, {
+          headers,
+        })
+      );
 }
 
 export function createApiClient(
-  client: "SDK" | "CLI",
   apiKey: string,
-  config: Config = {}
+  config: Config = {},
+  instrumentation?: (request: Request) => Promise<Response>
 ) {
   return createClient(
     createConfig({
       baseUrl: config.baseUrl || getInferredBaseUrl(apiKey),
-      fetch: (request) => enhanceFetch(request, client),
+      fetch: (request) => enhanceFetch(request, instrumentation),
       ...config,
       headers: {
         Authorization: `Bearer ${apiKey}`,

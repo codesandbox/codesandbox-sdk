@@ -8,10 +8,7 @@ if (!Sentry.isInitialized()) {
   });
 }
 
-export async function instrumentedFetch(
-  request: Request,
-  client: "SDK" | "CLI"
-) {
+export async function instrumentedFetch(request: Request) {
   // We are cloning the request to be able to read its body on errors
   const res = await fetch(request.clone());
 
@@ -24,7 +21,7 @@ export async function instrumentedFetch(
           ? await new Response(request.body).text()
           : undefined,
         body: await res.clone().text(),
-        client,
+        client: "SDK-CLI",
         method: request.method,
         url: request.url,
         status: res.status,
