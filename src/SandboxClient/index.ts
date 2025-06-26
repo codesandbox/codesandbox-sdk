@@ -7,7 +7,6 @@ import { Tasks } from "./tasks";
 import { Interpreters } from "./interpreters";
 import { Terminals } from "./terminals";
 import { Commands } from "./commands";
-import { Git } from "./git";
 import { HostToken } from "../HostTokens";
 import { Hosts } from "./hosts";
 import { IAgentClient } from "../node/agent-client-interface";
@@ -20,7 +19,6 @@ export * from "./setup";
 export * from "./tasks";
 export * from "./terminals";
 export * from "./commands";
-export * from "./git";
 export * from "./interpreters";
 export * from "./hosts";
 
@@ -90,11 +88,6 @@ export class SandboxClient {
   public readonly interpreters: Interpreters;
 
   /**
-   * Namespace for Git operations in the Sandbox
-   */
-  public readonly git: Git;
-
-  /**
    * Namespace for managing ports on this Sandbox
    */
   public readonly ports = new Ports(this.disposable, this.agentClient);
@@ -132,7 +125,6 @@ export class SandboxClient {
 
     this.hosts = new Hosts(this.agentClient.sandboxId, hostToken);
     this.interpreters = new Interpreters(this.disposable, this.commands);
-    this.git = new Git(this.agentClient, this.commands);
     this.disposable.onWillDispose(() => this.agentClient.dispose());
   }
 

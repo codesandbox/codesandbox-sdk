@@ -11,7 +11,6 @@ import {
 import {
   IAgentClient,
   IAgentClientFS,
-  IAgentClientGit,
   IAgentClientPorts,
   IAgentClientSetup,
   IAgentClientShells,
@@ -285,24 +284,6 @@ class NodeAgentClientFS implements IAgentClientFS {
   }
 }
 
-class NodeAgentClientGit implements IAgentClientGit {
-  private onStatusUpdatedEmitter = new Emitter<git.GitStatus>();
-  onStatusUpdated = this.onStatusUpdatedEmitter.event;
-
-  constructor(private agentConnection: AgentConnection) {
-    agentConnection.onNotification("git/status", (params) => {
-      this.onStatusUpdatedEmitter.fire(params);
-    });
-  }
-
-  getStatus() {
-    return this.agentConnection.request({
-      method: "git/status",
-      params: {},
-    });
-  }
-}
-
 class NodeAgentClientPorts implements IAgentClientPorts {
   private onPortsUpdatedEmitter = new Emitter<port.Port[]>();
   onPortsUpdated = this.onPortsUpdatedEmitter.event;
@@ -405,7 +386,6 @@ export class NodeAgentClient implements IAgentClient {
   onStateChange = this.agentConnection.onStateChange;
   shells = new NodeAgentClientShells(this.agentConnection);
   fs = new NodeAgentClientFS(this.agentConnection, this.params.workspacePath);
-  git = new NodeAgentClientGit(this.agentConnection);
   setup = new NodeAgentClientSetup(this.agentConnection);
   tasks = new NodeAgentClientTasks(this.agentConnection);
   system = new NodeAgentClientSystem(this.agentConnection);

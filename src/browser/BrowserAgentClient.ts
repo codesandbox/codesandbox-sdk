@@ -2,7 +2,6 @@ import { IPitcherClient } from "@codesandbox/pitcher-client";
 import {
   IAgentClient,
   IAgentClientFS,
-  IAgentClientGit,
   IAgentClientPorts,
   IAgentClientSetup,
   IAgentClientShells,
@@ -74,14 +73,6 @@ class BrowserAgentClientFS implements IAgentClientFS {
   }
 }
 
-class BrowserAgentClientGit implements IAgentClientGit {
-  onStatusUpdated = this.pitcherClient.clients.git.onStatusUpdated;
-  getStatus() {
-    return this.pitcherClient.clients.git.getStatus();
-  }
-  constructor(private pitcherClient: IPitcherClient) {}
-}
-
 class BrowserAgentClientPorts implements IAgentClientPorts {
   onPortsUpdated = this.pitcherClient.clients.port.onPortsUpdated;
   async getPorts() {
@@ -135,7 +126,6 @@ export class BrowserAgentClient implements IAgentClient {
   onStateChange = this.onStateChangeEmitter.event;
   shells = new BrowserAgentClientShells(this.pitcherClient);
   fs = new BrowserAgentClientFS(this.pitcherClient);
-  git = new BrowserAgentClientGit(this.pitcherClient);
   ports = new BrowserAgentClientPorts(this.pitcherClient);
   setup = new BrowserAgentClientSetup(this.pitcherClient);
   tasks = new BrowserAgentClientTasks(this.pitcherClient);
