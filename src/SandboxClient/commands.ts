@@ -48,16 +48,18 @@ export class Commands {
 
     command = Array.isArray(command) ? command.join(" && ") : command;
 
-    const allEnv = Object.assign(opts?.env ?? {});
+    const passedEnv = Object.assign(opts?.env ?? {});
+
+    const escapedCommand = command.replace(/'/g, "'\\''");
 
     // TODO: use a new shell API that natively supports cwd & env
-    let commandWithEnv = Object.keys(allEnv).length
+    let commandWithEnv = Object.keys(passedEnv).length
       ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
-          allEnv
+          passedEnv
         )
           .map(([key, value]) => `${key}=${value}`)
-          .join(" ")} bash -c '${command}'`
-      : `source $HOME/.private/.env 2>/dev/null || true && ${command}`;
+          .join(" ")} bash -c '${escapedCommand}'`
+      : `source $HOME/.private/.env 2>/dev/null || true && bash -c '${escapedCommand}'`;
 
     if (opts?.cwd) {
       commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
