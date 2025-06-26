@@ -254,11 +254,18 @@ export class Command {
   async waitUntilComplete(): Promise<string> {
     await this.barrier.wait();
 
+    const cleaned = this.output
+      .join("\n")
+      .replace(
+        /Error: failed to exec in podman container: exit status 1[\s\S]*$/,
+        ""
+      );
+
     if (this.status === "FINISHED") {
-      return this.output.join("\n");
+      return cleaned;
     }
 
-    throw new Error(`Command ERROR: ${this.output.join("\n")}`);
+    throw new Error(`Command ERROR: ${cleaned}`);
   }
 
   // TODO: allow for kill signals
