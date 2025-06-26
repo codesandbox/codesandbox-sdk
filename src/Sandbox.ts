@@ -88,10 +88,6 @@ export class Sandbox {
     customSession: SessionCreateOptions,
     session: SandboxSession
   ) {
-    if (!customSession.git && !customSession.env) {
-      return;
-    }
-
     const client = await connectToSandbox({
       session,
       getSession: async () =>
@@ -100,9 +96,18 @@ export class Sandbox {
 
     if (customSession.env) {
       const envStrings = Object.entries(customSession.env)
-        .map(([key, value]) => `export ${key}=${value}`)
+        .map(([key, value]) => {
+          // escape any single-quotes in the value
+          const safe = value.replace(/'/g, `'\\"'`);
+          return `export ${key}='${safe}'`;
+        })
         .join("\n");
-      await client.commands.run(`echo "${envStrings}" > $HOME/.private/.env`);
+      const cmd = [
+        `cat << 'EOF' > "$HOME/.private/.env"`,
+        envStrings,
+        `EOF`,
+      ].join("\n");
+      await client.commands.run(cmd);
     }
 
     if (customSession.git) {
@@ -155,13 +160,6 @@ export class Sandbox {
       body: {
         session_id: customSession.id,
         permission: customSession.permission ?? "write",
-        ...(customSession.git
-          ? {
-              git_access_token: customSession.git.accessToken,
-              git_user_email: customSession.git.email,
-              git_user_name: customSession.git.name,
-            }
-          : {}),
       },
       path: {
         id: this.id,
@@ -225,16 +223,20 @@ export class Sandbox {
   async createSession(
     customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
-    const session = await this.getSession(
-      this.pitcherManagerResponse,
-      customSession
-    );
+    if (customSession?.git || customSession?.env) {
+      const configureSession = await this.getSession(
+        this.pitcherManagerResponse,
+        customSession
+      );
 
-    if (customSession) {
-      const client = await this.initializeCustomSession(customSession, session);
-      client?.disconnect();
+      const client = await this.initializeCustomSession(
+        customSession,
+        configureSession
+      );
+
+      client?.dispose();
     }
 
-    return session;
+    return this.getSession(this.pitcherManagerResponse, customSession);
   }
 }

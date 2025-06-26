@@ -236,7 +236,9 @@ export const buildCommand: yargs.CommandModule<
 
           await waitForSetup(session, index);
 
-          spinner.start(updateSpinnerMessage(index, "Creating fork state..."));
+          spinner.start(
+            updateSpinnerMessage(index, "Optimizing initial state...")
+          );
           sandboxVM = await withCustomError(
             sdk.sandboxes.restart(id, {
               vmTier: sandboxTier,
