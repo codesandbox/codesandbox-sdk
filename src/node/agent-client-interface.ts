@@ -96,11 +96,6 @@ export interface IAgentClientFS {
   download(path?: string): Promise<{ downloadUrl: string }>;
 }
 
-export interface IAgentClientGit {
-  onStatusUpdated: Event<git.GitStatus>;
-  getStatus(): Promise<git.GitStatus>;
-}
-
 export interface IAgentClientPorts {
   onPortsUpdated: Event<port.Port[]>;
   getPorts(): Promise<port.Port[]>;
@@ -139,7 +134,6 @@ export interface IAgentClient {
   onStateChange: Event<IAgentClientState>;
   shells: IAgentClientShells;
   fs: IAgentClientFS;
-  git: IAgentClientGit;
   ports: IAgentClientPorts;
   setup: IAgentClientSetup;
   tasks: IAgentClientTasks;
