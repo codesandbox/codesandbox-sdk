@@ -29,6 +29,40 @@ export type VmUpdateHibernationTimeoutRequest = {
     hibernation_timeout_seconds: number;
 };
 
+export type VmAssignTagAliasResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        alias: string;
+        namespace: string;
+        tag_alias_id: string;
+        tag_id: string;
+        team_id: string;
+    };
+};
+
+export type TemplateCreateRequest = {
+    /**
+     * Template description. Maximum 255 characters. Defaults to description of original sandbox.
+     */
+    description?: string;
+    /**
+     * Short ID of the sandbox to fork.
+     */
+    forkOf: string;
+    /**
+     * Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.
+     */
+    tags?: Array<string>;
+    /**
+     * Template title. Maximum 255 characters. Defaults to title of original sandbox with (forked).
+     */
+    title?: string;
+};
+
 export type PreviewToken = {
     expires_at: string | null;
     last_used_at: string | null;
@@ -92,6 +126,29 @@ export type VmCreateTagResponse = {
 } & {
     data?: {
         tag_id: string;
+    };
+};
+
+export type VmListRunningVmsResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        concurrent_vm_count: number;
+        concurrent_vm_limit: number;
+        vms: Array<{
+            credit_basis?: string;
+            id?: string;
+            last_active_at?: number;
+            session_started_at?: number;
+            specs?: {
+                cpu?: number;
+                memory?: number;
+                storage?: number;
+            };
+        }>;
     };
 };
 
@@ -204,6 +261,25 @@ export type MetaInformation = {
         team: string | null;
         version: string;
     };
+    /**
+     * Current workspace rate limits
+     */
+    rate_limits?: {
+        concurrent_vms: {
+            limit?: number;
+            remaining?: number;
+        };
+        requests_hourly: {
+            limit?: number;
+            remaining?: number;
+            reset?: number;
+        };
+        sandboxes_hourly: {
+            limit?: number;
+            remaining?: number;
+            reset?: number;
+        };
+    };
 };
 
 /**
@@ -226,6 +302,13 @@ export type TokenUpdateRequest = {
      * Which scopes to grant this token. The given scopes will replace the current scopes, revoking any that are no longer present in the list.
      */
     scopes?: Array<'sandbox_create' | 'sandbox_edit_code' | 'sandbox_read' | 'vm_manage'>;
+};
+
+/**
+ * Assign a tag alias to a VM
+ */
+export type VmAssignTagAliasRequest = {
+    tag_id: string;
 };
 
 export type VmHibernateResponse = {
@@ -496,6 +579,21 @@ export type TokenCreateResponse = {
         team_id: string;
         token: string;
         token_id: string;
+    };
+};
+
+export type TemplateCreateResponse = {
+    errors?: Array<string | {
+        [key: string]: unknown;
+    }>;
+    success?: boolean;
+} & {
+    data?: {
+        sandboxes: Array<{
+            cluster: string;
+            id: string;
+        }>;
+        tag: string;
     };
 };
 
@@ -935,6 +1033,53 @@ export type PreviewTokenUpdateResponses = {
 
 export type PreviewTokenUpdateResponse2 = PreviewTokenUpdateResponses[keyof PreviewTokenUpdateResponses];
 
+export type TemplatesCreateData = {
+    /**
+     * Template Create Request
+     */
+    body?: TemplateCreateRequest;
+    path?: never;
+    query?: never;
+    url: '/templates';
+};
+
+export type TemplatesCreateResponses = {
+    /**
+     * Template Create Response
+     */
+    201: TemplateCreateResponse;
+};
+
+export type TemplatesCreateResponse = TemplatesCreateResponses[keyof TemplatesCreateResponses];
+
+export type VmAssignTagAliasData = {
+    /**
+     * VM Assign Tag Alias Request
+     */
+    body?: VmAssignTagAliasRequest;
+    path: {
+        /**
+         * Tag alias namespace
+         */
+        namespace: string;
+        /**
+         * Tag alias
+         */
+        alias: string;
+    };
+    query?: never;
+    url: '/vm/alias/{namespace}/{alias}';
+};
+
+export type VmAssignTagAliasResponses = {
+    /**
+     * VM Assign Tag Alias Response
+     */
+    200: VmAssignTagAliasResponse;
+};
+
+export type VmAssignTagAliasResponse2 = VmAssignTagAliasResponses[keyof VmAssignTagAliasResponses];
+
 export type VmListClustersData = {
     body?: never;
     path?: never;
@@ -950,6 +1095,22 @@ export type VmListClustersResponses = {
 };
 
 export type VmListClustersResponse2 = VmListClustersResponses[keyof VmListClustersResponses];
+
+export type VmListRunningVmsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/vm/running';
+};
+
+export type VmListRunningVmsResponses = {
+    /**
+     * VM List Running VMs Response
+     */
+    200: VmListRunningVmsResponse;
+};
+
+export type VmListRunningVmsResponse2 = VmListRunningVmsResponses[keyof VmListRunningVmsResponses];
 
 export type VmCreateTagData = {
     /**

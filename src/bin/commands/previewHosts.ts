@@ -1,16 +1,11 @@
-import readline from "readline";
-
-import { createClient, createConfig, type Client } from "@hey-api/client-fetch";
-import ora from "ora";
 import type * as yargs from "yargs";
 
-import {
-  previewHostList,
-  previewHostCreate,
-  previewHostUpdate,
-} from "../../api-clients/client";
-import { handleResponse } from "../../utils/api";
-import { BASE_URL, getApiKey } from "../utils/constants";
+import { previewHostList, previewHostUpdate } from "../../api-clients/client";
+import { createApiClient, handleResponse } from "../../utils/api";
+import { getInferredApiKey } from "../../utils/constants";
+
+const apiKey = getInferredApiKey();
+const apiClient = createApiClient("CLI", apiKey);
 
 export const previewHostsCommand: yargs.CommandModule = {
   command: "preview-hosts",
@@ -22,15 +17,6 @@ export const previewHostsCommand: yargs.CommandModule = {
         command: "list",
         describe: "List current preview hosts",
         handler: async () => {
-          const API_KEY = getApiKey();
-          const apiClient: Client = createClient(
-            createConfig({
-              baseUrl: BASE_URL,
-              headers: {
-                Authorization: `Bearer ${API_KEY}`,
-              },
-            })
-          );
           const resp = await previewHostList({ client: apiClient });
           const data = handleResponse(resp, "Failed to list preview hosts");
           const hosts = data.preview_hosts.map(({ host }) => host);
@@ -51,15 +37,6 @@ export const previewHostsCommand: yargs.CommandModule = {
             demandOption: true,
           }),
         handler: async (argv) => {
-          const API_KEY = getApiKey();
-          const apiClient: Client = createClient(
-            createConfig({
-              baseUrl: BASE_URL,
-              headers: {
-                Authorization: `Bearer ${API_KEY}`,
-              },
-            })
-          );
           const resp = await previewHostList({ client: apiClient });
           const data = handleResponse(resp, "Failed to list preview hosts");
           let hosts = data.preview_hosts.map(({ host }) => host);
@@ -86,15 +63,6 @@ export const previewHostsCommand: yargs.CommandModule = {
             demandOption: true,
           }),
         handler: async (argv) => {
-          const API_KEY = getApiKey();
-          const apiClient: Client = createClient(
-            createConfig({
-              baseUrl: BASE_URL,
-              headers: {
-                Authorization: `Bearer ${API_KEY}`,
-              },
-            })
-          );
           const resp = await previewHostList({ client: apiClient });
           const data = handleResponse(resp, "Failed to list preview hosts");
           let hosts = data.preview_hosts.map(({ host }) => host);
@@ -115,15 +83,6 @@ export const previewHostsCommand: yargs.CommandModule = {
         command: "clear",
         describe: "Clear all preview hosts",
         handler: async () => {
-          const API_KEY = getApiKey();
-          const apiClient: Client = createClient(
-            createConfig({
-              baseUrl: BASE_URL,
-              headers: {
-                Authorization: `Bearer ${API_KEY}`,
-              },
-            })
-          );
           const resp = await previewHostList({ client: apiClient });
           const data = handleResponse(resp, "Failed to list preview hosts");
           const hosts = data.preview_hosts.map(({ host }) => host);

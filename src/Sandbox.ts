@@ -1,16 +1,8 @@
 import {
-  Disposable,
-  initPitcherClient,
   PitcherManagerResponse,
   type protocol as _protocol,
 } from "@codesandbox/pitcher-client";
-import {
-  type SandboxSession,
-  type SessionCreateOptions,
-  type SandboxBrowserSession,
-  DEFAULT_SUBSCRIPTIONS,
-} from "./types";
-import { Client } from "@hey-api/client-fetch";
+import { type SessionCreateOptions, type SandboxSession } from "./types";
 import {
   vmCreateSession,
   vmUpdateHibernationTimeout,
@@ -18,9 +10,10 @@ import {
 } from "./api-clients/client";
 import { handleResponse } from "./utils/api";
 import { VMTier } from "./VMTier";
-import { WebSocketSession } from "./sessions/WebSocketSession";
-import { RestSession } from "./sessions/RestSession";
+import { Client } from "@hey-api/client-fetch";
+import { connectToSandbox } from "./node";
 import { startVm } from "./Sandboxes";
+import { SandboxClient } from "./SandboxClient";
 
 export class Sandbox {
   /**
@@ -50,14 +43,6 @@ export class Sandbox {
       this.pitcherManagerResponse.latestPitcherVersion ===
       this.pitcherManagerResponse.pitcherVersion
     );
-  }
-  private get globalSession() {
-    return {
-      sandboxId: this.id,
-      pitcherToken: this.pitcherManagerResponse.pitcherToken,
-      pitcherUrl: this.pitcherManagerResponse.pitcherURL,
-      userWorkspacePath: this.pitcherManagerResponse.userWorkspacePath,
-    };
   }
   constructor(
     public id: string,
@@ -99,25 +84,82 @@ export class Sandbox {
     );
   }
 
-  private async createSession(
-    opts: SessionCreateOptions
+  private async initializeCustomSession(
+    customSession: SessionCreateOptions,
+    session: SandboxSession
+  ) {
+    const client = await connectToSandbox({
+      session,
+      getSession: async () =>
+        this.getSession(await startVm(this.apiClient, this.id), customSession),
+    });
+
+    if (customSession.env) {
+      const envStrings = Object.entries(customSession.env)
+        .map(([key, value]) => {
+          // escape any single-quotes in the value
+          const safe = value.replace(/'/g, `'\\"'`);
+          return `export ${key}='${safe}'`;
+        })
+        .join("\n");
+      const cmd = [
+        `cat << 'EOF' > "$HOME/.private/.env"`,
+        envStrings,
+        `EOF`,
+      ].join("\n");
+      await client.commands.run(cmd);
+    }
+
+    if (customSession.git) {
+      await Promise.all([
+        client.commands.run(
+          `echo "https://${customSession.git.username || "x-access-token"}:${
+            customSession.git.accessToken
+          }@${customSession.git.provider}" > $HOME/.private/.gitcredentials`
+        ),
+        client.commands.run(
+          `echo "[user]
+    name  = ${customSession.git.name || customSession.id}
+    email = ${customSession.git.email}
+[init]
+    defaultBranch = main
+[credential]
+    helper = store --file ~/.private/.gitcredentials" > $HOME/.gitconfig`
+        ),
+      ]);
+    }
+
+    return client;
+  }
+
+  private async getSession(
+    pitcherManagerResponse: PitcherManagerResponse,
+    customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
-    if (opts.id.length > 20) {
+    if (!customSession) {
+      return {
+        sandboxId: this.id,
+        bootupType: this.bootupType,
+        cluster: this.cluster,
+        latestPitcherVersion: pitcherManagerResponse.latestPitcherVersion,
+        pitcherManagerVersion: pitcherManagerResponse.pitcherManagerVersion,
+        pitcherToken: pitcherManagerResponse.pitcherToken,
+        pitcherURL: pitcherManagerResponse.pitcherURL,
+        userWorkspacePath: pitcherManagerResponse.userWorkspacePath,
+        workspacePath: pitcherManagerResponse.workspacePath,
+        pitcherVersion: pitcherManagerResponse.pitcherVersion,
+      };
+    }
+
+    if (customSession.id.length > 20) {
       throw new Error("Session ID must be 20 characters or less");
     }
 
     const response = await vmCreateSession({
       client: this.apiClient,
       body: {
-        session_id: opts.id,
-        permission: opts.permission ?? "write",
-        ...(opts.git
-          ? {
-              git_access_token: opts.git.accessToken,
-              git_user_email: opts.git.email,
-              git_user_name: opts.git.name,
-            }
-          : {}),
+        session_id: customSession.id,
+        permission: customSession.permission ?? "write",
       },
       path: {
         id: this.id,
@@ -126,132 +168,75 @@ export class Sandbox {
 
     const handledResponse = handleResponse(
       response,
-      `Failed to create session ${opts.id}`
+      `Failed to create session ${customSession.id}`
     );
-
-    const session: SandboxSession = {
-      sandboxId: this.id,
-      pitcherToken: handledResponse.pitcher_token,
-      pitcherUrl: handledResponse.pitcher_url,
-      userWorkspacePath: handledResponse.user_workspace_path,
-      env: opts.env,
-    };
-
-    return session;
-  }
-
-  /**
-   * Connects to the Sandbox using a WebSocket connection, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
-   */
-  async connect(
-    customSession?: SessionCreateOptions
-  ): Promise<WebSocketSession> {
-    let hasConnected = false;
-    const session = customSession
-      ? await this.createSession(customSession)
-      : this.globalSession;
-
-    const pitcherClient = await initPitcherClient(
-      {
-        appId: "sdk",
-        instanceId: this.id,
-        onFocusChange() {
-          return () => {};
-        },
-        requestPitcherInstance: async () => {
-          // If we reconnect we have to resume the Sandbox and get new session details
-          if (hasConnected) {
-            this.pitcherManagerResponse = await startVm(
-              this.apiClient,
-              this.id
-            );
-          }
-
-          const headers = this.apiClient.getConfig().headers as Headers;
-
-          if (headers.get("x-pitcher-manager-url")) {
-            // This is a hack, we need to tell the global scheduler that the VM is running
-            // in a different cluster than the one it'd like to default to.
-
-            const preferredManager = headers
-              .get("x-pitcher-manager-url")
-              ?.replace("/api/v1", "")
-              .replace("https://", "");
-            const baseUrl = this.apiClient
-              .getConfig()
-              .baseUrl?.replace("api", "global-scheduler");
-
-            await fetch(
-              `${baseUrl}/api/v1/cluster/${session.sandboxId}?preferredManager=${preferredManager}`
-            ).then((res) => res.json());
-          }
-
-          hasConnected = true;
-
-          return {
-            bootupType: this.bootupType,
-            pitcherURL: session.pitcherUrl,
-            workspacePath: session.userWorkspacePath,
-            userWorkspacePath: session.userWorkspacePath,
-            pitcherManagerVersion:
-              this.pitcherManagerResponse.pitcherManagerVersion,
-            pitcherVersion: this.pitcherManagerResponse.pitcherVersion,
-            latestPitcherVersion:
-              this.pitcherManagerResponse.latestPitcherVersion,
-            pitcherToken: session.pitcherToken,
-            cluster: this.cluster,
-          };
-        },
-        subscriptions: DEFAULT_SUBSCRIPTIONS,
-      },
-      () => {}
-    );
-
-    return new WebSocketSession(pitcherClient, {
-      username: customSession
-        ? // @ts-ignore
-          pitcherClient["joinResult"].client.username
-        : undefined,
-      env: customSession?.env,
-      hostToken: customSession?.hostToken,
-    });
-  }
-
-  /**
-   * Returns a REST API client connected to this Sandbox, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
-   */
-  async createRestSession(customSession?: SessionCreateOptions) {
-    const session = customSession
-      ? await this.createSession(customSession)
-      : this.globalSession;
-
-    return new RestSession(session);
-  }
-
-  /**
-   * Returns a browser session connected to this Sandbox, allowing you to interact with it. You can pass a custom session to connect to a specific user workspace, controlling permissions, git credentials and environment variables.
-   */
-  async createBrowserSession(
-    customSession?: SessionCreateOptions
-  ): Promise<SandboxBrowserSession> {
-    const session = customSession
-      ? await this.createSession(customSession)
-      : this.globalSession;
 
     return {
-      id: this.id,
-      env: customSession?.env,
+      sandboxId: this.id,
       sessionId: customSession?.id,
       hostToken: customSession?.hostToken,
       bootupType: this.bootupType,
       cluster: this.cluster,
-      latestPitcherVersion: this.pitcherManagerResponse.latestPitcherVersion,
-      pitcherManagerVersion: this.pitcherManagerResponse.pitcherManagerVersion,
-      pitcherToken: session.pitcherToken,
-      pitcherURL: session.pitcherUrl,
-      userWorkspacePath: session.userWorkspacePath,
-      workspacePath: this.pitcherManagerResponse.workspacePath,
-      pitcherVersion: this.pitcherManagerResponse.pitcherVersion,
+      latestPitcherVersion: pitcherManagerResponse.latestPitcherVersion,
+      pitcherManagerVersion: pitcherManagerResponse.pitcherManagerVersion,
+      pitcherToken: handledResponse.pitcher_token,
+      pitcherURL: handledResponse.pitcher_url,
+      userWorkspacePath: handledResponse.user_workspace_path,
+      workspacePath: pitcherManagerResponse.workspacePath,
+      pitcherVersion: pitcherManagerResponse.pitcherVersion,
     };
+  }
+
+  async connect(customSession?: SessionCreateOptions) {
+    const session = await this.getSession(
+      this.pitcherManagerResponse,
+      customSession
+    );
+
+    let client: SandboxClient | undefined;
+
+    // We might create a client here if git or env is configured, we can reuse that
+    if (customSession) {
+      client = await this.initializeCustomSession(customSession, session);
+    }
+
+    return (
+      client ||
+      connectToSandbox({
+        session,
+        getSession: async () =>
+          this.getSession(
+            await startVm(this.apiClient, this.id),
+            customSession
+          ),
+      })
+    );
+  }
+
+  /**
+   * @deprecated Use createSession instead
+   */
+  async createBrowserSession(customSession?: SessionCreateOptions) {
+    return this.createSession(customSession);
+  }
+
+  async createSession(
+    customSession?: SessionCreateOptions
+  ): Promise<SandboxSession> {
+    if (customSession?.git || customSession?.env) {
+      const configureSession = await this.getSession(
+        this.pitcherManagerResponse,
+        customSession
+      );
+
+      const client = await this.initializeCustomSession(
+        customSession,
+        configureSession
+      );
+
+      client?.dispose();
+    }
+
+    return this.getSession(this.pitcherManagerResponse, customSession);
   }
 }
