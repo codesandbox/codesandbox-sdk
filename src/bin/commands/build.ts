@@ -388,10 +388,14 @@ export const buildCommand: yargs.CommandModule<
           `Alias ${alias.namespace}@${alias.alias} updated to: ${templateData.tag}`
         );
         process.exit(0);
-        return;
       }
 
       console.log("Template created: " + templateData.tag);
+
+      if (argv.ci && failedSandboxes.length > 0) {
+        process.exit(1);
+      }
+
       process.exit(0);
     } catch (error) {
       console.error(error);
