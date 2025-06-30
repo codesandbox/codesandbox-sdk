@@ -27,7 +27,8 @@ export type CommandStatus =
 
 const DEFAULT_SHELL_SIZE = { cols: 128, rows: 24 };
 
-export class Commands {
+// This can not be called Commands due to React Native
+export class SandboxCommands {
   private disposable = new Disposable();
   constructor(
     sessionDisposable: Disposable,

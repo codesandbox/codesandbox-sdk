@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import path from "path";
+import path, { dirname } from "path";
 import * as readline from "readline";
 import { type Client } from "@hey-api/client-fetch";
 import ora from "ora";
@@ -20,6 +20,7 @@ import {
 import { getInferredApiKey } from "../../utils/constants";
 import { hashDirectory } from "../utils/hash";
 import { startVm } from "../../Sandboxes";
+import { mkdir, writeFile } from "fs/promises";
 
 export type BuildCommandArgs = {
   directory: string;
@@ -34,6 +35,11 @@ export type BuildCommandArgs = {
   vmBuildTier?: VmUpdateSpecsRequest["tier"];
   logPath?: string;
 };
+
+async function writeFileEnsureDir(filePath, data) {
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, data);
+}
 
 function stripAnsiCodes(str: string) {
   // Matches ESC [ params … finalChar
@@ -172,11 +178,11 @@ export const buildCommand: yargs.CommandModule<
             const timestamp = new Date().toISOString().replace(/:/g, "-");
             const logFilename = path.join(
               logPath,
-              `setup-failure-${step.name}-${timestamp}.log`
+              `setup-failure-${sandbox.id}-${timestamp}.log`
             );
 
             try {
-              await fs.writeFile(logFilename, buffer.join("\n"));
+              await writeFileEnsureDir(logFilename, buffer.join("\n"));
               console.error(`Log saved to: ${logFilename}`);
             } catch (writeError) {
               console.error(`Failed to write log file: ${writeError}`);

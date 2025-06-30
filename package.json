@@ -1,6 +1,6 @@
 {
   "name": "@codesandbox/sdk",
-  "version": "2.0.0-rc.10-debug",
+  "version": "2.0.0-rc.11-debug.2",
   "description": "The CodeSandbox SDK",
   "author": "CodeSandbox",
   "license": "MIT",
