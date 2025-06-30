@@ -234,7 +234,7 @@ export class SandboxClient {
    * If enabled, we will keep the sandbox from hibernating as long as the SDK is connected to it.
    */
   public keepActiveWhileConnected(enabled: boolean) {
-    if (enabled)
+    if (enabled) {
       if (!this.keepAliveInterval) {
         this.keepAliveInterval = setInterval(() => {
           this.agentClient.system.update();
