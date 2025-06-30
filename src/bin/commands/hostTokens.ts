@@ -39,14 +39,15 @@ export const hostTokensCommand: CommandModule = {
             .option("expires-at", {
               alias: "e",
               describe:
-                "Expiration date (ISO 8601 format, e.g. 2024-12-31T23:59:59Z). Can be omitted to create a token that never expires.",
+                "Expiration date (ISO 8601 format, e.g. 2024-12-31T23:59:59Z).",
               type: "string",
+              demandOption: true,
             });
         },
         handler: async (argv) => {
           await createPreviewToken(
             argv.sandboxId as string,
-            argv["expires-at"] as string | undefined
+            argv["expires-at"] as string
           );
         },
       })

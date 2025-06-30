@@ -72,6 +72,81 @@
         "title": "VMUpdateHibernationTimeoutRequest",
         "type": "object"
       },
+      "VMAssignTagAliasResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "alias": { "type": "string" },
+                  "namespace": { "type": "string" },
+                  "tag_alias_id": { "type": "string" },
+                  "tag_id": { "type": "string" },
+                  "team_id": { "type": "string" }
+                },
+                "required": [
+                  "tag_alias_id",
+                  "team_id",
+                  "tag_id",
+                  "namespace",
+                  "alias"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMAssignTagAliasResponse",
+        "type": "object"
+      },
+      "TemplateCreateRequest": {
+        "properties": {
+          "description": {
+            "default": "[Template description]",
+            "description": "Template description. Maximum 255 characters. Defaults to description of original sandbox.",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "forkOf": {
+            "description": "Short ID of the sandbox to fork.",
+            "example": "pt_1234567890",
+            "type": "string"
+          },
+          "tags": {
+            "default": [],
+            "description": "Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.",
+            "items": { "type": "string" },
+            "type": "array"
+          },
+          "title": {
+            "default": "[Template title]",
+            "description": "Template title. Maximum 255 characters. Defaults to title of original sandbox with (forked).",
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": ["forkOf"],
+        "title": "TemplateCreateRequest",
+        "type": "object"
+      },
       "PreviewToken": {
         "properties": {
           "expires_at": { "nullable": true, "type": "string" },
@@ -210,6 +285,73 @@
           }
         ],
         "title": "VMCreateTagResponse",
+        "type": "object"
+      },
+      "VMListRunningVMsResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "concurrent_vm_count": { "type": "integer" },
+                  "concurrent_vm_limit": { "type": "integer" },
+                  "vms": {
+                    "items": {
+                      "properties": {
+                        "credit_basis": { "type": "string" },
+                        "id": { "type": "string" },
+                        "last_active_at": { "type": "integer" },
+                        "session_started_at": { "type": "integer" },
+                        "specs": {
+                          "properties": {
+                            "cpu": { "type": "integer" },
+                            "memory": { "type": "integer" },
+                            "storage": { "type": "integer" }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "required": [
+                      "id",
+                      "last_active_at",
+                      "session_started_at",
+                      "specs",
+                      "credit_basis"
+                    ],
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "vms",
+                  "concurrent_vm_count",
+                  "concurrent_vm_limit"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "VMListRunningVMsResponse",
         "type": "object"
       },
       "SandboxGetResponse": {
@@ -399,6 +541,40 @@
             },
             "required": ["scopes", "team", "version"],
             "type": "object"
+          },
+          "rate_limits": {
+            "description": "Current workspace rate limits",
+            "properties": {
+              "concurrent_vms": {
+                "properties": {
+                  "limit": { "type": "integer" },
+                  "remaining": { "type": "integer" }
+                },
+                "type": "object"
+              },
+              "requests_hourly": {
+                "properties": {
+                  "limit": { "type": "integer" },
+                  "remaining": { "type": "integer" },
+                  "reset": { "type": "integer" }
+                },
+                "type": "object"
+              },
+              "sandboxes_hourly": {
+                "properties": {
+                  "limit": { "type": "integer" },
+                  "remaining": { "type": "integer" },
+                  "reset": { "type": "integer" }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "concurrent_vms",
+              "sandboxes_hourly",
+              "requests_hourly"
+            ],
+            "type": "object"
           }
         },
         "required": ["api"],
@@ -440,6 +616,13 @@
           }
         },
         "title": "TokenUpdateRequest",
+        "type": "object"
+      },
+      "VMAssignTagAliasRequest": {
+        "description": "Assign a tag alias to a VM",
+        "properties": { "tag_id": { "type": "string" } },
+        "required": ["tag_id"],
+        "title": "VMAssignTagAliasRequest",
         "type": "object"
       },
       "VMHibernateResponse": {
@@ -1018,6 +1201,52 @@
           }
         ],
         "title": "TokenCreateResponse",
+        "type": "object"
+      },
+      "TemplateCreateResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "data": {
+                "properties": {
+                  "sandboxes": {
+                    "items": {
+                      "properties": {
+                        "cluster": { "type": "string" },
+                        "id": { "type": "string" }
+                      },
+                      "required": ["id", "cluster"],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "tag": { "type": "string" }
+                },
+                "required": ["tag", "sandboxes"],
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ],
+        "title": "TemplateCreateResponse",
         "type": "object"
       },
       "TokenCreateRequest": {
@@ -1832,6 +2061,89 @@
         "tags": []
       }
     },
+    "/templates": {
+      "post": {
+        "callbacks": {},
+        "description": "Create a new template in the current workspace (creates 3 sandboxes and tags them)\n",
+        "operationId": "templates/create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TemplateCreateRequest" }
+            }
+          },
+          "description": "Template Create Request",
+          "required": false
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateCreateResponse"
+                }
+              }
+            },
+            "description": "Template Create Response"
+          }
+        },
+        "security": [{ "authorization": ["template:create"] }],
+        "summary": "Create a template",
+        "tags": ["templates"]
+      }
+    },
+    "/vm/alias/{namespace}/{alias}": {
+      "put": {
+        "callbacks": {},
+        "description": "Assign a tag alias to a VM tag.\n",
+        "operationId": "vm/assign_tag_alias",
+        "parameters": [
+          {
+            "description": "Tag alias namespace",
+            "example": "my-project",
+            "in": "path",
+            "name": "namespace",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "description": "Tag alias",
+            "example": "latest",
+            "in": "path",
+            "name": "alias",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VMAssignTagAliasRequest"
+              }
+            }
+          },
+          "description": "VM Assign Tag Alias Request",
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMAssignTagAliasResponse"
+                }
+              }
+            },
+            "description": "VM Assign Tag Alias Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Assign a tag alias to a VM tag",
+        "tags": ["vm"]
+      }
+    },
     "/vm/clusters": {
       "get": {
         "callbacks": {},
@@ -1852,6 +2164,29 @@
         },
         "security": [{ "authorization": ["vm:manage"] }],
         "summary": "List all available clusters",
+        "tags": ["vm"]
+      }
+    },
+    "/vm/running": {
+      "get": {
+        "callbacks": {},
+        "description": "List information about currently running VMs. This information is updated roughly every 30 seconds, so this data is not guaranteed to be perfectly up-to-date.\n",
+        "operationId": "vm/list_running_vms",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VMListRunningVMsResponse"
+                }
+              }
+            },
+            "description": "VM List Running VMs Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "List information about currently running VMs",
         "tags": ["vm"]
       }
     },
