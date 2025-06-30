@@ -6,7 +6,7 @@ import { Setup } from "./setup";
 import { Tasks } from "./tasks";
 import { Interpreters } from "./interpreters";
 import { Terminals } from "./terminals";
-import { Commands } from "./commands";
+import { SandboxCommands } from "./commands";
 import { HostToken } from "../HostTokens";
 import { Hosts } from "./hosts";
 import { IAgentClient } from "../node/agent-client-interface";
@@ -80,7 +80,7 @@ export class SandboxClient {
   /**
    * Namespace for running commands in the Sandbox
    */
-  public readonly commands: Commands;
+  public readonly commands: SandboxCommands;
 
   /**
    * Namespace for running code interpreters in the Sandbox
@@ -121,7 +121,7 @@ export class SandboxClient {
     );
     this.fs = new FileSystem(this.disposable, this.agentClient, username);
     this.terminals = new Terminals(this.disposable, this.agentClient);
-    this.commands = new Commands(this.disposable, this.agentClient);
+    this.commands = new SandboxCommands(this.disposable, this.agentClient);
 
     this.hosts = new Hosts(this.agentClient.sandboxId, hostToken);
     this.interpreters = new Interpreters(this.disposable, this.commands);

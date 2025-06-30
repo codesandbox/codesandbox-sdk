@@ -1,9 +1,12 @@
 import { Disposable } from "../utils/disposable";
-import { Commands, ShellRunOpts } from "./commands";
+import { SandboxCommands, ShellRunOpts } from "./commands";
 
 export class Interpreters {
   private disposable = new Disposable();
-  constructor(sessionDisposable: Disposable, private commands: Commands) {
+  constructor(
+    sessionDisposable: Disposable,
+    private commands: SandboxCommands
+  ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
     });
