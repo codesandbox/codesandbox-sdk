@@ -329,47 +329,58 @@ export const buildCommand: yargs.CommandModule<
         }
       });
 
-      const results = await Promise.allSettled(tasks);
-
-      const failedSandboxes = templateData.sandboxes.filter(
-        (_, index) => results[index].status === "rejected"
-      );
-
-      if (!argv.ci && failedSandboxes.length > 0) {
-        spinner.start(`\n${spinnerMessages.join("\n")}`);
-
-        await waitForEnter(
-          `\nThere was an issue preparing the sandboxes. Verify ${failedSandboxes
-            .map((sandbox) => sandbox.id)
-            .join(", ")} and press ENTER to create snapshot...\n`
-        );
-
-        failedSandboxes.forEach(({ id }) => {
-          updateSpinnerMessage(
-            templateData.sandboxes.findIndex((sandbox) => sandbox.id === id),
-            "Creating snapshot..."
-          );
-        });
-
-        spinner.start(`\n${spinnerMessages.join("\n")}`);
-
-        await Promise.all(
-          failedSandboxes.map(async ({ id }) => {
-            await sdk.sandboxes.hibernate(id);
-
-            spinner.start(
-              updateSpinnerMessage(
-                templateData.sandboxes.findIndex(
-                  (sandbox) => sandbox.id === id
-                ),
-                "Snapshot created"
-              )
-            );
-          })
-        );
-        spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+      if (argv.ci) {
+        try {
+          await Promise.all(tasks);
+        } catch {
+          spinner.fail(`\n${spinnerMessages.join("\n")}`);
+          process.exit(1);
+        }
       } else {
-        spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+        const results = await Promise.allSettled(tasks);
+
+        const failedSandboxes = templateData.sandboxes.filter(
+          (_, index) => results[index].status === "rejected"
+        );
+
+        if (failedSandboxes.length > 0) {
+          spinner.start(
+            `\n${spinnerMessages.join(
+              "\n"
+            )}\n\nThere was an issue preparing the sandboxes. Verify ${failedSandboxes
+              .map((sandbox) => sandbox.id)
+              .join(", ")} and press ENTER to create snapshot...\n`
+          );
+
+          await waitForEnter();
+
+          failedSandboxes.forEach(({ id }) => {
+            updateSpinnerMessage(
+              templateData.sandboxes.findIndex((sandbox) => sandbox.id === id),
+              "Creating snapshot..."
+            );
+          });
+
+          spinner.start(`\n${spinnerMessages.join("\n")}`);
+
+          await Promise.all(
+            failedSandboxes.map(async ({ id }) => {
+              await sdk.sandboxes.hibernate(id);
+
+              spinner.start(
+                updateSpinnerMessage(
+                  templateData.sandboxes.findIndex(
+                    (sandbox) => sandbox.id === id
+                  ),
+                  "Snapshot created"
+                )
+              );
+            })
+          );
+          spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+        } else {
+          spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+        }
       }
 
       if (alias) {
@@ -392,10 +403,6 @@ export const buildCommand: yargs.CommandModule<
 
       console.log("Template created: " + templateData.tag);
 
-      if (argv.ci && failedSandboxes.length > 0) {
-        process.exit(1);
-      }
-
       process.exit(0);
     } catch (error) {
       console.error(error);
@@ -410,14 +417,14 @@ function withCustomError<T extends Promise<any>>(promise: T, message: string) {
   });
 }
 
-function waitForEnter(message: string) {
+function waitForEnter() {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
 
   return new Promise<void>((resolve) => {
-    rl.question(message, () => {
+    rl.question("", () => {
       rl.close();
       resolve();
     });
