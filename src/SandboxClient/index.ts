@@ -12,6 +12,7 @@ import { Hosts } from "./hosts";
 import { IAgentClient } from "../node/agent-client-interface";
 import { setup } from "../pitcher-protocol";
 import { Barrier } from "../utils/barrier";
+import { clear } from "console";
 
 export * from "./filesystem";
 export * from "./ports";
@@ -126,6 +127,30 @@ export class SandboxClient {
     this.hosts = new Hosts(this.agentClient.sandboxId, hostToken);
     this.interpreters = new Interpreters(this.disposable, this.commands);
     this.disposable.onWillDispose(() => this.agentClient.dispose());
+
+    this.disposable.onWillDispose(() => {
+      if (this.keepAliveInterval) {
+        clearInterval(this.keepAliveInterval);
+        this.keepAliveInterval = null;
+      }
+    });
+
+    this.agentClient.onStateChange((state) => {
+      if (!this.shouldKeepAlive) {
+        return;
+      }
+
+      // We can not call `keepActiveWhileConnected` here, because it would
+      // reset the interval, which would turn off the "shouldKeepAlive" flag
+      if (state === "DISCONNECTED" || state === "HIBERNATED") {
+        if (this.keepAliveInterval) {
+          clearInterval(this.keepAliveInterval);
+        }
+        this.keepAliveInterval = null;
+      } else if (state === "CONNECTED") {
+        this.keepActiveWhileConnected(true);
+      }
+    });
   }
 
   /**
@@ -219,6 +244,11 @@ export class SandboxClient {
    * reconnect to the sandbox.
    */
   public disconnect() {
+    if (this.keepAliveInterval) {
+      clearInterval(this.keepAliveInterval);
+      this.keepAliveInterval = null;
+    }
+
     return this.agentClient.disconnect();
   }
 
@@ -230,22 +260,19 @@ export class SandboxClient {
   }
 
   private keepAliveInterval: NodeJS.Timeout | null = null;
+  private shouldKeepAlive = false;
   /**
    * If enabled, we will keep the sandbox from hibernating as long as the SDK is connected to it.
    */
   public keepActiveWhileConnected(enabled: boolean) {
+    // Used to manage the interval when disconnects happen
+    this.shouldKeepAlive = enabled;
+
     if (enabled) {
       if (!this.keepAliveInterval) {
         this.keepAliveInterval = setInterval(() => {
           this.agentClient.system.update();
         }, 1000 * 30);
-
-        this.disposable.onWillDispose(() => {
-          if (this.keepAliveInterval) {
-            clearInterval(this.keepAliveInterval);
-            this.keepAliveInterval = null;
-          }
-        });
       }
     } else {
       if (this.keepAliveInterval) {
