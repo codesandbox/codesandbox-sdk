@@ -422,7 +422,7 @@ sdk.sandboxes.create({
   id: "${id}"
 })
   
-Verify Sandbox at: https://codesandbox.io/s/${sandbox.id}`
+Verify Sandbox at: https://codesandbox.io/s/${sandbox.id}\n\n`
       );
 
       process.exit(0);
