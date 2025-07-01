@@ -234,17 +234,19 @@ export class SandboxClient {
    * If enabled, we will keep the sandbox from hibernating as long as the SDK is connected to it.
    */
   public keepActiveWhileConnected(enabled: boolean) {
-    if (enabled && !this.keepAliveInterval) {
-      this.keepAliveInterval = setInterval(() => {
-        this.agentClient.system.update();
-      }, 1000 * 30);
+    if (enabled) {
+      if (!this.keepAliveInterval) {
+        this.keepAliveInterval = setInterval(() => {
+          this.agentClient.system.update();
+        }, 1000 * 30);
 
-      this.disposable.onWillDispose(() => {
-        if (this.keepAliveInterval) {
-          clearInterval(this.keepAliveInterval);
-          this.keepAliveInterval = null;
-        }
-      });
+        this.disposable.onWillDispose(() => {
+          if (this.keepAliveInterval) {
+            clearInterval(this.keepAliveInterval);
+            this.keepAliveInterval = null;
+          }
+        });
+      }
     } else {
       if (this.keepAliveInterval) {
         clearInterval(this.keepAliveInterval);
