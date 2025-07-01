@@ -377,11 +377,20 @@ export const buildCommand: yargs.CommandModule<
               );
             })
           );
-          spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+          spinner.start(`\n${spinnerMessages.join("\n")}`);
         } else {
-          spinner.succeed(`\n${spinnerMessages.join("\n")}`);
+          spinner.start(`\n${spinnerMessages.join("\n")}`);
         }
       }
+
+      spinner.start(
+        `\n${spinnerMessages.join(
+          "\n"
+        )}\n\nCreating template reference and example...`
+      );
+
+      let referenceString;
+      let id;
 
       if (alias) {
         await vmAssignTagAlias({
@@ -395,13 +404,26 @@ export const buildCommand: yargs.CommandModule<
           },
         });
 
-        console.log(
-          `Alias ${alias.namespace}@${alias.alias} updated to: ${templateData.tag}`
-        );
-        process.exit(0);
+        id = `${alias.namespace}@${alias.alias}`;
+        referenceString = `Alias ${id} now referencing: ${templateData.tag}`;
+      } else {
+        id = templateData.tag;
+        referenceString = `Template created with tag: ${templateData.tag}`;
       }
 
-      console.log("Template created: " + templateData.tag);
+      const sandbox = await sdk.sandboxes.create({
+        id,
+      });
+
+      spinner.succeed(
+        `\n${spinnerMessages.join("\n")}\n\n${referenceString}
+
+sdk.sandboxes.create({
+  id: "${id}"
+})
+  
+Verify Sandbox at: https://codesandbox.io/s/${sandbox.id}\n\n`
+      );
 
       process.exit(0);
     } catch (error) {
