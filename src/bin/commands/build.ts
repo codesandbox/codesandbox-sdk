@@ -208,10 +208,10 @@ export const buildCommand: yargs.CommandModule<
             updateSpinnerMessage(index, "Writing files to sandbox...")
           );
 
-          try {
-            let i = 0;
-            for (const filePath of filePaths) {
-              i++;
+          let i = 0;
+          for (const filePath of filePaths) {
+            i++;
+            try {
               const fullPath = path.join(argv.directory, filePath);
               const content = await fs.readFile(fullPath);
               const dirname = path.dirname(filePath);
@@ -220,9 +220,11 @@ export const buildCommand: yargs.CommandModule<
                 create: true,
                 overwrite: true,
               });
+            } catch (error) {
+              throw new Error(
+                `Failed to write "${filePath}" to sandbox: ${error}`
+              );
             }
-          } catch (error) {
-            throw new Error(`Failed to write files to sandbox: ${error}`);
           }
 
           spinner.start(updateSpinnerMessage(index, "Building sandbox..."));
