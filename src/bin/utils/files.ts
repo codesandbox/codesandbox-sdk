@@ -1,18 +1,12 @@
-import { createHash } from "crypto";
 import { existsSync, readFileSync } from "fs";
-import { readFile, stat, readdir } from "fs/promises";
+import { stat, readdir } from "fs/promises";
 import { join, relative } from "path";
 
 import ignore from "ignore";
 
-interface HashResult {
-  hash: string;
-  files: string[];
-}
-
 const MAX_FILES = 50_000;
 
-export async function hashDirectory(dirPath: string): Promise<HashResult> {
+export async function hashDirectory(dirPath: string): Promise<string[]> {
   // Initialize ignore rules from .gitignore, .dockerignore and .csbignore
   const ig = ignore();
   const ignoreFiles = [".gitignore", ".dockerignore", ".csbignore"];
@@ -24,11 +18,10 @@ export async function hashDirectory(dirPath: string): Promise<HashResult> {
     }
   });
 
-  // Always ignore .git folder
-  ig.add(".git/**");
+  // Always ignore root .git folder
+  ig.add("/.git/");
 
   const relevantFiles: string[] = [];
-  const fileHashes: string[] = [];
 
   async function processDirectory(currentPath: string) {
     const files = await readdir(currentPath);
@@ -51,11 +44,6 @@ export async function hashDirectory(dirPath: string): Promise<HashResult> {
         if (stats.isDirectory()) {
           await processDirectory(fullPath);
         } else if (stats.isFile()) {
-          const fileContent = await readFile(fullPath);
-          const fileHash = createHash("sha256")
-            .update(fileContent)
-            .digest("hex");
-          fileHashes.push(fileHash);
           relevantFiles.push(relativePath);
         }
       })
@@ -64,17 +52,7 @@ export async function hashDirectory(dirPath: string): Promise<HashResult> {
 
   await processDirectory(dirPath);
 
-  // Sort for consistent hashing
-  fileHashes.sort();
   relevantFiles.sort();
 
-  // Create final hash from all file hashes
-  const finalHash = createHash("sha256")
-    .update(fileHashes.join(""))
-    .digest("hex");
-
-  return {
-    hash: finalHash,
-    files: relevantFiles,
-  };
+  return relevantFiles;
 }
