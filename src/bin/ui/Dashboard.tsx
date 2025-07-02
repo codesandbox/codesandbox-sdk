@@ -21,10 +21,12 @@ function useTerminalSize() {
 
 // Component to open a sandbox by ID
 export function Dashboard() {
+  const { apiClient } = useSDK();
+  
   // Poll getRunningVms API every 2 seconds
   const runningVmsQuery = useQuery({
     queryKey: ["runningVms"],
-    queryFn: getRunningVms,
+    queryFn: () => getRunningVms(apiClient),
   });
 
   const [sandboxId, setSandboxId] = useState("");
@@ -103,11 +105,11 @@ const Sandbox = memo(
   }) => {
     const sandboxQuery = useQuery({
       queryKey: ["sandbox", id],
-      queryFn: () => getSandbox(id),
+      queryFn: () => getSandbox(apiClient, id),
     });
     const runningStateRef = useRef(runningState);
 
-    const sdk = useSDK();
+    const { sdk, apiClient } = useSDK();
 
     // Only two states: RUNNING or IDLE
     const [sandboxState, setSandboxState] = useState<
