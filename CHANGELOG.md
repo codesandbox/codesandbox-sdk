@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.2](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.1...v2.0.2) (2025-07-02)
+
+
+### Bug Fixes
+
+* add api client to runningvms query fn ([0119379](https://github.com/codesandbox/codesandbox-sdk/commit/0119379482320dd1142366838ec0679380800909))
+* add apiClient to context and pass to query fn ([75f56da](https://github.com/codesandbox/codesandbox-sdk/commit/75f56dafb1fe93ad395d9727ebab39425875de5d))
+* Template resolve files fixes ([#121](https://github.com/codesandbox/codesandbox-sdk/issues/121)) ([6d455ad](https://github.com/codesandbox/codesandbox-sdk/commit/6d455ad7eefe69f70b8ff4f20efb18d929e57613))
+
 ## [0.12.0](https://github.com/codesandbox/codesandbox-sdk/compare/v0.11.2...v0.12.0) (2025-04-24)
 
 
