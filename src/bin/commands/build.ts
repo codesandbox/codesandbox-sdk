@@ -18,7 +18,7 @@ import {
   handleResponse,
 } from "../../utils/api";
 import { getInferredApiKey } from "../../utils/constants";
-import { hashDirectory } from "../utils/hash";
+import { hashDirectory as getFilePaths } from "../utils/files";
 import { startVm } from "../../Sandboxes";
 import { mkdir, writeFile } from "fs/promises";
 
@@ -121,8 +121,7 @@ export const buildCommand: yargs.CommandModule<
       alias = createAlias(path.resolve(argv.directory), argv.alias);
     }
 
-    const { hash, files: filePaths } = await hashDirectory(argv.directory);
-    const tag = `sha:${hash.slice(0, 6)}`;
+    const filePaths = await getFilePaths(argv.directory);
 
     try {
       const templateData = handleResponse(
@@ -132,7 +131,7 @@ export const buildCommand: yargs.CommandModule<
             forkOf: argv.fromSandbox || getDefaultTemplateId(apiClient),
             title: argv.name,
             // We filter out sdk-templates on the dashboard
-            tags: ["sdk-template", tag],
+            tags: ["sdk-template"],
           },
         }),
         "Failed to create template"
