@@ -3,6 +3,7 @@ import { Box, Text, useInput, useStdout } from "ink";
 import { useSDK } from "./sdkContext";
 import { useQuery } from "@tanstack/react-query";
 import { getSandbox, getRunningVms } from "./api";
+import BigText from "ink-big-text";
 
 // Custom hook to get terminal size
 function useTerminalSize() {
@@ -77,15 +78,17 @@ export function Dashboard() {
   }
 
   return (
-    <Box flexDirection="column" width={stdoutWidth} height={stdoutHeight}>
-      <Box marginBottom={1}>
-        <Text bold>CodeSandbox</Text>
+    <Box flexDirection="column" width={stdoutWidth} height={stdoutHeight} gap={1}>
+      <Box flexDirection="column" marginTop={1}>
+        <Text>█▀▀█    █▀▀ █▀█ █▀▄ █▀▀ █▀▀ ▄▀█ █▄ █ █▀▄ █▄▄ █▀█ ▀▄▀</Text>
+        <Text>█▄▄█    █▄▄ █▄█ █▄▀ ██▄ ▄▄█ █▀█ █ ▀█ █▄▀ █▄█ █▄█ █ █</Text>
+        {/* <BigText font="tiny" text="CodeSandbox" /> */}
       </Box>
-      <Box marginY={1}>
+      <Box>
         <Text>Enter Sandbox ID: </Text>
         <Text color={isFocused ? "green" : undefined}>{sandboxId || "_"}</Text>
       </Box>
-      <Box marginTop={1}>
+      <Box>
         <Text dimColor>Type to input ID, press ENTER to open</Text>
       </Box>
     </Box>
