@@ -1,11 +1,8 @@
 import React, { createContext, useContext, useState } from "react";
 
-type View = "dashboard" | "sandbox";
-
-interface ViewState {
-  name: View;
-  params?: Record<string, string>;
-}
+type ViewState =
+  | { name: "dashboard" }
+  | { name: "sandbox"; params: { id: string } };
 
 export const ViewContext = createContext<{
   view: ViewState;
@@ -15,30 +12,24 @@ export const ViewContext = createContext<{
   setView: () => {},
 });
 
-export const ViewProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const ViewProvider = ({ children }: { children: React.ReactNode }) => {
   const [view, setView] = useState<ViewState>({
-    name: 'dashboard'
+    name: "dashboard",
   });
 
-  const handleSetView = (view: View | ViewState) => {
-    if (typeof view === "string") {
-      setView({ name: view });
-    } else {
-      setView(view);
-    }
-  }
-
   return (
-    <ViewContext.Provider value={{ view, setView: handleSetView }}>
+    <ViewContext.Provider value={{ view, setView }}>
       {children}
     </ViewContext.Provider>
   );
 };
 
-export const useView = () => {
-  return useContext(ViewContext);
+export const useView = <T extends ViewState["name"]>() => {
+  const { view, setView } = useContext(ViewContext);
+  const typedView = view as Extract<ViewState, { name: T }>;
+
+  return {
+    view: typedView,
+    setView,
+  };
 };

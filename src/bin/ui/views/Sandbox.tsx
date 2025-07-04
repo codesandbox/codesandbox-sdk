@@ -6,7 +6,7 @@ import { useSDK } from "../sdkContext";
 import { getRunningVms, getSandbox } from "../api";
 
 export const Sandbox = () => {
-  const { view, setView } = useView();
+  const { view, setView } = useView<"sandbox">();
 
   // Poll getRunningVms API every 2 seconds
   const runningVmsQuery = useQuery({
@@ -26,14 +26,14 @@ export const Sandbox = () => {
   }, []);
 
   const sandboxQuery = useQuery({
-    queryKey: ["sandbox", view.params?.id],
-    queryFn: () => getSandbox(apiClient, view.params?.id!),
-    enabled: !!view.params?.id,
+    queryKey: ["sandbox", view.params.id],
+    queryFn: () => getSandbox(apiClient, view.params.id),
+    enabled: !!view.params.id,
   });
 
   const runningState = runningVmsQuery.isLoading
     ? "PENDING"
-    : runningVmsQuery.data?.vms.find((vm) => vm.id === view.params?.id)
+    : runningVmsQuery.data?.vms.find((vm) => vm.id === view.params.id)
     ? "RUNNING"
     : "IDLE";
 
@@ -79,19 +79,19 @@ export const Sandbox = () => {
       case "Hibernate":
       case "Shutdown":
         setSandboxState("PENDING");
-        await sdk.sandboxes.shutdown(view.params?.id!);
+        await sdk.sandboxes.shutdown(view.params.id);
         setSandboxState("IDLE");
         setSelectedOption(0);
         break;
       case "Restart":
         setSandboxState("PENDING");
-        await sdk.sandboxes.restart(view.params?.id!);
+        await sdk.sandboxes.restart(view.params.id);
         setSandboxState("RUNNING");
         setSelectedOption(0);
         break;
       case "Start":
         setSandboxState("PENDING");
-        await sdk.sandboxes.resume(view.params?.id!);
+        await sdk.sandboxes.resume(view.params.id);
         setSandboxState("RUNNING");
         setSelectedOption(0);
         break;
@@ -115,7 +115,7 @@ export const Sandbox = () => {
     }
   });
 
-  if (!view.params?.id) {
+  if (!view.params.id) {
     return <Box>No sandbox ID provided. Press escape to go back.</Box>;
   }
 
@@ -139,7 +139,7 @@ export const Sandbox = () => {
       {sandboxQuery.data && (
         <Box flexDirection="column">
           <Text bold>
-            {sandboxQuery.data.title} - {view.params?.id}
+            {sandboxQuery.data.title} - {view.params.id}
           </Text>
 
           {sandboxQuery.data.description && (
