@@ -6,13 +6,14 @@ import { buildCommand } from "./commands/build";
 import { sandboxesCommand } from "./commands/sandbox";
 import { previewHostsCommand } from "./commands/previewHosts";
 import { hostTokensCommand } from "./commands/hostTokens";
-import { Dashboard } from "./ui/Dashboard";
+import { App } from "./ui/App";
 import React from "react";
 import { SDKProvider } from "./ui/sdkContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ViewProvider } from "./ui/viewContext";
 
 if (process.argv.length === 2) {
-  // Clear the screen before rendering the dashboard
+  // Clear the screen before rendering the App
   process.stdout.write("\x1Bc");
 
   const queryClient = new QueryClient();
@@ -20,7 +21,9 @@ if (process.argv.length === 2) {
   render(
     <QueryClientProvider client={queryClient}>
       <SDKProvider>
-        <Dashboard />
+        <ViewProvider>
+          <App />
+        </ViewProvider>
       </SDKProvider>
     </QueryClientProvider>,
     {
