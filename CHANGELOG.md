@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.2...v2.0.3) (2025-07-08)
+
+
+### Bug Fixes
+
+* disable sentry by default, make it optional ([#126](https://github.com/codesandbox/codesandbox-sdk/issues/126)) ([09d9e8a](https://github.com/codesandbox/codesandbox-sdk/commit/09d9e8a9a678c35169f8ff98b6e283fb45e23ed1))
+
 ## [2.0.2](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.1...v2.0.2) (2025-07-02)
 
 
