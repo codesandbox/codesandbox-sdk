@@ -41,14 +41,6 @@ console.log(output); // Hello World
 The SDK supports the following environment variables for configuration:
 
 - `CSB_API_KEY`: Your CodeSandbox API token for authentication
-- `CODESANDBOX_SENTRY_ENABLED`: Set to `"true"` to enable error reporting to Sentry (requires installing `@sentry/node` as a dependency)
-
-Error reporting is disabled by default. To enable it, set the environment variable and install the Sentry dependency:
-
-```bash
-npm install @sentry/node
-export CODESANDBOX_SENTRY_ENABLED=true
-```
 
 ## CodeSandbox Integration
 
