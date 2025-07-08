@@ -36,6 +36,20 @@ const output = await client.commands.run("echo 'Hello World'");
 console.log(output); // Hello World
 ```
 
+## Configuration
+
+The SDK supports the following environment variables for configuration:
+
+- `CSB_API_KEY`: Your CodeSandbox API token for authentication
+- `CODESANDBOX_SENTRY_ENABLED`: Set to `"true"` to enable error reporting to Sentry (requires installing `@sentry/node` as a dependency)
+
+Error reporting is disabled by default. To enable it, set the environment variable and install the Sentry dependency:
+
+```bash
+npm install @sentry/node
+export CODESANDBOX_SENTRY_ENABLED=true
+```
+
 ## CodeSandbox Integration
 
 This SDK uses the API token from your workspace in CodeSandbox to authenticate and create sandboxes. Because of this, the sandboxes will be created inside your workspace, and the resources will be billed to your workspace.
