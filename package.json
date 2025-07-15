@@ -68,18 +68,12 @@
     "README.md"
   ],
   "devDependencies": {
-    "@codesandbox/pitcher-client": "1.1.7",
-    "@hey-api/client-fetch": "^0.7.3",
     "@hey-api/openapi-ts": "^0.63.2",
-    "@msgpack/msgpack": "^3.1.0",
     "@types/blessed": "^0.1.25",
     "@types/node": "^22.15.30",
     "@types/react": "^19.1.5",
     "@types/yargs": "^17.0.33",
-    "blessed": "^0.1.81",
-    "blessed-contrib": "^4.11.0",
     "buffer-browserify": "^0.2.5",
-    "cli-table3": "^0.6.3",
     "crypto-browserify": "^3.12.1",
     "esbuild": "^0.25.0",
     "ignore": "^6.0.2",
@@ -93,8 +87,14 @@
     "why-is-node-running": "^2.3.0"
   },
   "dependencies": {
+    "@codesandbox/pitcher-client": "1.1.7",
     "@inkjs/ui": "^2.0.0",
+    "@hey-api/client-fetch": "^0.7.3",
+    "@msgpack/msgpack": "^3.1.0",
     "@tanstack/react-query": "^5.76.1",
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.11.0",
+    "cli-table3": "^0.6.3",
     "ink": "^5.2.1",
     "isbinaryfile": "^5.0.4",
     "isomorphic-ws": "^5.0.0",
