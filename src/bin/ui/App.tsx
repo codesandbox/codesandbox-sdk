@@ -1,5 +1,5 @@
 import React from "react";
-import { Box } from "ink";
+import { Box, Text } from "ink";
 import { Dashboard } from "./views/Dashboard";
 import { useView } from "./viewContext";
 import { Sandbox } from "./views/Sandbox";
@@ -10,7 +10,10 @@ export function App() {
   const { view } = useView();
 
   return (
-    <Box flexDirection="column" width={stdoutWidth} height={stdoutHeight}>
+    <Box flexDirection="column" width={stdoutWidth} height={stdoutHeight} padding={1}>
+      <Box marginBottom={1}>
+        <Text bold>□ CodeSandbox SDK</Text>
+      </Box>
       {view.name === "dashboard" && <Dashboard />}
       {view.name === "sandbox" && <Sandbox />}
     </Box>
