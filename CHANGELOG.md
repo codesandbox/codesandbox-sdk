@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.4](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.3...v2.0.4) (2025-07-16)
+
+
+### Bug Fixes
+
+* fix dependencies ([0211660](https://github.com/codesandbox/codesandbox-sdk/commit/02116601a6f33aa56c465eff63f3d44e2220ccf4))
+* move some devdependencies to dependencies ([77f74f1](https://github.com/codesandbox/codesandbox-sdk/commit/77f74f1c81f35c9f9ccd3d159b51857df0b3fc81))
+
 ## [2.0.3](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.2...v2.0.3) (2025-07-08)
 
 
