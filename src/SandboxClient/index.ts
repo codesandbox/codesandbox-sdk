@@ -271,7 +271,9 @@ export class SandboxClient {
     if (enabled) {
       if (!this.keepAliveInterval) {
         this.keepAliveInterval = setInterval(() => {
-          this.agentClient.system.update();
+          this.agentClient.system.update().catch(() => {
+            // We do not care about errors here
+          })
         }, 1000 * 30);
       }
     } else {
