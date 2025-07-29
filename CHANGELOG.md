@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.5](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.4...v2.0.5) (2025-07-29)
+
+
+### Bug Fixes
+
+* timeout errors on keepActiveWhileConnected ([a519bcf](https://github.com/codesandbox/codesandbox-sdk/commit/a519bcfe86abe2f978718169490a54d9977a9d88))
+
 ## [2.0.4](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.3...v2.0.4) (2025-07-16)
 
 
