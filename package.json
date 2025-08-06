@@ -37,6 +37,7 @@
   },
   "types": "./dist/esm/index.d.ts",
   "scripts": {
+    "dev:cli": "node scripts/dev-cli.cjs",
     "build": "npm run clean && npm run build:esbuild && npm run build:cjs:types && npm run build:esm:types && chmod +x dist/bin/codesandbox.mjs",
     "build:esbuild": "node esbuild.cjs",
     "build:cjs:types": "tsc -p ./tsconfig.build-cjs.json --emitDeclarationOnly",
@@ -69,6 +70,7 @@
   ],
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.63.2",
+    "@parcel/watcher": "^2.5.1",
     "@types/blessed": "^0.1.25",
     "@types/node": "^22.15.30",
     "@types/react": "^19.1.5",
@@ -97,6 +99,8 @@
     "blessed": "^0.1.81",
     "blessed-contrib": "^4.11.0",
     "cli-table3": "^0.6.3",
+    "chalk": "^5.4.1",
+    "date-fns": "^4.1.0",
     "isbinaryfile": "^5.0.4",
     "isomorphic-ws": "^5.0.0",
     "ora": "^8.2.0",
