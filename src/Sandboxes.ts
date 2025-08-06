@@ -120,7 +120,11 @@ export class Sandboxes {
    * Note! On CLEAN bootups the setup will run again. When hibernated a new snapshot will be created.
    */
   async resume(sandboxId: string) {
-    const startResponse = await startVm(this.apiClient, sandboxId);
+    const startResponse = await retryWithDelay(
+      () => startVm(this.apiClient, sandboxId),
+      3,
+      200
+    );
     return new Sandbox(sandboxId, this.apiClient, startResponse);
   }
 
