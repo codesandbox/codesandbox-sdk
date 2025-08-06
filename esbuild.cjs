@@ -1,6 +1,6 @@
-const fs = require("fs");
+const { join } = require("path");
 const esbuild = require("esbuild");
-const { nodeExternals, define } = require("./build/utils.cjs");
+const { externalModules, define } = require("./build/utils.cjs");
 const {
   moduleReplacementPlugin,
   forbidImportsPlugin,
@@ -12,6 +12,17 @@ const preventPitcherClientImportsPlugin = forbidImportsPlugin([
   "@codesandbox/pitcher-protocol",
   "@codesandbox/pitcher-common",
 ]);
+
+const devtoolsStubPlugin = {
+  name: "stub-react-devtools",
+  setup(build) {
+    // whenever someone does `import 'react-devtools-core'`, redirect to our empty.js
+    build.onResolve({ filter: /^react-devtools-core$/ }, () => ({
+      path: join(__dirname, "build/fakeReactDevtoolsCore.js"),
+      namespace: "file",
+    }));
+  },
+};
 
 /**
  * BROWSER CLIENT BUILD
@@ -74,7 +85,7 @@ const nodeClientCjsBuild = esbuild.build({
   // .cjs extension is required because "type": "module" is set in package.json
   outfile: "dist/cjs/node.cjs",
   platform: "node",
-  external: nodeExternals,
+  external: externalModules,
   plugins: [preventPitcherClientImportsPlugin],
 });
 
@@ -84,7 +95,7 @@ const nodeClientEsmBuild = esbuild.build({
   format: "esm",
   outfile: "dist/esm/node.js",
   platform: "node",
-  external: nodeExternals,
+  external: externalModules,
   plugins: [preventPitcherClientImportsPlugin],
 });
 
@@ -99,7 +110,7 @@ const sdkCjsBuild = esbuild.build({
   platform: "node",
   // .cjs extension is required because "type": "module" is set in package.json
   outfile: "dist/cjs/index.cjs",
-  external: nodeExternals,
+  external: externalModules,
 });
 
 const sdkEsmBuild = esbuild.build({
@@ -109,7 +120,7 @@ const sdkEsmBuild = esbuild.build({
   define,
   platform: "node",
   outfile: "dist/esm/index.js",
-  external: nodeExternals,
+  external: externalModules,
   plugins: [preventPitcherClientImportsPlugin],
 });
 
@@ -124,10 +135,19 @@ const cliBuild = esbuild.build({
   format: "esm",
   platform: "node",
   banner: {
-    js: `#!/usr/bin/env node\n\n`,
+    js: `#!/usr/bin/env node\n\nimport { createRequire } from "module";\nconst require = createRequire(import.meta.url);\n`,
   },
-  external: [...nodeExternals, "@codesandbox/sdk"],
-  plugins: [preventPitcherClientImportsPlugin],
+  external: [
+    // We have to bundle React and Ink into the bundle because Ink supports React 18 in v5 and React 19 in v6,
+    // but this breaks when running the CLI in the project folder as it might have either React version and we do not
+    // want users to manually install React and correct Ink version as peer dependencies
+    ...externalModules.filter(
+      (mod) =>
+        mod !== "react" && mod !== "ink" && mod !== "@tanstack/react-query"
+    ),
+    "@codesandbox/sdk",
+  ],
+  plugins: [preventPitcherClientImportsPlugin, devtoolsStubPlugin],
 });
 
 Promise.all([
