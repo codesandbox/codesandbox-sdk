@@ -26,32 +26,26 @@ import {
   StartSandboxOpts,
 } from "./types";
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
-import { sleep } from "./utils/sleep";
 
 export async function startVm(
   apiClient: Client,
   sandboxId: string,
   startOpts?: StartSandboxOpts
 ): Promise<PitcherManagerResponse> {
-  const startResult = await retryWithDelay(
-    () =>
-      vmStart({
-        client: apiClient,
-        body: startOpts
-          ? {
-              ipcountry: startOpts.ipcountry,
-              tier: startOpts.vmTier?.name,
-              hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
-              automatic_wakeup_config: startOpts.automaticWakeupConfig,
-            }
-          : undefined,
-        path: {
-          id: sandboxId,
-        },
-      }),
-    3,
-    200
-  );
+  const startResult = await vmStart({
+    client: apiClient,
+    body: startOpts
+      ? {
+          ipcountry: startOpts.ipcountry,
+          tier: startOpts.vmTier?.name,
+          hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
+          automatic_wakeup_config: startOpts.automaticWakeupConfig,
+        }
+      : undefined,
+    path: {
+      id: sandboxId,
+    },
+  });
 
   const response = handleResponse(
     startResult,
@@ -120,7 +114,11 @@ export class Sandboxes {
    * Note! On CLEAN bootups the setup will run again. When hibernated a new snapshot will be created.
    */
   async resume(sandboxId: string) {
-    const startResponse = await startVm(this.apiClient, sandboxId);
+    const startResponse = await retryWithDelay(
+      () => startVm(this.apiClient, sandboxId),
+      3,
+      200
+    );
     return new Sandbox(sandboxId, this.apiClient, startResponse);
   }
 
