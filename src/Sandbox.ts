@@ -8,7 +8,7 @@ import {
   vmUpdateHibernationTimeout,
   vmUpdateSpecs,
 } from "./api-clients/client";
-import { handleResponse } from "./utils/api";
+import { handleResponse, retryWithDelay } from "./utils/api";
 import { VMTier } from "./VMTier";
 import { Client } from "@hey-api/client-fetch";
 import { connectToSandbox } from "./node";
@@ -91,7 +91,10 @@ export class Sandbox {
     const client = await connectToSandbox({
       session,
       getSession: async () =>
-        this.getSession(await startVm(this.apiClient, this.id), customSession),
+        this.getSession(
+          await retryWithDelay(() => startVm(this.apiClient, this.id), 3, 200),
+          customSession
+        ),
     });
 
     if (customSession.env) {
@@ -206,7 +209,11 @@ export class Sandbox {
         session,
         getSession: async () =>
           this.getSession(
-            await startVm(this.apiClient, this.id),
+            await retryWithDelay(
+              () => startVm(this.apiClient, this.id),
+              3,
+              200
+            ),
             customSession
           ),
       })

@@ -198,11 +198,14 @@ export const buildCommand: yargs.CommandModule<
         try {
           spinner.start(updateSpinnerMessage(index, "Starting sandbox..."));
 
-          const startResponse = await retryWithDelay(() =>
-            withCustomError(
-              startVm(apiClient, id),
-              "Failed to start sandbox at all"
-            )
+          const startResponse = await retryWithDelay(
+            () =>
+              withCustomError(
+                startVm(apiClient, id),
+                "Failed to start sandbox at all"
+              ),
+            3,
+            200
           );
           let sandboxVM = new Sandbox(id, apiClient, startResponse);
 

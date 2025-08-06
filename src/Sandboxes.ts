@@ -26,32 +26,26 @@ import {
   StartSandboxOpts,
 } from "./types";
 import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
-import { sleep } from "./utils/sleep";
 
 export async function startVm(
   apiClient: Client,
   sandboxId: string,
   startOpts?: StartSandboxOpts
 ): Promise<PitcherManagerResponse> {
-  const startResult = await retryWithDelay(
-    () =>
-      vmStart({
-        client: apiClient,
-        body: startOpts
-          ? {
-              ipcountry: startOpts.ipcountry,
-              tier: startOpts.vmTier?.name,
-              hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
-              automatic_wakeup_config: startOpts.automaticWakeupConfig,
-            }
-          : undefined,
-        path: {
-          id: sandboxId,
-        },
-      }),
-    3,
-    200
-  );
+  const startResult = await vmStart({
+    client: apiClient,
+    body: startOpts
+      ? {
+          ipcountry: startOpts.ipcountry,
+          tier: startOpts.vmTier?.name,
+          hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
+          automatic_wakeup_config: startOpts.automaticWakeupConfig,
+        }
+      : undefined,
+    path: {
+      id: sandboxId,
+    },
+  });
 
   const response = handleResponse(
     startResult,
