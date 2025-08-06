@@ -5,7 +5,7 @@ import { createApiClient, handleResponse } from "../../utils/api";
 import { getInferredApiKey } from "../../utils/constants";
 
 const apiKey = getInferredApiKey();
-const apiClient = createApiClient("CLI", apiKey);
+const apiClient = createApiClient(apiKey);
 
 export const previewHostsCommand: yargs.CommandModule = {
   command: "preview-hosts",
