@@ -191,7 +191,7 @@ export interface SessionCreateOptions {
 export type SandboxSessionDTO = {
   sandboxId: string;
   pitcherToken: string;
-  pitcherUrl: string;
+  pitcherURL: string;
   userWorkspacePath: string;
 };
 
