@@ -99,6 +99,8 @@
     "blessed": "^0.1.81",
     "blessed-contrib": "^4.11.0",
     "cli-table3": "^0.6.3",
+    "chalk": "^5.4.1",
+    "date-fns": "^4.1.0",
     "isbinaryfile": "^5.0.4",
     "isomorphic-ws": "^5.0.0",
     "ora": "^8.2.0",
