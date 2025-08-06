@@ -2,6 +2,7 @@ import type { Client } from "@hey-api/client-fetch";
 
 import {
   sandboxFork,
+  sandboxGet,
   sandboxList,
   vmHibernate,
   vmShutdown,
@@ -18,6 +19,8 @@ import {
 
 import {
   CreateSandboxOpts,
+  GetSandboxesOpts,
+  GetSandboxesResponse,
   PaginationOpts,
   SandboxInfo,
   SandboxListOpts,
@@ -307,6 +310,133 @@ export class Sandboxes {
         nextPage: allSandboxes.length >= limit ? nextPage : null,
         pageSize,
       },
+    };
+  }
+
+  /**
+   * Get a single sandbox by ID efficiently without listing all sandboxes.
+   * 
+   * This method directly retrieves metadata for a specific sandbox ID,
+   * avoiding the performance overhead of the list-and-filter pattern.
+   * 
+   * @param sandboxId The ID of the sandbox to retrieve
+   * @returns Promise<SandboxInfo> The sandbox metadata
+   * @throws Error if the sandbox is not found or access is denied
+   * 
+   * @example
+   * ```ts
+   * const sandbox = await client.sandboxes.getSandbox("sandbox-id");
+   * console.log(sandbox.title, sandbox.tags);
+   * ```
+   */
+  async getSandbox(sandboxId: string): Promise<SandboxInfo> {
+    const response = await sandboxGet({
+      client: this.apiClient,
+      path: { id: sandboxId },
+    });
+
+    const sandbox = handleResponse(response, `Failed to get sandbox ${sandboxId}`);
+
+    return {
+      id: sandbox.id,
+      createdAt: new Date(sandbox.created_at),
+      updatedAt: new Date(sandbox.updated_at),
+      title: sandbox.title ?? undefined,
+      description: sandbox.description ?? undefined,
+      privacy: privacyFromNumber(sandbox.privacy),
+      tags: sandbox.tags,
+    };
+  }
+
+  /**
+   * Get multiple sandboxes by their IDs efficiently without listing all sandboxes.
+   * 
+   * This method directly retrieves metadata for specific sandbox IDs in parallel,
+   * avoiding the performance overhead of the list-and-filter pattern.
+   * This is particularly useful when you need metadata for a known set of sandbox IDs.
+   * 
+   * @param opts Options containing the sandbox IDs to retrieve
+   * @returns Promise<GetSandboxesResponse> The sandbox metadata and any errors
+   * 
+   * @example
+   * ```ts
+   * // Get metadata for multiple sandboxes
+   * const result = await client.sandboxes.getSandboxes({
+   *   ids: ["sandbox-1", "sandbox-2", "sandbox-3"],
+   *   continueOnError: true
+   * });
+   * 
+   * console.log(`Retrieved ${result.sandboxes.length} sandboxes`);
+   * if (result.errors?.length) {
+   *   console.log(`Failed to retrieve ${result.errors.length} sandboxes`);
+   * }
+   * ```
+   */
+  async getSandboxes(opts: GetSandboxesOpts): Promise<GetSandboxesResponse> {
+    const { ids, continueOnError = true } = opts;
+    
+    if (!ids.length) {
+      return { sandboxes: [] };
+    }
+
+    // Remove duplicates while preserving order
+    const uniqueIds = [...new Set(ids)];
+    
+    // Make parallel requests for all sandbox IDs
+    const promises = uniqueIds.map(async (id) => {
+      try {
+        const response = await sandboxGet({
+          client: this.apiClient,
+          path: { id },
+        });
+
+        const sandbox = handleResponse(response, `Failed to get sandbox ${id}`);
+
+        return {
+          success: true as const,
+          sandbox: {
+            id: sandbox.id,
+            createdAt: new Date(sandbox.created_at),
+            updatedAt: new Date(sandbox.updated_at),
+            title: sandbox.title ?? undefined,
+            description: sandbox.description ?? undefined,
+            privacy: privacyFromNumber(sandbox.privacy),
+            tags: sandbox.tags,
+          },
+        };
+      } catch (error) {
+        return {
+          success: false as const,
+          id,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    });
+
+    const results = await Promise.all(promises);
+    
+    const sandboxes: SandboxInfo[] = [];
+    const errors: Array<{ id: string; error: string }> = [];
+    
+    for (const result of results) {
+      if (result.success) {
+        sandboxes.push(result.sandbox);
+      } else {
+        errors.push({ id: result.id, error: result.error });
+      }
+    }
+    
+    // If continueOnError is false and there are errors, throw
+    if (!continueOnError && errors.length > 0) {
+      const errorMsg = `Failed to retrieve ${errors.length} sandbox(es): ${errors
+        .map(e => `${e.id} (${e.error})`)
+        .join(', ')}`;
+      throw new Error(errorMsg);
+    }
+    
+    return {
+      sandboxes,
+      ...(errors.length > 0 && { errors }),
     };
   }
 }

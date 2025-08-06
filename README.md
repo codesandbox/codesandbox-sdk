@@ -36,6 +36,35 @@ const output = await client.commands.run("echo 'Hello World'");
 console.log(output); // Hello World
 ```
 
+## Efficient Sandbox Retrieval
+
+When you need to retrieve metadata for specific sandboxes by their IDs, you can use the efficient retrieval methods instead of listing and filtering all sandboxes:
+
+### Get Single Sandbox
+
+```javascript
+// Efficient single sandbox retrieval
+const sandbox = await sdk.sandboxes.getSandbox("sandbox-id");
+console.log(sandbox.title, sandbox.tags);
+```
+
+### Get Multiple Sandboxes
+
+```javascript
+// Efficient multiple sandbox retrieval
+const result = await sdk.sandboxes.getSandboxes({
+  ids: ["sandbox-1", "sandbox-2", "sandbox-3"],
+  continueOnError: true // Continue even if some IDs fail
+});
+
+console.log(`Retrieved ${result.sandboxes.length} sandboxes`);
+if (result.errors?.length) {
+  console.log(`Failed to retrieve ${result.errors.length} sandboxes`);
+}
+```
+
+These methods are significantly more efficient than using `list()` and filtering, especially for large organizations with thousands of sandboxes.
+
 ## Configuration
 
 The SDK supports the following environment variables for configuration:

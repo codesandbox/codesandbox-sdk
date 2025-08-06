@@ -40,6 +40,27 @@ export type SandboxListOpts = {
   status?: "running";
 };
 
+export type GetSandboxesOpts = {
+  /**
+   * List of sandbox IDs to retrieve metadata for
+   */
+  ids: string[];
+  /**
+   * If true, continue processing even if some sandbox IDs fail to retrieve.
+   * Failed retrievals will be included in the errors array.
+   * @default true
+   */
+  continueOnError?: boolean;
+};
+
+export interface GetSandboxesResponse {
+  sandboxes: SandboxInfo[];
+  errors?: Array<{
+    id: string;
+    error: string;
+  }>;
+}
+
 export interface SandboxListResponse {
   sandboxes: SandboxInfo[];
   hasMore: boolean;
