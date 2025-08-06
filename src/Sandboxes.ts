@@ -13,7 +13,7 @@ import {
   getStartOptions,
   getStartResponse,
   handleResponse,
-  withCustomTimeout,
+  retryWithDelay,
 } from "./utils/api";
 
 import {
@@ -33,22 +33,24 @@ export async function startVm(
   sandboxId: string,
   startOpts?: StartSandboxOpts
 ): Promise<PitcherManagerResponse> {
-  const startResult = await withCustomTimeout((signal) =>
-    vmStart({
-      client: apiClient,
-      body: startOpts
-        ? {
-            ipcountry: startOpts.ipcountry,
-            tier: startOpts.vmTier?.name,
-            hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
-            automatic_wakeup_config: startOpts.automaticWakeupConfig,
-          }
-        : undefined,
-      path: {
-        id: sandboxId,
-      },
-      signal,
-    })
+  const startResult = await retryWithDelay(
+    () =>
+      vmStart({
+        client: apiClient,
+        body: startOpts
+          ? {
+              ipcountry: startOpts.ipcountry,
+              tier: startOpts.vmTier?.name,
+              hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
+              automatic_wakeup_config: startOpts.automaticWakeupConfig,
+            }
+          : undefined,
+        path: {
+          id: sandboxId,
+        },
+      }),
+    3,
+    200
   );
 
   const response = handleResponse(
@@ -91,7 +93,6 @@ export class Sandboxes {
         description: opts?.description,
         tags: tagsWithSdk,
         path,
-        start_options: getStartOptions(opts),
       },
       path: {
         id: templateId,
@@ -100,11 +101,13 @@ export class Sandboxes {
 
     const sandbox = handleResponse(result, "Failed to create sandbox");
 
-    return new Sandbox(
-      sandbox.id,
-      this.apiClient,
-      getStartResponse(sandbox.start_response)
+    const startResponse = await retryWithDelay(
+      () => startVm(this.apiClient, sandbox.id, getStartOptions(opts)),
+      3,
+      200
     );
+
+    return new Sandbox(sandbox.id, this.apiClient, startResponse);
   }
 
   /**
@@ -125,14 +128,16 @@ export class Sandboxes {
    * Shuts down a sandbox. Files will be saved, and the sandbox will be stopped.
    */
   async shutdown(sandboxId: string): Promise<void> {
-    const response = await withCustomTimeout((signal) =>
-      vmShutdown({
-        client: this.apiClient,
-        path: {
-          id: sandboxId,
-        },
-        signal,
-      })
+    const response = await retryWithDelay(
+      () =>
+        vmShutdown({
+          client: this.apiClient,
+          path: {
+            id: sandboxId,
+          },
+        }),
+      3,
+      200
     );
 
     handleResponse(response, `Failed to shutdown sandbox ${sandboxId}`);
@@ -156,53 +161,39 @@ export class Sandboxes {
    * Will resolve once the sandbox is restarted with its setup running.
    */
   public async restart(sandboxId: string, opts?: StartSandboxOpts) {
-    let didRestart = false;
-
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        await this.shutdown(sandboxId);
-        didRestart = true;
-        break;
-      } catch (e) {
-        await sleep(500);
-      }
+    try {
+      await this.shutdown(sandboxId);
+    } catch (e) {
+      throw new Error("Failed to shutdown VM, " + String(e));
     }
 
-    if (!didRestart) {
-      throw new Error("Failed to shutdown VM after 3 attempts");
+    try {
+      const startResponse = await retryWithDelay(
+        () => startVm(this.apiClient, sandboxId, opts),
+        3,
+        200
+      );
+
+      return new Sandbox(sandboxId, this.apiClient, startResponse);
+    } catch (e) {
+      throw new Error("Failed to start VM, " + String(e));
     }
-
-    let startResponse: PitcherManagerResponse | undefined;
-
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        startResponse = await startVm(this.apiClient, sandboxId, opts);
-        break;
-      } catch (e) {
-        await sleep(500);
-      }
-    }
-
-    if (!startResponse) {
-      throw new Error("Failed to start VM after 3 attempts");
-    }
-
-    return new Sandbox(sandboxId, this.apiClient, startResponse);
   }
-
   /**
    * Hibernates a sandbox. Files will be saved, and the sandbox will be put to sleep. Next time
    * you resume the sandbox it will continue from the last state it was in.
    */
   async hibernate(sandboxId: string): Promise<void> {
-    const response = await withCustomTimeout((signal) =>
-      vmHibernate({
-        client: this.apiClient,
-        path: {
-          id: sandboxId,
-        },
-        signal,
-      })
+    const response = await retryWithDelay(
+      () =>
+        vmHibernate({
+          client: this.apiClient,
+          path: {
+            id: sandboxId,
+          },
+        }),
+      3,
+      200
     );
 
     handleResponse(response, `Failed to hibernate sandbox ${sandboxId}`);
