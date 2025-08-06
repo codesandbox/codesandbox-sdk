@@ -98,35 +98,6 @@ export function getStartResponse(
   };
 }
 
-/**
- * Our infra has 2 min timeout, so we use that as default
- */
-export async function withCustomTimeout<T>(
-  cb: (signal: AbortSignal) => Promise<T>,
-  timeoutSeconds: number = 120
-) {
-  const controller = new AbortController();
-  const signal = controller.signal;
-  const timeoutHandle = setTimeout(() => {
-    controller.abort();
-  }, timeoutSeconds * 1000);
-
-  try {
-    // We have to await for the finally to run
-    return await cb(signal);
-  } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      throw new Error(
-        `Request took longer than ${timeoutSeconds}s, so we aborted.`
-      );
-    }
-
-    throw err;
-  } finally {
-    clearTimeout(timeoutHandle);
-  }
-}
-
 export function getDefaultTemplateTag(apiClient: Client): string {
   if (apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
     return "7ngcrf";
@@ -143,6 +114,30 @@ export function getDefaultTemplateId(apiClient: Client): string {
   }
 
   return "pcz35m";
+}
+
+export async function retryWithDelay<T>(
+  callback: () => Promise<T>,
+  retries: number = 3,
+  delay: number = 500
+): Promise<T> {
+  let lastError: Error;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await callback();
+    } catch (error) {
+      lastError = error as Error;
+
+      if (attempt === retries) {
+        throw lastError;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError!;
 }
 
 export function handleResponse<D, E>(
