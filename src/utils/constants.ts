@@ -25,6 +25,6 @@ export function getInferredApiKey() {
     typeof process !== "undefined"
       ? process.env?.CSB_API_KEY || process.env?.TOGETHER_API_KEY
       : undefined,
-    "CSB_API_KEY or TOGETHER_API_KEY is not set"
+    "CSB_API_KEY is not set"
   );
 }
