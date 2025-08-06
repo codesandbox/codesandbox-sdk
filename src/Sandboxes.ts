@@ -4,6 +4,7 @@ import {
   sandboxFork,
   sandboxList,
   vmHibernate,
+  vmListRunningVms,
   vmShutdown,
   vmStart,
 } from "./api-clients/client";
@@ -298,6 +299,49 @@ export class Sandboxes {
       },
     };
   }
+
+  /**
+   * List information about currently running VMs.
+   * 
+   * This information is updated roughly every 30 seconds, so this data is not 
+   * guaranteed to be perfectly up-to-date.
+   */
+  async listRunning() {
+    const response = await vmListRunningVms({
+      client: this.apiClient,
+    });
+
+    const data = handleResponse(response, "Failed to list running VMs");
+    
+    return {
+      concurrentVmCount: data.concurrent_vm_count,
+      concurrentVmLimit: data.concurrent_vm_limit,
+      vms: data.vms.map(vm => ({
+        id: vm.id,
+        creditBasis: vm.credit_basis,
+        lastActiveAt: vm.last_active_at ? parseTimestamp(vm.last_active_at) : undefined,
+        sessionStartedAt: vm.session_started_at ? parseTimestamp(vm.session_started_at) : undefined,
+        specs: vm.specs ? {
+          cpu: vm.specs.cpu,
+          memory: vm.specs.memory,
+          storage: vm.specs.storage,
+        } : undefined,
+      })),
+    };
+  }
+}
+
+function parseTimestamp(timestamp: number): Date | undefined {
+  if (!timestamp || timestamp === 0) {
+    return undefined;
+  }
+  
+  // Handle both seconds and milliseconds timestamps
+  const ts = timestamp < 10000000000 ? timestamp * 1000 : timestamp;
+  const date = new Date(ts);
+  
+  // Return undefined if the date is invalid
+  return isNaN(date.getTime()) ? undefined : date;
 }
 
 function privacyToNumber(privacy: SandboxPrivacy): number {
