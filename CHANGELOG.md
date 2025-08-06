@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.7](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.6...v2.0.7) (2025-08-06)
+
+
+### Bug Fixes
+
+* also retry resume ([#143](https://github.com/codesandbox/codesandbox-sdk/issues/143)) ([8b69036](https://github.com/codesandbox/codesandbox-sdk/commit/8b69036d0b586917db05f9c51046ae8b26660835))
+
 ## [2.0.6](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.5...v2.0.6) (2025-08-06)
 
 
