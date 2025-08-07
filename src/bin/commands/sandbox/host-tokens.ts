@@ -60,16 +60,13 @@ export async function listPreviewTokens(sandboxId: string) {
   }
 }
 
-export async function createPreviewToken(
-  sandboxId: string,
-  expiresAt?: string
-) {
+export async function createPreviewToken(sandboxId: string, expiresAt: string) {
   const sdk = new CodeSandbox();
   const spinner = ora("Creating preview token...").start();
 
   try {
     const token = await sdk.hosts.createToken(sandboxId, {
-      expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+      expiresAt: new Date(expiresAt),
     });
     spinner.stop();
 

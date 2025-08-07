@@ -1,25 +1,22 @@
 import * as React from "react";
 import { createContext, useContext } from "react";
 import { CodeSandbox } from "@codesandbox/sdk";
-import { createApiClient } from "../../utils/api";
-import { Client } from "@hey-api/client-fetch";
+import { API } from "../../API";
 import { getInferredApiKey } from "../../utils/constants";
 import { instrumentedFetch } from "../utils/sentry";
 
-const sdk = new CodeSandbox();
-
 const apiKey = getInferredApiKey();
-const apiClient: Client = createApiClient(apiKey, {}, instrumentedFetch);
+const sdk = new CodeSandbox(apiKey);
+const api = new API({ apiKey, instrumentation: instrumentedFetch });
 
-export const SDKContext = createContext<{ sdk: CodeSandbox; apiClient: Client }>({
+export const SDKContext = createContext<{ sdk: CodeSandbox; api: API }>({
   sdk,
-  apiClient,
+  api,
 });
-
 
 export const SDKProvider = ({ children }: { children: React.ReactNode }) => {
   return (
-    <SDKContext.Provider value={{ sdk, apiClient }}>
+    <SDKContext.Provider value={{ sdk, api }}>
       {children}
     </SDKContext.Provider>
   );

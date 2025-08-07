@@ -3,17 +3,12 @@ import {
   type protocol as _protocol,
 } from "@codesandbox/pitcher-client";
 import { type SessionCreateOptions, type SandboxSession } from "./types";
-import {
-  vmCreateSession,
-  vmUpdateHibernationTimeout,
-  vmUpdateSpecs,
-} from "./api-clients/client";
-import { handleResponse, retryWithDelay } from "./utils/api";
 import { VMTier } from "./VMTier";
-import { Client } from "@hey-api/client-fetch";
+import { API } from "./API";
 import { connectToSandbox } from "./node";
-import { startVm } from "./Sandboxes";
 import { SandboxClient } from "./SandboxClient";
+import { StartSandboxOpts } from "./types";
+import { retryWithDelay } from "./utils/api";
 
 export class Sandbox {
   /**
@@ -46,7 +41,7 @@ export class Sandbox {
   }
   constructor(
     public id: string,
-    private apiClient: Client,
+    private api: API,
     private pitcherManagerResponse: PitcherManagerResponse
   ) {}
 
@@ -56,15 +51,9 @@ export class Sandbox {
    * than it can scale down to, it can become very slow.
    */
   async updateTier(tier: VMTier): Promise<void> {
-    const response = await vmUpdateSpecs({
-      client: this.apiClient,
-      path: { id: this.id },
-      body: {
-        tier: tier.name,
-      },
+    await this.api.updateSpecs(this.id, {
+      tier: tier.name,
     });
-
-    handleResponse(response, `Failed to update sandbox tier ${this.id}`);
   }
 
   /**
@@ -72,16 +61,9 @@ export class Sandbox {
    * will be kept alive without activity before it is automatically hibernated. Activity can be sessions or interactions with any endpoints exposed by the Sandbox.
    */
   async updateHibernationTimeout(timeoutSeconds: number): Promise<void> {
-    const response = await vmUpdateHibernationTimeout({
-      client: this.apiClient,
-      path: { id: this.id },
-      body: { hibernation_timeout_seconds: timeoutSeconds },
+    await this.api.updateHibernationTimeout(this.id, {
+      hibernation_timeout_seconds: timeoutSeconds,
     });
-
-    handleResponse(
-      response,
-      `Failed to update hibernation timeout for sandbox ${this.id}`
-    );
   }
 
   private async initializeCustomSession(
@@ -91,10 +73,7 @@ export class Sandbox {
     const client = await connectToSandbox({
       session,
       getSession: async () =>
-        this.getSession(
-          await retryWithDelay(() => startVm(this.apiClient, this.id), 3, 200),
-          customSession
-        ),
+        this.getSession(await this.api.startVm(this.id), customSession),
     });
 
     if (customSession.env) {
@@ -158,21 +137,10 @@ export class Sandbox {
       throw new Error("Session ID must be 20 characters or less");
     }
 
-    const response = await vmCreateSession({
-      client: this.apiClient,
-      body: {
-        session_id: customSession.id,
-        permission: customSession.permission ?? "write",
-      },
-      path: {
-        id: this.id,
-      },
+    const handledResponse = await this.api.createSession(this.id, {
+      session_id: customSession.id,
+      permission: customSession.permission ?? "write",
     });
-
-    const handledResponse = handleResponse(
-      response,
-      `Failed to create session ${customSession.id}`
-    );
 
     return {
       sandboxId: this.id,
@@ -191,33 +159,28 @@ export class Sandbox {
   }
 
   async connect(customSession?: SessionCreateOptions) {
-    const session = await this.getSession(
-      this.pitcherManagerResponse,
-      customSession
-    );
+    return await retryWithDelay(async () => {
+      const session = await this.getSession(
+        this.pitcherManagerResponse,
+        customSession
+      );
 
-    let client: SandboxClient | undefined;
+      let client: SandboxClient | undefined;
 
-    // We might create a client here if git or env is configured, we can reuse that
-    if (customSession) {
-      client = await this.initializeCustomSession(customSession, session);
-    }
+      // We might create a client here if git or env is configured, we can reuse that
+      if (customSession) {
+        client = await this.initializeCustomSession(customSession, session);
+      }
 
-    return (
-      client ||
-      connectToSandbox({
-        session,
-        getSession: async () =>
-          this.getSession(
-            await retryWithDelay(
-              () => startVm(this.apiClient, this.id),
-              3,
-              200
-            ),
-            customSession
-          ),
-      })
-    );
+      return (
+        client ||
+        connectToSandbox({
+          session,
+          getSession: async () =>
+            this.getSession(await this.api.startVm(this.id), customSession),
+        })
+      );
+    }, 3, 100);
   }
 
   /**

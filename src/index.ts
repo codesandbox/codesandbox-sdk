@@ -6,9 +6,10 @@ export { VMTier } from "./VMTier";
 
 export * from "./Sandbox";
 export * from "./types";
+export { API } from "./API";
 
 import { HostTokens } from "./HostTokens";
-import { createApiClient } from "./utils/api";
+import { API } from "./API";
 import { ClientOpts } from "./types";
 import { getInferredApiKey } from "./utils/constants";
 
@@ -25,9 +26,9 @@ export class CodeSandbox {
 
   constructor(apiToken?: string, opts: ClientOpts = {}) {
     const apiKey = apiToken || getInferredApiKey();
-    const apiClient = createApiClient(apiKey, opts);
+    const api = new API({ apiKey, config: opts });
 
-    this.sandboxes = new Sandboxes(apiClient);
-    this.hosts = new HostTokens(apiClient);
+    this.sandboxes = new Sandboxes(api);
+    this.hosts = new HostTokens(api);
   }
 }

@@ -78,26 +78,6 @@ export function getStartOptions(opts: StartSandboxOpts | undefined) {
   };
 }
 
-export function getStartResponse(
-  response: VmStartResponse["data"] | null
-): PitcherManagerResponse {
-  if (!response) {
-    throw new Error("No start response");
-  }
-
-  return {
-    bootupType: response.bootup_type as PitcherManagerResponse["bootupType"],
-    cluster: response.cluster,
-    pitcherURL: response.pitcher_url,
-    workspacePath: response.workspace_path,
-    userWorkspacePath: response.user_workspace_path,
-    pitcherManagerVersion: response.pitcher_manager_version,
-    pitcherVersion: response.pitcher_version,
-    latestPitcherVersion: response.latest_pitcher_version,
-    pitcherToken: response.pitcher_token,
-  };
-}
-
 export function getDefaultTemplateTag(apiClient: Client): string {
   if (apiClient.getConfig().baseUrl?.includes("codesandbox.stream")) {
     return "7ngcrf";
