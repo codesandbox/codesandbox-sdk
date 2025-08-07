@@ -1,12 +1,5 @@
 import { Disposable } from "./utils/disposable";
-import { Client } from "@hey-api/client-fetch";
-import { handleResponse } from "./utils/api";
-import {
-  previewTokenCreate,
-  previewTokenList,
-  previewTokenRevokeAll,
-  previewTokenUpdate,
-} from "./api-clients/client";
+import { API } from "./API";
 
 interface BaseHostTokenInfo {
   expiresAt: Date | null;
@@ -29,7 +22,7 @@ export interface HostToken extends BaseHostTokenInfo {
  * with an authenticated API client (like Node.js).
  */
 export class HostTokens extends Disposable {
-  constructor(private apiClient: Client) {
+  constructor(private api: API) {
     super();
   }
 
@@ -43,7 +36,7 @@ export class HostTokens extends Disposable {
     port: number,
     protocol: string = "https"
   ): string {
-    const domain = this.apiClient.getConfig().baseUrl?.includes(".stream")
+    const domain = this.api.getConfig().baseUrl?.includes(".stream")
       ? "csb.dev"
       : "csb.app";
 
@@ -75,18 +68,9 @@ export class HostTokens extends Disposable {
     sandboxId: string,
     opts: { expiresAt: Date }
   ): Promise<HostToken> {
-    const response = handleResponse(
-      await previewTokenCreate({
-        client: this.apiClient,
-        path: {
-          id: sandboxId,
-        },
-        body: {
-          expires_at: opts.expiresAt.toISOString(),
-        },
-      }),
-      "Failed to create preview token"
-    );
+    const response = await this.api.createPreviewToken(sandboxId, {
+      expires_at: opts.expiresAt.toISOString(),
+    });
 
     if (!response.token?.token) {
       throw new Error("No token returned from API");
@@ -109,15 +93,7 @@ export class HostTokens extends Disposable {
    * List all active host tokens for this sandbox.
    */
   async listTokens(sandboxId: string): Promise<HostTokenInfo[]> {
-    const response = handleResponse(
-      await previewTokenList({
-        client: this.apiClient,
-        path: {
-          id: sandboxId,
-        },
-      }),
-      "Failed to list host tokens"
-    );
+    const response = await this.api.listPreviewTokens(sandboxId);
 
     if (!response.tokens) {
       return [];
@@ -135,19 +111,9 @@ export class HostTokens extends Disposable {
    * Revoke a single host token for this sandbox.
    */
   async revokeToken(sandboxId: string, tokenId: string): Promise<void> {
-    handleResponse(
-      await previewTokenUpdate({
-        client: this.apiClient,
-        path: {
-          id: sandboxId,
-          token_id: tokenId,
-        },
-        body: {
-          expires_at: new Date().toISOString(),
-        },
-      }),
-      "Failed to revoke host token"
-    );
+    await this.api.updatePreviewToken(sandboxId, tokenId, {
+      expires_at: new Date().toISOString(),
+    });
   }
 
   /**
@@ -156,15 +122,7 @@ export class HostTokens extends Disposable {
    * to access the sandbox host.
    */
   async revokeAllTokens(sandboxId: string): Promise<void> {
-    handleResponse(
-      await previewTokenRevokeAll({
-        client: this.apiClient,
-        path: {
-          id: sandboxId,
-        },
-      }),
-      "Failed to revoke host tokens"
-    );
+    await this.api.revokeAllPreviewTokens(sandboxId);
   }
 
   /**
@@ -175,19 +133,9 @@ export class HostTokens extends Disposable {
     tokenId: string,
     expiresAt: Date | null
   ): Promise<HostTokenInfo> {
-    const response = handleResponse(
-      await previewTokenUpdate({
-        client: this.apiClient,
-        path: {
-          id: sandboxId,
-          token_id: tokenId,
-        },
-        body: {
-          expires_at: expiresAt?.toISOString(),
-        },
-      }),
-      "Failed to update host token"
-    );
+    const response = await this.api.updatePreviewToken(sandboxId, tokenId, {
+      expires_at: expiresAt?.toISOString(),
+    });
 
     if (!response.token) {
       throw new Error("No token returned from API");
