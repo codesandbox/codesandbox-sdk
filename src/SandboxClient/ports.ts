@@ -1,6 +1,7 @@
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 
 export type Port = {
   host: string;
@@ -26,7 +27,8 @@ export class Ports {
 
   constructor(
     sessionDisposable: Disposable,
-    private agentClient: IAgentClient
+    private agentClient: IAgentClient,
+    private tracer?: Tracer
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
@@ -68,22 +70,60 @@ export class Ports {
     );
   }
 
+  private withSpan<T>(
+    operationName: string,
+    attributes: Record<string, any>,
+    fn: () => Promise<T>
+  ): Promise<T> {
+    if (!this.tracer) {
+      return fn();
+    }
+    return this.tracer.startActiveSpan(operationName, { attributes }, async (span) => {
+      try {
+        const result = await fn();
+        span.setStatus({ code: SpanStatusCode.OK });
+        return result;
+      } catch (error) {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        span.recordException(error instanceof Error ? error : new Error(String(error)));
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
   /**
    * Get a port by number.
    */
   async get(port: number) {
-    const ports = await this.getAll();
+    return this.withSpan(
+      "ports.get",
+      { "port.number": port },
+      async () => {
+        const ports = await this.getAll();
 
-    return ports.find((p) => p.port === port);
+        return ports.find((p) => p.port === port);
+      }
+    );
   }
 
   /**
    * Get all ports.
    */
   async getAll(): Promise<Port[]> {
-    const ports = await this.agentClient.ports.getPorts();
+    return this.withSpan(
+      "ports.getAll",
+      {},
+      async () => {
+        const ports = await this.agentClient.ports.getPorts();
 
-    return ports.map(({ port, url }) => ({ port, host: url }));
+        return ports.map(({ port, url }) => ({ port, host: url }));
+      }
+    );
   }
 
   /**
@@ -99,39 +139,48 @@ export class Ports {
     port: number,
     options?: { timeoutMs?: number }
   ): Promise<Port> {
-    return new Promise(async (resolve, reject) => {
-      // Check if port is already open
-      const portInfo = (await this.getAll()).find((p) => p.port === port);
+    return this.withSpan(
+      "ports.waitForPort",
+      { 
+        "port.number": port,
+        "port.timeout.ms": options?.timeoutMs
+      },
+      async () => {
+        return new Promise(async (resolve, reject) => {
+          // Check if port is already open
+          const portInfo = (await this.getAll()).find((p) => p.port === port);
 
-      if (portInfo) {
-        resolve(portInfo);
-        return;
-      }
-
-      // Set up timeout if specified
-      let timeoutId: NodeJS.Timeout | undefined;
-      if (options?.timeoutMs !== undefined) {
-        timeoutId = setTimeout(() => {
-          reject(
-            new Error(
-              `Timeout of ${options.timeoutMs}ms exceeded waiting for port ${port} to open`
-            )
-          );
-        }, options.timeoutMs);
-      }
-
-      // Listen for port open events
-      const disposable = this.disposable.addDisposable(
-        this.onDidPortOpen((portInfo) => {
-          if (portInfo.port === port) {
-            if (timeoutId !== undefined) {
-              clearTimeout(timeoutId);
-            }
+          if (portInfo) {
             resolve(portInfo);
-            disposable.dispose();
+            return;
           }
-        })
-      );
-    });
+
+          // Set up timeout if specified
+          let timeoutId: NodeJS.Timeout | undefined;
+          if (options?.timeoutMs !== undefined) {
+            timeoutId = setTimeout(() => {
+              reject(
+                new Error(
+                  `Timeout of ${options.timeoutMs}ms exceeded waiting for port ${port} to open`
+                )
+              );
+            }, options.timeoutMs);
+          }
+
+          // Listen for port open events
+          const disposable = this.disposable.addDisposable(
+            this.onDidPortOpen((portInfo) => {
+              if (portInfo.port === port) {
+                if (timeoutId !== undefined) {
+                  clearTimeout(timeoutId);
+                }
+                resolve(portInfo);
+                disposable.dispose();
+              }
+            })
+          );
+        });
+      }
+    );
   }
 }

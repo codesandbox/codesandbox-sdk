@@ -6,10 +6,12 @@ import {
 import { VMTier } from "./VMTier";
 import { API } from "./API";
 import { SandboxClient } from "./SandboxClient";
-import { StartSandboxOpts } from "./types";
 import { retryWithDelay } from "./utils/api";
+import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 
 export class Sandbox {
+  private tracer?: Tracer;
+
   /**
    * How the Sandbox booted up:
    * - RUNNING: Already running
@@ -41,8 +43,44 @@ export class Sandbox {
   constructor(
     public id: string,
     private api: API,
-    private pitcherManagerResponse: PitcherManagerResponse
-  ) {}
+    private pitcherManagerResponse: PitcherManagerResponse,
+    tracer?: Tracer
+  ) {
+    this.tracer = tracer;
+  }
+
+  private async withSpan<T>(
+    operationName: string,
+    attributes: Record<string, string | number | boolean> = {},
+    operation: () => Promise<T>
+  ): Promise<T> {
+    if (!this.tracer) {
+      return operation();
+    }
+
+    return this.tracer.startActiveSpan(
+      operationName,
+      { attributes },
+      async (span) => {
+        try {
+          const result = await operation();
+          span.setStatus({ code: SpanStatusCode.OK });
+          return result;
+        } catch (error) {
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error instanceof Error ? error.message : String(error),
+          });
+          span.recordException(
+            error instanceof Error ? error : new Error(String(error))
+          );
+          throw error;
+        } finally {
+          span.end();
+        }
+      }
+    );
+  }
 
   /**
    * Updates the specs that this sandbox runs on. It will dynamically scale the sandbox to the
@@ -50,9 +88,18 @@ export class Sandbox {
    * than it can scale down to, it can become very slow.
    */
   async updateTier(tier: VMTier): Promise<void> {
-    await this.api.updateSpecs(this.id, {
-      tier: tier.name,
-    });
+    return this.withSpan(
+      "sandbox.updateTier",
+      { 
+        "sandbox.id": this.id,
+        "tier.name": tier.name
+      },
+      async () => {
+        await this.api.updateSpecs(this.id, {
+          tier: tier.name,
+        });
+      }
+    );
   }
 
   /**
@@ -60,17 +107,29 @@ export class Sandbox {
    * will be kept alive without activity before it is automatically hibernated. Activity can be sessions or interactions with any endpoints exposed by the Sandbox.
    */
   async updateHibernationTimeout(timeoutSeconds: number): Promise<void> {
-    await this.api.updateHibernationTimeout(this.id, {
-      hibernation_timeout_seconds: timeoutSeconds,
-    });
+    return this.withSpan(
+      "sandbox.updateHibernationTimeout",
+      {
+        "sandbox.id": this.id,
+        "hibernation.timeoutSeconds": timeoutSeconds
+      },
+      async () => {
+        await this.api.updateHibernationTimeout(this.id, {
+          hibernation_timeout_seconds: timeoutSeconds,
+        });
+      }
+    );
   }
 
   private async initializeCustomSession(
     customSession: SessionCreateOptions,
     session: SandboxSession
   ) {
-    const client = await SandboxClient.create(session, async () =>
-      this.getSession(await this.api.startVm(this.id), customSession)
+    const client = await SandboxClient.create(
+      session, 
+      async () => this.getSession(await this.api.startVm(this.id), customSession),
+      undefined,
+      this.tracer
     );
 
     if (customSession.env) {
@@ -156,29 +215,42 @@ export class Sandbox {
   }
 
   async connect(customSession?: SessionCreateOptions) {
-    return await retryWithDelay(
-      async () => {
-        const session = await this.getSession(
-          this.pitcherManagerResponse,
-          customSession
-        );
-
-        let client: SandboxClient | undefined;
-
-        // We might create a client here if git or env is configured, we can reuse that
-        if (customSession) {
-          client = await this.initializeCustomSession(customSession, session);
-        }
-
-        return (
-          client ||
-          SandboxClient.create(session, async () =>
-            this.getSession(await this.api.startVm(this.id), customSession)
-          )
-        );
+    return this.withSpan(
+      "sandbox.connect",
+      {
+        "sandbox.id": this.id,
+        "session.hasCustomSession": !!customSession,
+        "session.id": customSession?.id || "default"
       },
-      3,
-      100
+      async () => {
+        return await retryWithDelay(
+          async () => {
+            const session = await this.getSession(
+              this.pitcherManagerResponse,
+              customSession
+            );
+
+            let client: SandboxClient | undefined;
+
+            // We might create a client here if git or env is configured, we can reuse that
+            if (customSession) {
+              client = await this.initializeCustomSession(customSession, session);
+            }
+
+            return (
+              client ||
+              SandboxClient.create(
+                session, 
+                async () => this.getSession(await this.api.startVm(this.id), customSession),
+                undefined,
+                this.tracer
+              )
+            );
+          },
+          3,
+          100
+        );
+      }
     );
   }
 
@@ -192,20 +264,32 @@ export class Sandbox {
   async createSession(
     customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
-    if (customSession?.git || customSession?.env) {
-      const configureSession = await this.getSession(
-        this.pitcherManagerResponse,
-        customSession
-      );
+    return this.withSpan(
+      "sandbox.createSession",
+      {
+        "sandbox.id": this.id,
+        "session.hasCustomSession": !!customSession,
+        "session.id": customSession?.id || "default",
+        "session.hasGit": !!customSession?.git,
+        "session.hasEnv": !!customSession?.env
+      },
+      async () => {
+        if (customSession?.git || customSession?.env) {
+          const configureSession = await this.getSession(
+            this.pitcherManagerResponse,
+            customSession
+          );
 
-      const client = await this.initializeCustomSession(
-        customSession,
-        configureSession
-      );
+          const client = await this.initializeCustomSession(
+            customSession,
+            configureSession
+          );
 
-      client?.dispose();
-    }
+          client?.dispose();
+        }
 
-    return this.getSession(this.pitcherManagerResponse, customSession);
+        return this.getSession(this.pitcherManagerResponse, customSession);
+      }
+    );
   }
 }
