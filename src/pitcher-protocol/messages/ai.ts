@@ -1,5 +1,3 @@
-import type { Id } from "@codesandbox/pitcher-common";
-
 import { ProtocolError, TMessage, TNotification } from "../protocol";
 import { PitcherErrorCode } from "../errors";
 
@@ -113,7 +111,7 @@ export type StreamMessage = TMessage<
   },
   {
     result: {
-      messageId: Id;
+      messageId: string;
     };
     error: CommonError;
   }
@@ -135,14 +133,14 @@ export type IChatContextFragment =
 export type AIChatMessageMessage = TMessage<
   "ai/chatMessage",
   {
-    chatId: Id;
+    chatId: string;
     message: string;
-    messageId: Id;
+    messageId: string;
     context: IChatContextFragment[];
   },
   {
     result: {
-      chatId: Id;
+      chatId: string;
       title: string;
     };
     error: CommonError;
@@ -152,7 +150,7 @@ export type AIChatMessageMessage = TMessage<
 export type AIChatCreatedNotification = TNotification<
   "ai/chatCreated",
   {
-    chatId: Id;
+    chatId: string;
     title: string;
     entries: IChatHistoryEntry[];
   }
@@ -161,7 +159,7 @@ export type AIChatCreatedNotification = TNotification<
 export type AIChatMessageNotification = TNotification<
   "ai/chatMessage",
   {
-    chatId: Id;
+    chatId: string;
     /**
      * idx, indicating the order of the messages, ensures we can resync if a message goes missing
      **/
@@ -176,7 +174,7 @@ export type AIChatMessageNotification = TNotification<
     /**
      * messageId is a unique identifier for the message used to listen for streaming progress
      */
-    messageId: Id;
+    messageId: string;
     message: string;
     context: IChatContextFragment[];
     isFinished: boolean;
@@ -186,7 +184,7 @@ export type AIChatMessageNotification = TNotification<
 export type AIMessageProgressNotification = TNotification<
   "ai/messageProgress",
   {
-    messageId: Id;
+    messageId: string;
     chunk: string;
     isFinished: boolean;
   }
@@ -207,7 +205,7 @@ export interface IChatHistoryEntry {
   /**
    * messageId is a unique identifier for the message used to listen for streaming progress
    */
-  messageId: Id;
+  messageId: string;
   message: string;
   context: IChatContextFragment[];
   isFinished: boolean;
@@ -219,7 +217,7 @@ export type AIChatsMessage = TMessage<
   {
     result: {
       chats: Array<{
-        chatId: Id;
+        chatId: string;
         title: string;
       }>;
     };
@@ -230,7 +228,7 @@ export type AIChatsMessage = TMessage<
 export type AiChatHistoryMessage = TMessage<
   "ai/chatHistory",
   {
-    chatId: Id;
+    chatId: string;
   },
   {
     result: {
@@ -243,7 +241,7 @@ export type AiChatHistoryMessage = TMessage<
 export type AiMessageStateMessage = TMessage<
   "ai/messageState",
   {
-    messageId: Id;
+    messageId: string;
   },
   {
     result: {

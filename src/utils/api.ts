@@ -1,5 +1,3 @@
-import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
-import { VmStartResponse } from "../api-clients/client";
 import { StartSandboxOpts } from "../types";
 import { RateLimitError } from "./rate-limit";
 import {

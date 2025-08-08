@@ -1,11 +1,10 @@
 import {
+  type SessionCreateOptions,
+  type SandboxSession,
   PitcherManagerResponse,
-  type protocol as _protocol,
-} from "@codesandbox/pitcher-client";
-import { type SessionCreateOptions, type SandboxSession } from "./types";
+} from "./types";
 import { VMTier } from "./VMTier";
 import { API } from "./API";
-import { connectToSandbox } from "./node";
 import { SandboxClient } from "./SandboxClient";
 import { StartSandboxOpts } from "./types";
 import { retryWithDelay } from "./utils/api";
@@ -70,11 +69,9 @@ export class Sandbox {
     customSession: SessionCreateOptions,
     session: SandboxSession
   ) {
-    const client = await connectToSandbox({
-      session,
-      getSession: async () =>
-        this.getSession(await this.api.startVm(this.id), customSession),
-    });
+    const client = await SandboxClient.create(session, async () =>
+      this.getSession(await this.api.startVm(this.id), customSession)
+    );
 
     if (customSession.env) {
       const envStrings = Object.entries(customSession.env)
@@ -159,28 +156,30 @@ export class Sandbox {
   }
 
   async connect(customSession?: SessionCreateOptions) {
-    return await retryWithDelay(async () => {
-      const session = await this.getSession(
-        this.pitcherManagerResponse,
-        customSession
-      );
+    return await retryWithDelay(
+      async () => {
+        const session = await this.getSession(
+          this.pitcherManagerResponse,
+          customSession
+        );
 
-      let client: SandboxClient | undefined;
+        let client: SandboxClient | undefined;
 
-      // We might create a client here if git or env is configured, we can reuse that
-      if (customSession) {
-        client = await this.initializeCustomSession(customSession, session);
-      }
+        // We might create a client here if git or env is configured, we can reuse that
+        if (customSession) {
+          client = await this.initializeCustomSession(customSession, session);
+        }
 
-      return (
-        client ||
-        connectToSandbox({
-          session,
-          getSession: async () =>
-            this.getSession(await this.api.startVm(this.id), customSession),
-        })
-      );
-    }, 3, 100);
+        return (
+          client ||
+          SandboxClient.create(session, async () =>
+            this.getSession(await this.api.startVm(this.id), customSession)
+          )
+        );
+      },
+      3,
+      100
+    );
   }
 
   /**

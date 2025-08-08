@@ -11,7 +11,6 @@ import {
   SandboxPrivacy,
   StartSandboxOpts,
 } from "./types";
-import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 
 /**
  * This class provides methods for creating and managing sandboxes.

@@ -54,7 +54,7 @@ import type {
   PreviewHostCreateData,
   PreviewHostUpdateData,
 } from "./api-clients/client";
-import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
+import { PitcherManagerResponse } from "./types";
 
 async function enhanceFetch(
   request: Request,
