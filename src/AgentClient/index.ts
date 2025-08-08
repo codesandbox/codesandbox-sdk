@@ -1,12 +1,12 @@
 import {
   fs,
-  git,
   PitcherErrorCode,
   PitcherRequest,
   port,
   setup,
   shell,
   task,
+  version,
 } from "../pitcher-protocol";
 import {
   IAgentClient,
@@ -19,10 +19,18 @@ import {
   PickRawFsResult,
 } from "./agent-client-interface";
 import { AgentConnection } from "./AgentConnection";
-import { Emitter } from "../utils/event";
-import { SandboxSession } from "../types";
+import { Emitter, Event } from "../utils/event";
+import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../types";
+import { SandboxClient } from "../SandboxClient";
+import { InitStatus } from "../pitcher-protocol/messages/system";
 
-class NodeAgentClientShells implements IAgentClientShells {
+// Timeout for detecting a pong response, leading to a forced disconnect
+let PONG_DETECTION_TIMEOUT = 15_000;
+
+// When focusing the app we do a lower timeout to more quickly detect a potential disconnect
+const FOCUS_PONG_DETECTION_TIMEOUT = 5_000;
+
+class AgentClientShells implements IAgentClientShells {
   private onShellExitedEmitter = new Emitter<{
     shellId: string;
     exitCode: number;
@@ -76,7 +84,6 @@ class NodeAgentClientShells implements IAgentClientShells {
     return this.agentConnection.request({
       method: "shell/terminate",
       params: {
-        // We do can not import Id from pitcher-client
         shellId,
       },
     });
@@ -130,7 +137,7 @@ class NodeAgentClientShells implements IAgentClientShells {
   }
 }
 
-class NodeAgentClientFS implements IAgentClientFS {
+class AgentClientFS implements IAgentClientFS {
   constructor(
     private agentConnection: AgentConnection,
     private workspacePath: string
@@ -284,7 +291,7 @@ class NodeAgentClientFS implements IAgentClientFS {
   }
 }
 
-class NodeAgentClientPorts implements IAgentClientPorts {
+class AgentClientPorts implements IAgentClientPorts {
   private onPortsUpdatedEmitter = new Emitter<port.Port[]>();
   onPortsUpdated = this.onPortsUpdatedEmitter.event;
 
@@ -303,7 +310,7 @@ class NodeAgentClientPorts implements IAgentClientPorts {
   }
 }
 
-class NodeAgentClientSetup implements IAgentClientSetup {
+class AgentClientSetup implements IAgentClientSetup {
   private onSetupProgressUpdateEmitter = new Emitter<setup.SetupProgress>();
   onSetupProgressUpdate = this.onSetupProgressUpdateEmitter.event;
   constructor(private agentConnection: AgentConnection) {
@@ -325,7 +332,7 @@ class NodeAgentClientSetup implements IAgentClientSetup {
   }
 }
 
-class NodeAgentClientTasks implements IAgentClientTasks {
+class AgentClientTasks implements IAgentClientTasks {
   private onTaskUpdateEmitter = new Emitter<task.TaskDTO>();
   onTaskUpdate = this.onTaskUpdateEmitter.event;
   constructor(private agentConnection: AgentConnection) {
@@ -365,8 +372,14 @@ class NodeAgentClientTasks implements IAgentClientTasks {
   }
 }
 
-class NodeAgentClientSystem implements IAgentClientSystem {
-  constructor(private agentConnection: AgentConnection) {}
+class AgentClientSystem implements IAgentClientSystem {
+  constructor(private agentConnection: AgentConnection) {
+    this.agentConnection.onNotification("system/initStatus", (params) => {
+      this.onInitStatusUpdateEmitter.fire(params);
+    });
+  }
+  private onInitStatusUpdateEmitter = new Emitter<InitStatus>();
+  onInitStatusUpdate = this.onInitStatusUpdateEmitter.event;
   update() {
     return this.agentConnection.request({
       method: "system/update",
@@ -375,7 +388,42 @@ class NodeAgentClientSystem implements IAgentClientSystem {
   }
 }
 
-export class NodeAgentClient implements IAgentClient {
+export class AgentClient implements IAgentClient {
+  static async create({
+    session,
+    getSession,
+  }: {
+    session: SandboxSession;
+    getSession: (sandboxId: string) => Promise<SandboxSession>;
+  }) {
+    const url = `${session.pitcherURL}/?token=${session.pitcherToken}`;
+    const agentConnection = await AgentConnection.create(url);
+    const joinResult = await agentConnection.request({
+      method: "client/join",
+      params: {
+        clientInfo: {
+          protocolVersion: version,
+          appId: "sdk",
+        },
+        asyncProgress: true,
+        subscriptions: DEFAULT_SUBSCRIPTIONS,
+      },
+    });
+
+    // Now that we have initialized we set an appropriate timeout to more efficiently detect disconnects
+    agentConnection.connection.setPongDetectionTimeout(PONG_DETECTION_TIMEOUT);
+
+    return {
+      client: new AgentClient(getSession, agentConnection, {
+        sandboxId: session.sandboxId,
+        workspacePath: session.userWorkspacePath,
+        reconnectToken: joinResult.reconnectToken,
+        isUpToDate: session.latestPitcherVersion === session.pitcherVersion,
+      }),
+      joinResult,
+    };
+  }
+
   sandboxId: string;
   workspacePath: string;
   isUpToDate: boolean;
@@ -384,12 +432,12 @@ export class NodeAgentClient implements IAgentClient {
     return this.agentConnection.state;
   }
   onStateChange = this.agentConnection.onStateChange;
-  shells = new NodeAgentClientShells(this.agentConnection);
-  fs = new NodeAgentClientFS(this.agentConnection, this.params.workspacePath);
-  setup = new NodeAgentClientSetup(this.agentConnection);
-  tasks = new NodeAgentClientTasks(this.agentConnection);
-  system = new NodeAgentClientSystem(this.agentConnection);
-  ports = new NodeAgentClientPorts(this.agentConnection);
+  shells = new AgentClientShells(this.agentConnection);
+  fs = new AgentClientFS(this.agentConnection, this.params.workspacePath);
+  setup = new AgentClientSetup(this.agentConnection);
+  tasks = new AgentClientTasks(this.agentConnection);
+  system = new AgentClientSystem(this.agentConnection);
+  ports = new AgentClientPorts(this.agentConnection);
 
   constructor(
     private getSession: (sandboxId: string) => Promise<SandboxSession>,
@@ -405,6 +453,9 @@ export class NodeAgentClient implements IAgentClient {
     this.workspacePath = params.workspacePath;
     this.isUpToDate = params.isUpToDate;
     this.reconnectToken = params.reconnectToken;
+  }
+  ping() {
+    this.agentConnection.connection.ping(FOCUS_PONG_DETECTION_TIMEOUT);
   }
   async disconnect(): Promise<void> {
     await this.agentConnection.disconnect();

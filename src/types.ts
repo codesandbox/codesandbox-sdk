@@ -1,7 +1,18 @@
-import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
 import { VMTier } from "./VMTier";
 import { HostToken } from "./HostTokens";
 import { Config } from "@hey-api/client-fetch";
+
+export interface PitcherManagerResponse {
+  bootupType: "RUNNING" | "CLEAN" | "RESUME" | "FORK";
+  pitcherURL: string;
+  workspacePath: string;
+  userWorkspacePath: string;
+  pitcherManagerVersion: string;
+  pitcherVersion: string;
+  latestPitcherVersion: string;
+  pitcherToken: string;
+  cluster: string;
+}
 
 export interface SystemMetricsStatus {
   cpu: {

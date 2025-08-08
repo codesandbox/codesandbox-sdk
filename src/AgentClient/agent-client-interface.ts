@@ -7,6 +7,7 @@ import {
   shell,
   setup,
   task,
+  system,
 } from "../pitcher-protocol";
 import { Event } from "../utils/event";
 
@@ -115,6 +116,7 @@ export interface IAgentClientTasks {
 }
 
 export interface IAgentClientSystem {
+  onInitStatusUpdate: Event<system.InitStatus>;
   update(): Promise<Record<string, undefined>>;
 }
 
@@ -137,6 +139,7 @@ export interface IAgentClient {
   setup: IAgentClientSetup;
   tasks: IAgentClientTasks;
   system: IAgentClientSystem;
+  ping(): void;
   disconnect(): Promise<void>;
   reconnect(): Promise<void>;
   dispose(): void;

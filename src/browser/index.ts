@@ -1,61 +1,53 @@
-import { initPitcherClient, protocol } from "@codesandbox/pitcher-client";
-import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../types";
+import * as protocol from "../pitcher-protocol";
+import { SandboxSession } from "../types";
 import { SandboxClient } from "../SandboxClient";
-import { BrowserAgentClient } from "./BrowserAgentClient";
 
 export * from "../SandboxClient";
 
 export { createPreview, Preview } from "./previews";
 
-/**
- * Connect to a Sandbox from the browser and automatically reconnect. `getSession` requires and endpoint that resumes the Sandbox. `onFocusChange` can be used to notify when a reconnect should happen.
- */
-export async function connectToSandbox(options: {
+type ConnectToSandboxOptions = {
   session: SandboxSession;
   getSession: (id: string) => Promise<SandboxSession>;
   onFocusChange?: (cb: (isFocused: boolean) => void) => () => void;
   initStatusCb?: (event: protocol.system.InitStatus) => void;
-}): Promise<SandboxClient> {
-  let hasConnected = false;
-  const pitcherClient = await initPitcherClient(
-    {
-      appId: "sdk",
-      instanceId: options.session.sandboxId,
-      onFocusChange:
-        options.onFocusChange ||
-        ((notify) => {
-          const listener = () => {
-            notify(document.hasFocus());
-          };
-          window.addEventListener("visibilitychange", listener);
-          return () => {
-            window.removeEventListener("visibilitychange", listener);
-          };
-        }),
-      requestPitcherInstance: async (id) => {
-        const session = hasConnected
-          ? await options.getSession(id)
-          : options.session;
+};
 
-        hasConnected = true;
+/**
+ * Connect to a Sandbox from the browser and automatically reconnect. `getSession` requires and endpoint that resumes the Sandbox. `onFocusChange` can be used to notify when a reconnect should happen.
+ */
+export async function connectToSandbox({
+  session,
+  getSession,
+  onFocusChange = (notify) => {
+    const listener = () => {
+      notify(document.hasFocus());
+    };
+    window.addEventListener("visibilitychange", listener);
+    return () => {
+      window.removeEventListener("visibilitychange", listener);
+    };
+  },
+  initStatusCb = () => {},
+}: ConnectToSandboxOptions): Promise<SandboxClient> {
+  const client = await SandboxClient.create(session, getSession, initStatusCb);
 
-        return session;
-      },
-      subscriptions: DEFAULT_SUBSCRIPTIONS,
-    },
-    options.initStatusCb || (() => {})
-  );
-
-  const agentClient = new BrowserAgentClient(pitcherClient);
-  const session = await SandboxClient.create(agentClient, {
-    // On dedicated sessions we need the username to normalize
-    // FS events
-    username: options.session.sessionId
-      ? // @ts-ignore
-        pitcherClient["joinResult"].client.username
-      : undefined,
-    hostToken: options.session.hostToken,
+  onFocusChange((isFocused) => {
+    // We immediately ping the connection when focusing, so that
+    // we detect a disconnect as early as possible
+    if (isFocused && client.state === "CONNECTED") {
+      client["agentClient"].ping();
+      // If we happen to be disconnected when focusing we try to reconnect, but only if we are currently
+      // hibernated and we did not do a manual disconnect
+    } else if (
+      isFocused &&
+      (client.state === "DISCONNECTED" || client.state === "HIBERNATED")
+    ) {
+      client.reconnect().catch((err) => {
+        console.error("Failed to reconnect to sandbox:", err);
+      });
+    }
   });
 
-  return session;
+  return client;
 }

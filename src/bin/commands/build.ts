@@ -1,26 +1,22 @@
 import { promises as fs } from "fs";
 import path, { dirname } from "path";
 import * as readline from "readline";
-import { type Client } from "@hey-api/client-fetch";
 import ora from "ora";
 import type * as yargs from "yargs";
 import { instrumentedFetch } from "../utils/sentry";
-import { VMTier, CodeSandbox, Sandbox, SandboxClient } from "@codesandbox/sdk";
-
 import {
-  templatesCreate,
-  vmAssignTagAlias,
-  VmUpdateSpecsRequest,
-} from "../../api-clients/client";
-import {
-  createApiClient,
-  getDefaultTemplateId,
-  handleResponse,
-} from "../../utils/api";
+  VMTier,
+  CodeSandbox,
+  Sandbox,
+  SandboxClient,
+  API,
+} from "@codesandbox/sdk";
+import { VmUpdateSpecsRequest } from "../../api-clients/client";
+import { getDefaultTemplateId, retryWithDelay } from "../../utils/api";
 import { getInferredApiKey } from "../../utils/constants";
 import { hashDirectory as getFilePaths } from "../utils/files";
-import { startVm } from "../../Sandboxes";
 import { mkdir, writeFile } from "fs/promises";
+import { sleep } from "../../utils/sleep";
 
 export type BuildCommandArgs = {
   directory: string;
@@ -106,7 +102,7 @@ export const buildCommand: yargs.CommandModule<
 
   handler: async (argv) => {
     const apiKey = getInferredApiKey();
-    const apiClient: Client = createApiClient(apiKey, {}, instrumentedFetch);
+    const api = new API({ apiKey, instrumentation: instrumentedFetch });
     const sdk = new CodeSandbox(apiKey);
     const sandboxTier = argv.vmTier
       ? VMTier.fromName(argv.vmTier)
@@ -124,18 +120,12 @@ export const buildCommand: yargs.CommandModule<
     const filePaths = await getFilePaths(argv.directory);
 
     try {
-      const templateData = handleResponse(
-        await templatesCreate({
-          client: apiClient,
-          body: {
-            forkOf: argv.fromSandbox || getDefaultTemplateId(apiClient),
-            title: argv.name,
-            // We filter out sdk-templates on the dashboard
-            tags: ["sdk-template"],
-          },
-        }),
-        "Failed to create template"
-      );
+      const templateData = await api.createTemplate({
+        forkOf: argv.fromSandbox || getDefaultTemplateId(api.getClient()),
+        title: argv.name,
+        // We filter out sdk-templates on the dashboard
+        tags: ["sdk-template"],
+      });
 
       const spinner = ora({ stream: process.stdout });
       let spinnerMessages: string[] = templateData.sandboxes.map(() => "");
@@ -197,10 +187,10 @@ export const buildCommand: yargs.CommandModule<
           spinner.start(updateSpinnerMessage(index, "Starting sandbox..."));
 
           const startResponse = await withCustomError(
-            startVm(apiClient, id),
-            "Failed to start sandbox"
+            api.startVm(id),
+            "Failed to start sandbox at all"
           );
-          let sandboxVM = new Sandbox(id, apiClient, startResponse);
+          let sandboxVM = new Sandbox(id, api, startResponse);
 
           let session = await sandboxVM.connect();
 
@@ -208,24 +198,26 @@ export const buildCommand: yargs.CommandModule<
             updateSpinnerMessage(index, "Writing files to sandbox...")
           );
 
-          let i = 0;
-          for (const filePath of filePaths) {
-            i++;
-            try {
-              const fullPath = path.join(argv.directory, filePath);
-              const content = await fs.readFile(fullPath);
-              const dirname = path.dirname(filePath);
-              await session.fs.mkdir(dirname, true);
-              await session.fs.writeFile(filePath, content, {
-                create: true,
-                overwrite: true,
-              });
-            } catch (error) {
-              throw new Error(
-                `Failed to write "${filePath}" to sandbox: ${error}`
-              );
-            }
-          }
+          await Promise.all(
+            filePaths.map((filePath) =>
+              retryWithDelay(
+                async () => {
+                  const fullPath = path.join(argv.directory, filePath);
+                  const content = await fs.readFile(fullPath);
+                  const dirname = path.dirname(filePath);
+                  await session.fs.mkdir(dirname, true);
+                  await session.fs.writeFile(filePath, content, {
+                    create: true,
+                    overwrite: true,
+                  });
+                },
+                3,
+                200
+              )
+            )
+          ).catch((error) => {
+            throw new Error(`Failed to write files to sandbox: ${error}`);
+          });
 
           spinner.start(updateSpinnerMessage(index, "Building sandbox..."));
 
@@ -233,12 +225,12 @@ export const buildCommand: yargs.CommandModule<
             sdk.sandboxes.restart(id, {
               vmTier: buildTier,
             }),
-            "Failed to restart sandbox"
+            "Failed to restart sandbox after building"
           );
 
           session = await withCustomError(
             sandboxVM.connect(),
-            "Failed to connect to sandbox"
+            "Failed to connect to sandbox after building"
           );
 
           await waitForSetup(session, index);
@@ -250,12 +242,12 @@ export const buildCommand: yargs.CommandModule<
             sdk.sandboxes.restart(id, {
               vmTier: sandboxTier,
             }),
-            "Failed to restart sandbox"
+            "Failed to restart sandbox after optimizing initial state"
           );
 
           session = await withCustomError(
             sandboxVM.connect(),
-            "Failed to connect to sandbox"
+            "Failed to connect to sandbox after optimizing initial state"
           );
 
           await waitForSetup(session, index);
@@ -289,7 +281,7 @@ export const buildCommand: yargs.CommandModule<
                     break;
                   }
 
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
+                  await sleep(1000);
                 }
 
                 updatePortSpinner();
@@ -308,7 +300,7 @@ export const buildCommand: yargs.CommandModule<
           spinner.start(updateSpinnerMessage(index, "Creating snapshot..."));
           await withCustomError(
             sdk.sandboxes.hibernate(id),
-            "Failed to hibernate"
+            "Failed to hibernate after building and optimizing sandbox"
           );
           spinner.start(updateSpinnerMessage(index, "Snapshot created"));
 
@@ -394,15 +386,8 @@ export const buildCommand: yargs.CommandModule<
       let id;
 
       if (alias) {
-        await vmAssignTagAlias({
-          client: apiClient,
-          path: {
-            alias: alias.alias,
-            namespace: alias.namespace,
-          },
-          body: {
-            tag_id: templateData.tag,
-          },
+        await api.assignVmTagAlias(alias.namespace, alias.alias, {
+          tag_id: templateData.tag,
         });
 
         id = `${alias.namespace}@${alias.alias}`;

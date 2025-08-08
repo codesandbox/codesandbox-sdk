@@ -1,11 +1,10 @@
 import type * as yargs from "yargs";
 
-import { previewHostList, previewHostUpdate } from "../../api-clients/client";
-import { createApiClient, handleResponse } from "../../utils/api";
+import { API } from "../../API";
 import { getInferredApiKey } from "../../utils/constants";
 
 const apiKey = getInferredApiKey();
-const apiClient = createApiClient("CLI", apiKey);
+const api = new API({ apiKey });
 
 export const previewHostsCommand: yargs.CommandModule = {
   command: "preview-hosts",
@@ -17,9 +16,8 @@ export const previewHostsCommand: yargs.CommandModule = {
         command: "list",
         describe: "List current preview hosts",
         handler: async () => {
-          const resp = await previewHostList({ client: apiClient });
-          const data = handleResponse(resp, "Failed to list preview hosts");
-          const hosts = data.preview_hosts.map(({ host }) => host);
+          const response = await api.listPreviewHosts();
+          const hosts = response.preview_hosts.map(({ host }) => host);
           if (hosts.length) {
             console.log(hosts.join("\n"));
           } else {
@@ -37,19 +35,15 @@ export const previewHostsCommand: yargs.CommandModule = {
             demandOption: true,
           }),
         handler: async (argv) => {
-          const resp = await previewHostList({ client: apiClient });
-          const data = handleResponse(resp, "Failed to list preview hosts");
-          let hosts = data.preview_hosts.map(({ host }) => host);
+          const response = await api.listPreviewHosts();
+          let hosts = response.preview_hosts.map(({ host }) => host);
           const hostToAdd = (argv.host as string).trim();
           if (hosts.includes(hostToAdd)) {
             console.log(`Host already exists: ${hostToAdd}`);
             return;
           }
           hosts.push(hostToAdd);
-          await previewHostUpdate({
-            client: apiClient,
-            body: { hosts },
-          });
+          await api.updatePreviewHost({ hosts });
           console.log(`Added preview host: ${hostToAdd}`);
         },
       })
@@ -63,19 +57,15 @@ export const previewHostsCommand: yargs.CommandModule = {
             demandOption: true,
           }),
         handler: async (argv) => {
-          const resp = await previewHostList({ client: apiClient });
-          const data = handleResponse(resp, "Failed to list preview hosts");
-          let hosts = data.preview_hosts.map(({ host }) => host);
+          const response = await api.listPreviewHosts();
+          let hosts = response.preview_hosts.map(({ host }) => host);
           const hostToRemove = (argv.host as string).trim();
           if (!hosts.includes(hostToRemove)) {
             console.log(`Host not found: ${hostToRemove}`);
             return;
           }
           hosts = hosts.filter((h) => h !== hostToRemove);
-          await previewHostUpdate({
-            client: apiClient,
-            body: { hosts },
-          });
+          await api.updatePreviewHost({ hosts });
           console.log(`Removed preview host: ${hostToRemove}`);
         },
       })
@@ -83,17 +73,13 @@ export const previewHostsCommand: yargs.CommandModule = {
         command: "clear",
         describe: "Clear all preview hosts",
         handler: async () => {
-          const resp = await previewHostList({ client: apiClient });
-          const data = handleResponse(resp, "Failed to list preview hosts");
-          const hosts = data.preview_hosts.map(({ host }) => host);
+          const response = await api.listPreviewHosts();
+          const hosts = response.preview_hosts.map(({ host }) => host);
           if (hosts.length === 0) {
             console.log("Preview host list is already empty.");
             return;
           }
-          await previewHostUpdate({
-            client: apiClient,
-            body: { hosts: [] },
-          });
+          await api.updatePreviewHost({ hosts: [] });
           console.log("Cleared all preview hosts.");
         },
       });

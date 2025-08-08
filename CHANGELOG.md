@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.7](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.6...v2.0.7) (2025-08-06)
+
+
+### Bug Fixes
+
+* also retry resume ([#143](https://github.com/codesandbox/codesandbox-sdk/issues/143)) ([8b69036](https://github.com/codesandbox/codesandbox-sdk/commit/8b69036d0b586917db05f9c51046ae8b26660835))
+
+## [2.0.6](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.5...v2.0.6) (2025-08-06)
+
+
+### Bug Fixes
+
+* Add retries to all idempotent endpoints and added parallel file writing ([#140](https://github.com/codesandbox/codesandbox-sdk/issues/140)) ([db8aded](https://github.com/codesandbox/codesandbox-sdk/commit/db8aded97e1844cc31f70b08b6a294b458069656))
+* Fix broken authorization in preview hosts ([20a4e53](https://github.com/codesandbox/codesandbox-sdk/commit/20a4e538e3b473007783831c7592670cf99c8a96))
+* Fix broken authorization in preview hosts ([71b38b4](https://github.com/codesandbox/codesandbox-sdk/commit/71b38b4b12a9438864296fb599d20760c6b0a728))
+* Update to latest Ink and React 19 and bundle React and Ink into CLI ([#138](https://github.com/codesandbox/codesandbox-sdk/issues/138)) ([62da4fe](https://github.com/codesandbox/codesandbox-sdk/commit/62da4fef50a3497b84c71413b1c0e3337c73e59f))
+
 ## [2.0.5](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.4...v2.0.5) (2025-07-29)
 
 
