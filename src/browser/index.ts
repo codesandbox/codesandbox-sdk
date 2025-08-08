@@ -1,6 +1,7 @@
 import * as protocol from "../pitcher-protocol";
 import { SandboxSession } from "../types";
 import { SandboxClient } from "../SandboxClient";
+import { Tracer } from "@opentelemetry/api";
 
 export * from "../SandboxClient";
 
@@ -11,6 +12,7 @@ type ConnectToSandboxOptions = {
   getSession: (id: string) => Promise<SandboxSession>;
   onFocusChange?: (cb: (isFocused: boolean) => void) => () => void;
   initStatusCb?: (event: protocol.system.InitStatus) => void;
+  tracer?: Tracer;
 };
 
 /**
@@ -29,8 +31,9 @@ export async function connectToSandbox({
     };
   },
   initStatusCb = () => {},
+  tracer,
 }: ConnectToSandboxOptions): Promise<SandboxClient> {
-  const client = await SandboxClient.create(session, getSession, initStatusCb);
+  const client = await SandboxClient.create(session, getSession, initStatusCb, tracer);
 
   onFocusChange((isFocused) => {
     // We immediately ping the connection when focusing, so that

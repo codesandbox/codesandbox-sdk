@@ -15,6 +15,7 @@ import { setup, system } from "../pitcher-protocol";
 import { Barrier } from "../utils/barrier";
 import { AgentClient } from "../AgentClient";
 import { SandboxSession } from "../types";
+import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 
 export * from "./filesystem";
 export * from "./ports";
@@ -28,13 +29,17 @@ export * from "./hosts";
 type SandboxClientParams = {
   hostToken?: HostToken;
   username?: string;
+  tracer?: Tracer;
 };
 
 export class SandboxClient {
+  private tracer?: Tracer;
+
   static async create(
     session: SandboxSession,
     getSession: (id: string) => Promise<SandboxSession>,
-    initStatusCb?: (event: system.InitStatus) => void
+    initStatusCb?: (event: system.InitStatus) => void,
+    tracer?: Tracer
   ) {
     const { client: agentClient, joinResult } = await AgentClient.create({
       session,
@@ -50,6 +55,7 @@ export class SandboxClient {
       // FS events
       username: session.sessionId ? joinResult.client.username : undefined,
       hostToken: session.hostToken,
+      tracer,
     };
 
     let setupProgress = await agentClient.setup.getProgress();
@@ -113,7 +119,7 @@ export class SandboxClient {
   /**
    * Namespace for managing ports on this Sandbox
    */
-  public readonly ports = new Ports(this.disposable, this.agentClient);
+  public readonly ports = new Ports(this.disposable, this.agentClient, this.tracer);
 
   /**
    * Namespace for the setup that runs when the Sandbox starts from scratch.
@@ -123,13 +129,14 @@ export class SandboxClient {
   /**
    * Namespace for tasks that are defined in the Sandbox.
    */
-  public readonly tasks = new Tasks(this.disposable, this.agentClient);
+  public readonly tasks: Tasks;
 
   constructor(
     protected agentClient: IAgentClient,
-    { hostToken, username }: SandboxClientParams,
+    { hostToken, username, tracer }: SandboxClientParams,
     initialSetupProgress: setup.SetupProgress
   ) {
+    this.tracer = tracer;
     // TODO: Bring this back once metrics polling does not reset inactivity
     // const metricsDisposable = {
     //   dispose:
@@ -140,14 +147,16 @@ export class SandboxClient {
     this.setup = new Setup(
       this.disposable,
       this.agentClient,
-      initialSetupProgress
+      initialSetupProgress,
+      tracer
     );
-    this.fs = new FileSystem(this.disposable, this.agentClient, username);
-    this.terminals = new Terminals(this.disposable, this.agentClient);
-    this.commands = new SandboxCommands(this.disposable, this.agentClient);
+    this.fs = new FileSystem(this.disposable, this.agentClient, username, tracer);
+    this.terminals = new Terminals(this.disposable, this.agentClient, tracer);
+    this.tasks = new Tasks(this.disposable, this.agentClient, tracer);
+    this.commands = new SandboxCommands(this.disposable, this.agentClient, tracer);
 
-    this.hosts = new Hosts(this.agentClient.sandboxId, hostToken);
-    this.interpreters = new Interpreters(this.disposable, this.commands);
+    this.hosts = new Hosts(this.agentClient.sandboxId, hostToken, tracer);
+    this.interpreters = new Interpreters(this.disposable, this.commands, tracer);
     this.disposable.onWillDispose(() => this.agentClient.dispose());
 
     this.disposable.onWillDispose(() => {
@@ -174,6 +183,39 @@ export class SandboxClient {
         }
       }
     });
+  }
+
+  private async withSpan<T>(
+    operationName: string,
+    attributes: Record<string, string | number | boolean> = {},
+    operation: () => Promise<T>
+  ): Promise<T> {
+    if (!this.tracer) {
+      return operation();
+    }
+
+    return this.tracer.startActiveSpan(
+      operationName,
+      { attributes },
+      async (span) => {
+        try {
+          const result = await operation();
+          span.setStatus({ code: SpanStatusCode.OK });
+          return result;
+        } catch (error) {
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error instanceof Error ? error.message : String(error),
+          });
+          span.recordException(
+            error instanceof Error ? error : new Error(String(error))
+          );
+          throw error;
+        } finally {
+          span.end();
+        }
+      }
+    );
   }
 
   /**
@@ -267,44 +309,62 @@ export class SandboxClient {
    * reconnect to the sandbox.
    */
   public disconnect() {
-    this.isExplicitlyDisconnected = true;
-    if (this.keepAliveInterval) {
-      clearInterval(this.keepAliveInterval);
-      this.keepAliveInterval = null;
-    }
+    return this.withSpan(
+      "sandboxClient.disconnect",
+      { "sandbox.id": this.id },
+      async () => {
+        this.isExplicitlyDisconnected = true;
+        if (this.keepAliveInterval) {
+          clearInterval(this.keepAliveInterval);
+          this.keepAliveInterval = null;
+        }
 
-    return this.agentClient.disconnect();
+        return this.agentClient.disconnect();
+      }
+    );
   }
 
   /**
    * Explicitly reconnect to the sandbox.
    */
   public reconnect() {
-    this.isExplicitlyDisconnected = false;
-    return this.agentClient.reconnect();
+    return this.withSpan(
+      "sandboxClient.reconnect", 
+      { "sandbox.id": this.id },
+      async () => {
+        this.isExplicitlyDisconnected = false;
+        return this.agentClient.reconnect();
+      }
+    );
   }
 
   /**
    * Attempt automatic reconnection with retry logic
    */
   private async attemptAutoReconnect() {
-    try {
-      await retryWithDelay(
-        async () => {
-          if (this.isExplicitlyDisconnected) {
-            throw new Error("Explicit disconnect - stopping auto-reconnect");
-          }
-          await this.agentClient.reconnect();
-        },
-        3, // retries
-        2000 // delay in ms
-      );
-      // Clear the disconnect flag on successful reconnection
-      this.isExplicitlyDisconnected = false;
-    } catch (error) {
-      // Auto-reconnect failed, but we don't throw to avoid unhandled rejections
-      console.warn("Auto-reconnect failed:", error);
-    }
+    return this.withSpan(
+      "sandboxClient.attemptAutoReconnect",
+      { "sandbox.id": this.id },
+      async () => {
+        try {
+          await retryWithDelay(
+            async () => {
+              if (this.isExplicitlyDisconnected) {
+                throw new Error("Explicit disconnect - stopping auto-reconnect");
+              }
+              await this.agentClient.reconnect();
+            },
+            3, // retries
+            2000 // delay in ms
+          );
+          // Clear the disconnect flag on successful reconnection
+          this.isExplicitlyDisconnected = false;
+        } catch (error) {
+          // Auto-reconnect failed, but we don't throw to avoid unhandled rejections
+          console.warn("Auto-reconnect failed:", error);
+        }
+      }
+    );
   }
 
   private keepAliveInterval: NodeJS.Timeout | null = null;
