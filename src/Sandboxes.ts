@@ -87,7 +87,7 @@ export class Sandboxes {
       getStartOptions(opts)
     );
 
-    return new Sandbox(sandbox.id, this.api, startResponse);
+    return new Sandbox(sandbox.id, this.api, startResponse, this.tracer);
   }
 
   /**
@@ -105,7 +105,7 @@ export class Sandboxes {
       { "sandbox.id": sandboxId },
       async () => {
         const startResponse = await this.api.startVm(sandboxId);
-        return new Sandbox(sandboxId, this.api, startResponse);
+        return new Sandbox(sandboxId, this.api, startResponse, this.tracer);
       }
     );
   }
@@ -160,7 +160,7 @@ export class Sandboxes {
         try {
           const startResponse = await this.api.startVm(sandboxId, opts);
 
-          return new Sandbox(sandboxId, this.api, startResponse);
+          return new Sandbox(sandboxId, this.api, startResponse, this.tracer);
         } catch (e) {
           throw new Error("Failed to start VM, " + String(e));
         }
@@ -305,23 +305,29 @@ export class Sandboxes {
    * guaranteed to be perfectly up-to-date.
    */
   async listRunning() {
-    const data = await this.api.listRunningVms();
-    
-    return {
-      concurrentVmCount: data.concurrent_vm_count,
-      concurrentVmLimit: data.concurrent_vm_limit,
-      vms: data.vms.map(vm => ({
-        id: vm.id,
-        creditBasis: vm.credit_basis,
-        lastActiveAt: vm.last_active_at ? parseTimestamp(vm.last_active_at) : undefined,
-        sessionStartedAt: vm.session_started_at ? parseTimestamp(vm.session_started_at) : undefined,
-        specs: vm.specs ? {
-          cpu: vm.specs.cpu,
-          memory: vm.specs.memory,
-          storage: vm.specs.storage,
-        } : undefined,
-      })),
-    };
+    return this.withSpan(
+      "sandboxes.listRunning",
+      {},
+      async () => {
+        const data = await this.api.listRunningVms();
+        
+        return {
+          concurrentVmCount: data.concurrent_vm_count,
+          concurrentVmLimit: data.concurrent_vm_limit,
+          vms: data.vms.map(vm => ({
+            id: vm.id,
+            creditBasis: vm.credit_basis,
+            lastActiveAt: vm.last_active_at ? parseTimestamp(vm.last_active_at) : undefined,
+            sessionStartedAt: vm.session_started_at ? parseTimestamp(vm.session_started_at) : undefined,
+            specs: vm.specs ? {
+              cpu: vm.specs.cpu,
+              memory: vm.specs.memory,
+              storage: vm.specs.storage,
+            } : undefined,
+          })),
+        };
+      }
+    );
   }
 }
 
