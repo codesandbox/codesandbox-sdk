@@ -1,5 +1,4 @@
 import { ProtocolError, TMessage, TNotification } from "../protocol";
-import { Id } from "@codesandbox/pitcher-common";
 
 import { PitcherErrorCode } from "../errors";
 
@@ -27,7 +26,7 @@ export interface GitItem {
   workingTree: GitStatusShortFormat;
   isStaged: boolean;
   isConflicted: boolean;
-  fileId?: Id;
+  fileId?: string;
 }
 
 export type GitChangedFiles = {
@@ -123,7 +122,7 @@ export type GitCommitMessage = TMessage<
   { paths?: string[]; message: string; push?: boolean },
   {
     result: {
-      shellId: Id;
+      shellId: string;
     };
     error: CommonError;
   }
@@ -264,7 +263,7 @@ export type GitPullFinishedNotification = TNotification<
 export type GitCommitStartedNotification = TNotification<
   "git/commitStarted",
   {
-    shellId: Id;
+    shellId: string;
     message: string;
     paths?: string[];
   }

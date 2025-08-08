@@ -1,8 +1,7 @@
 import { ProtocolError, TMessage, TNotification } from "../protocol";
-import { Id } from "@codesandbox/pitcher-common";
 import { PitcherErrorCode } from "../errors";
 
-export type ShellId = Id;
+export type ShellId = string;
 
 export type ShellSize = { cols: number; rows: number };
 

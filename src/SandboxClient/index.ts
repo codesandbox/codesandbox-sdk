@@ -1,4 +1,5 @@
 import { Disposable } from "../utils/disposable";
+import { retryWithDelay } from "../utils/api";
 
 import { FileSystem } from "./filesystem";
 import { Ports } from "./ports";
@@ -9,10 +10,11 @@ import { Terminals } from "./terminals";
 import { SandboxCommands } from "./commands";
 import { HostToken } from "../HostTokens";
 import { Hosts } from "./hosts";
-import { IAgentClient } from "../node/agent-client-interface";
-import { setup } from "../pitcher-protocol";
+import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { setup, system } from "../pitcher-protocol";
 import { Barrier } from "../utils/barrier";
-import { clear } from "console";
+import { AgentClient } from "../AgentClient";
+import { SandboxSession } from "../types";
 
 export * from "./filesystem";
 export * from "./ports";
@@ -29,7 +31,27 @@ type SandboxClientParams = {
 };
 
 export class SandboxClient {
-  static async create(agentClient: IAgentClient, params: SandboxClientParams) {
+  static async create(
+    session: SandboxSession,
+    getSession: (id: string) => Promise<SandboxSession>,
+    initStatusCb?: (event: system.InitStatus) => void
+  ) {
+    const { client: agentClient, joinResult } = await AgentClient.create({
+      session,
+      getSession,
+    });
+
+    if (initStatusCb) {
+      agentClient.system.onInitStatusUpdate(initStatusCb);
+    }
+
+    const params = {
+      // On dedicated sessions we need the username to normalize
+      // FS events
+      username: session.sessionId ? joinResult.client.username : undefined,
+      hostToken: session.hostToken,
+    };
+
     let setupProgress = await agentClient.setup.getProgress();
 
     let hasInitializedSteps = Boolean(setupProgress.steps.length);
@@ -136,19 +158,20 @@ export class SandboxClient {
     });
 
     this.agentClient.onStateChange((state) => {
-      if (!this.shouldKeepAlive) {
-        return;
-      }
-
-      // We can not call `keepActiveWhileConnected` here, because it would
-      // reset the interval, which would turn off the "shouldKeepAlive" flag
       if (state === "DISCONNECTED" || state === "HIBERNATED") {
         if (this.keepAliveInterval) {
           clearInterval(this.keepAliveInterval);
         }
         this.keepAliveInterval = null;
+
+        // Only attempt auto-reconnect on DISCONNECTED, not HIBERNATED
+        if (state === "DISCONNECTED" && !this.isExplicitlyDisconnected) {
+          this.attemptAutoReconnect();
+        }
       } else if (state === "CONNECTED") {
-        this.keepActiveWhileConnected(true);
+        if (this.shouldKeepAlive) {
+          this.keepActiveWhileConnected(true);
+        }
       }
     });
   }
@@ -244,6 +267,7 @@ export class SandboxClient {
    * reconnect to the sandbox.
    */
   public disconnect() {
+    this.isExplicitlyDisconnected = true;
     if (this.keepAliveInterval) {
       clearInterval(this.keepAliveInterval);
       this.keepAliveInterval = null;
@@ -256,11 +280,36 @@ export class SandboxClient {
    * Explicitly reconnect to the sandbox.
    */
   public reconnect() {
+    this.isExplicitlyDisconnected = false;
     return this.agentClient.reconnect();
+  }
+
+  /**
+   * Attempt automatic reconnection with retry logic
+   */
+  private async attemptAutoReconnect() {
+    try {
+      await retryWithDelay(
+        async () => {
+          if (this.isExplicitlyDisconnected) {
+            throw new Error("Explicit disconnect - stopping auto-reconnect");
+          }
+          await this.agentClient.reconnect();
+        },
+        3, // retries
+        2000 // delay in ms
+      );
+      // Clear the disconnect flag on successful reconnection
+      this.isExplicitlyDisconnected = false;
+    } catch (error) {
+      // Auto-reconnect failed, but we don't throw to avoid unhandled rejections
+      console.warn("Auto-reconnect failed:", error);
+    }
   }
 
   private keepAliveInterval: NodeJS.Timeout | null = null;
   private shouldKeepAlive = false;
+  private isExplicitlyDisconnected = false;
   /**
    * If enabled, we will keep the sandbox from hibernating as long as the SDK is connected to it.
    */
@@ -273,7 +322,7 @@ export class SandboxClient {
         this.keepAliveInterval = setInterval(() => {
           this.agentClient.system.update().catch(() => {
             // We do not care about errors here
-          })
+          });
         }, 1000 * 30);
       }
     } else {

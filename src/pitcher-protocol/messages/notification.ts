@@ -1,5 +1,4 @@
 import { TNotification, TMessage, ProtocolError } from "../protocol";
-import { Id } from "@codesandbox/pitcher-common";
 
 export type NotificationType = "info" | "warning" | "error";
 export type Action = {
@@ -16,7 +15,7 @@ export type NotificationNotify = TNotification<
   "notification/notify",
   {
     type: NotificationType;
-    notificationId: Id;
+    notificationId: string;
     message: string;
     actions?: Action[];
   }
@@ -28,14 +27,14 @@ export type NotificationNotify = TNotification<
 export type NotificationDismiss = TNotification<
   "notification/dismiss",
   {
-    notificationId: Id;
+    notificationId: string;
   }
 >;
 
 export type NotificationAckResponse = TMessage<
   "notification/notifyResponse",
   {
-    notificationId: Id;
+    notificationId: string;
     response: string | null;
   },
   {
