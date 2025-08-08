@@ -323,6 +323,37 @@ export class Sandboxes {
       })),
     };
   }
+
+  /**
+   * Get a single sandbox by ID efficiently without listing all sandboxes.
+   * 
+   * This method directly retrieves metadata for a specific sandbox ID,
+   * avoiding the performance overhead of the list-and-filter pattern.
+   * 
+   * @param sandboxId The ID of the sandbox to retrieve
+   * @returns Promise<SandboxInfo> The sandbox metadata
+   * @throws Error if the sandbox is not found or access is denied
+   * 
+   * @example
+   * ```ts
+   * const sandbox = await client.sandboxes.get("sandbox-id");
+   * console.log(sandbox.title, sandbox.tags);
+   * ```
+   */
+  async get(sandboxId: string): Promise<SandboxInfo> {
+    const sandbox = await this.api.getSandbox(sandboxId);
+    
+    return {
+      id: sandbox.id,
+      createdAt: new Date(sandbox.created_at),
+      updatedAt: new Date(sandbox.updated_at),
+      title: sandbox.title ?? undefined,
+      description: sandbox.description ?? undefined,
+      privacy: privacyFromNumber(sandbox.privacy),
+      tags: sandbox.tags,
+    };
+  }
+
 }
 
 function parseTimestamp(timestamp: number): Date | undefined {
