@@ -1,7 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { useView } from "../viewContext";
-import { getRunningVms } from "../api";
 import { useQuery } from "@tanstack/react-query";
 import { useSDK } from "../sdkContext";
 import { TextInput } from "../components/TextInput";
@@ -9,11 +8,11 @@ import { VmTable } from "../components/VmTable";
 import { useVmInput } from "../hooks/useVmInput";
 
 export const Dashboard = () => {
-  const { apiClient } = useSDK();
+  const { api } = useSDK();
 
   const { data, isLoading } = useQuery({
     queryKey: ["runningVms"],
-    queryFn: () => getRunningVms(apiClient),
+    queryFn: () => api.listRunningVms(),
   });
 
   const { setView } = useView();
@@ -71,7 +70,10 @@ export const Dashboard = () => {
   return (
     <Box flexDirection="column" gap={1}>
       <Box>
-        <Text dimColor>Start typing to input an ID or use ↑/↓ arrows to select from running VMs. Press ENTER to view VM details.</Text>
+        <Text dimColor>
+          Start typing to input an ID or use ↑/↓ arrows to select from running
+          VMs. Press ENTER to view VM details.
+        </Text>
       </Box>
       <Box flexDirection="column">
         <Box width={40}>

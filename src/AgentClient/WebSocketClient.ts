@@ -1,6 +1,7 @@
 import WebSocket from "isomorphic-ws";
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
+import { SerialQueue } from "./SerialQueue";
 
 export type WebsocketData = string | Uint8Array;
 
@@ -50,6 +51,7 @@ if (typeof process !== "undefined" && process.env.NODE_ENV === "test") {
 export class WebSocketClient extends Disposable {
   private ws: WebSocket;
   private pongDetectionTimeout = INIT_DETECT_PONG_TIMEOUT;
+  private bufferQueue = new SerialQueue("websocket-buffer-queue");
   private onMessageEmitter: Emitter<Uint8Array> = new Emitter();
   /**
    * Whenever we are disconnected we will create a new WebSocketClient
@@ -111,6 +113,16 @@ export class WebSocketClient extends Disposable {
 
       // We clear the PONG detection regardless of what message we got
       clearTimeout(this.detectDisconnectByPongTimeout);
+
+      // Browser environment
+      if (typeof window !== "undefined" && data instanceof window.Blob) {
+        // To ensure that messages are emitted in order we use a serial queue
+        this.bufferQueue.add(async () => {
+          this.emitMessage(new Uint8Array(await data.arrayBuffer()));
+        });
+
+        return;
+      }
 
       // Node environment
       if (typeof data !== "string") {

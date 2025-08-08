@@ -3,15 +3,15 @@ import { Box, Text, useInput } from "ink";
 import { useView } from "../viewContext";
 import { useQuery } from "@tanstack/react-query";
 import { useSDK } from "../sdkContext";
-import { getRunningVms, getSandbox } from "../api";
 
 export const Sandbox = () => {
   const { view, setView } = useView<"sandbox">();
+  const { sdk, api } = useSDK();
 
   // Poll getRunningVms API every 2 seconds
   const runningVmsQuery = useQuery({
     queryKey: ["runningVms"],
-    queryFn: () => getRunningVms(apiClient),
+    queryFn: () => api.listRunningVms(),
   });
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export const Sandbox = () => {
 
   const sandboxQuery = useQuery({
     queryKey: ["sandbox", view.params.id],
-    queryFn: () => getSandbox(apiClient, view.params.id),
+    queryFn: () => api.getSandbox(view.params.id),
     enabled: !!view.params.id,
   });
 
@@ -38,8 +38,6 @@ export const Sandbox = () => {
     : "IDLE";
 
   const runningStateRef = useRef(runningState);
-
-  const { sdk, apiClient } = useSDK();
 
   // Only two states: RUNNING or IDLE
   const [sandboxState, setSandboxState] = useState<

@@ -1,4 +1,3 @@
-import { Emitter } from "@codesandbox/pitcher-client";
 import {
   BaseMessageToPreview,
   BaseMessageFromPreview,
@@ -7,6 +6,7 @@ import {
   Message,
 } from "./types";
 import { injectAndInvokeInsidePreview } from "./preview-script";
+import { Emitter } from "../../utils/event";
 
 type PreviewStatus = "DISCONNECTED" | "CONNECTED";
 

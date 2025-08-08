@@ -1,21 +1,6 @@
-import type { Client } from "@hey-api/client-fetch";
-
-import {
-  sandboxFork,
-  sandboxList,
-  vmHibernate,
-  vmListRunningVms,
-  vmShutdown,
-  vmStart,
-} from "./api-clients/client";
 import { Sandbox } from "./Sandbox";
-import {
-  getDefaultTemplateTag,
-  getStartOptions,
-  getStartResponse,
-  handleResponse,
-  retryWithDelay,
-} from "./utils/api";
+import { API } from "./API";
+import { getDefaultTemplateTag, getStartOptions } from "./utils/api";
 
 import {
   CreateSandboxOpts,
@@ -26,45 +11,16 @@ import {
   SandboxPrivacy,
   StartSandboxOpts,
 } from "./types";
-import { PitcherManagerResponse } from "@codesandbox/pitcher-client";
-
-export async function startVm(
-  apiClient: Client,
-  sandboxId: string,
-  startOpts?: StartSandboxOpts
-): Promise<PitcherManagerResponse> {
-  const startResult = await vmStart({
-    client: apiClient,
-    body: startOpts
-      ? {
-          ipcountry: startOpts.ipcountry,
-          tier: startOpts.vmTier?.name,
-          hibernation_timeout_seconds: startOpts.hibernationTimeoutSeconds,
-          automatic_wakeup_config: startOpts.automaticWakeupConfig,
-        }
-      : undefined,
-    path: {
-      id: sandboxId,
-    },
-  });
-
-  const response = handleResponse(
-    startResult,
-    `Failed to start sandbox ${sandboxId}`
-  );
-
-  return getStartResponse(response);
-}
 
 /**
  * This class provides methods for creating and managing sandboxes.
  */
 export class Sandboxes {
   get defaultTemplateId() {
-    return getDefaultTemplateTag(this.apiClient);
+    return getDefaultTemplateTag(this.api.getClient());
   }
 
-  constructor(private apiClient: Client) {}
+  constructor(private api: API) {}
 
   private async createTemplateSandbox(
     opts?: CreateSandboxOpts & StartSandboxOpts
@@ -80,29 +36,20 @@ export class Sandboxes {
 
     // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
     const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
-    const result = await sandboxFork({
-      client: this.apiClient,
-      body: {
-        privacy: privacyToNumber(privacy),
-        title: opts?.title,
-        description: opts?.description,
-        tags: tagsWithSdk,
-        path,
-      },
-      path: {
-        id: templateId,
-      },
+    const sandbox = await this.api.forkSandbox(templateId, {
+      privacy: privacyToNumber(privacy),
+      title: opts?.title,
+      description: opts?.description,
+      tags: tagsWithSdk,
+      path,
     });
 
-    const sandbox = handleResponse(result, "Failed to create sandbox");
-
-    const startResponse = await retryWithDelay(
-      () => startVm(this.apiClient, sandbox.id, getStartOptions(opts)),
-      3,
-      200
+    const startResponse = await this.api.startVm(
+      sandbox.id,
+      getStartOptions(opts)
     );
 
-    return new Sandbox(sandbox.id, this.apiClient, startResponse);
+    return new Sandbox(sandbox.id, this.api, startResponse);
   }
 
   /**
@@ -115,31 +62,15 @@ export class Sandboxes {
    * Note! On CLEAN bootups the setup will run again. When hibernated a new snapshot will be created.
    */
   async resume(sandboxId: string) {
-    const startResponse = await retryWithDelay(
-      () => startVm(this.apiClient, sandboxId),
-      3,
-      200
-    );
-    return new Sandbox(sandboxId, this.apiClient, startResponse);
+    const startResponse = await this.api.startVm(sandboxId);
+    return new Sandbox(sandboxId, this.api, startResponse);
   }
 
   /**
    * Shuts down a sandbox. Files will be saved, and the sandbox will be stopped.
    */
   async shutdown(sandboxId: string): Promise<void> {
-    const response = await retryWithDelay(
-      () =>
-        vmShutdown({
-          client: this.apiClient,
-          path: {
-            id: sandboxId,
-          },
-        }),
-      3,
-      200
-    );
-
-    handleResponse(response, `Failed to shutdown sandbox ${sandboxId}`);
+    await this.api.shutdown(sandboxId);
   }
 
   /**
@@ -167,13 +98,9 @@ export class Sandboxes {
     }
 
     try {
-      const startResponse = await retryWithDelay(
-        () => startVm(this.apiClient, sandboxId, opts),
-        3,
-        200
-      );
+      const startResponse = await this.api.startVm(sandboxId, opts);
 
-      return new Sandbox(sandboxId, this.apiClient, startResponse);
+      return new Sandbox(sandboxId, this.api, startResponse);
     } catch (e) {
       throw new Error("Failed to start VM, " + String(e));
     }
@@ -183,19 +110,7 @@ export class Sandboxes {
    * you resume the sandbox it will continue from the last state it was in.
    */
   async hibernate(sandboxId: string): Promise<void> {
-    const response = await retryWithDelay(
-      () =>
-        vmHibernate({
-          client: this.apiClient,
-          path: {
-            id: sandboxId,
-          },
-        }),
-      3,
-      200
-    );
-
-    handleResponse(response, `Failed to hibernate sandbox ${sandboxId}`);
+    await this.api.hibernate(sandboxId);
   }
 
   /**
@@ -248,19 +163,14 @@ export class Sandboxes {
     let nextPage: number | null = null;
 
     while (true) {
-      const response = await sandboxList({
-        client: this.apiClient,
-        query: {
-          tags: opts.tags?.join(","),
-          page: currentPage,
-          page_size: pageSize,
-          order_by: opts.orderBy,
-          direction: opts.direction,
-          status: opts.status,
-        },
+      const info = await this.api.listSandboxes({
+        tags: opts.tags?.join(","),
+        page: currentPage,
+        page_size: pageSize,
+        order_by: opts.orderBy,
+        direction: opts.direction,
+        status: opts.status,
       });
-
-      const info = handleResponse(response, "Failed to list sandboxes");
       totalCount = info.pagination.total_records;
       nextPage = info.pagination.next_page;
 
@@ -307,11 +217,7 @@ export class Sandboxes {
    * guaranteed to be perfectly up-to-date.
    */
   async listRunning() {
-    const response = await vmListRunningVms({
-      client: this.apiClient,
-    });
-
-    const data = handleResponse(response, "Failed to list running VMs");
+    const data = await this.api.listRunningVms();
     
     return {
       concurrentVmCount: data.concurrent_vm_count,
