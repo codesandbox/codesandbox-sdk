@@ -1,17 +1,7 @@
 const { join } = require("path");
 const esbuild = require("esbuild");
 const { externalModules, define } = require("./build/utils.cjs");
-const {
-  moduleReplacementPlugin,
-  forbidImportsPlugin,
-} = require("./build/plugins.cjs");
-
-// Until pitcher-client is part of SDK we need to forbid these imports in
-// Node builds
-const preventPitcherClientImportsPlugin = forbidImportsPlugin([
-  "@codesandbox/pitcher-protocol",
-  "@codesandbox/pitcher-common",
-]);
+const { moduleReplacementPlugin } = require("./build/plugins.cjs");
 
 const devtoolsStubPlugin = {
   name: "stub-react-devtools",
@@ -86,7 +76,6 @@ const nodeClientCjsBuild = esbuild.build({
   outfile: "dist/cjs/node.cjs",
   platform: "node",
   external: externalModules,
-  plugins: [preventPitcherClientImportsPlugin],
 });
 
 const nodeClientEsmBuild = esbuild.build({
@@ -96,7 +85,6 @@ const nodeClientEsmBuild = esbuild.build({
   outfile: "dist/esm/node.js",
   platform: "node",
   external: externalModules,
-  plugins: [preventPitcherClientImportsPlugin],
 });
 
 /**
@@ -121,7 +109,6 @@ const sdkEsmBuild = esbuild.build({
   platform: "node",
   outfile: "dist/esm/index.js",
   external: externalModules,
-  plugins: [preventPitcherClientImportsPlugin],
 });
 
 /**
@@ -147,7 +134,7 @@ const cliBuild = esbuild.build({
     ),
     "@codesandbox/sdk",
   ],
-  plugins: [preventPitcherClientImportsPlugin, devtoolsStubPlugin],
+  plugins: [devtoolsStubPlugin],
 });
 
 Promise.all([

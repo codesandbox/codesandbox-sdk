@@ -1,6 +1,6 @@
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
-import { IAgentClient } from "../node/agent-client-interface";
+import { IAgentClient } from "../AgentClient/agent-client-interface";
 
 export type Port = {
   host: string;

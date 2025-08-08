@@ -1,4 +1,3 @@
-import { Id, ot } from "@codesandbox/pitcher-common";
 import { PitcherErrorCode } from "../errors";
 
 import { ProtocolError, TMessage, TNotification } from "../protocol";
@@ -36,7 +35,7 @@ export interface IFileClients {
 }
 
 export interface IFileObject {
-  id: Id;
+  id: string;
   isBinary: boolean;
   content: Uint8Array | string;
   document: IDocumentObject | null;
@@ -60,7 +59,7 @@ export type InvalidPathError = {
 export type OpenFile = TMessage<
   "file/open",
   {
-    id: Id;
+    id: string;
     isResync?: boolean;
   },
   {
@@ -85,31 +84,13 @@ export type OpenFileByPath = TMessage<
 >;
 
 /**
- * Client acknowledges receiving a revision, so Pitcher
- * can keep track of what revisions each client is on
- */
-export type AckDocument = TMessage<
-  "file/documentAck",
-  {
-    id: Id;
-    revision: number;
-  },
-  {
-    result: {
-      revision: number;
-    };
-    error: InvalidIdError | CommonError;
-  }
->;
-
-/**
  * Closes a file, which is disposed
  * when last user closes it
  */
 export type CloseFile = TMessage<
   "file/close",
   {
-    id: Id;
+    id: string;
   },
   {
     result: null;
@@ -124,7 +105,7 @@ export type CloseFile = TMessage<
 export type SaveFile = TMessage<
   "file/save",
   {
-    id: Id;
+    id: string;
     /**
      * Whether the document should be written to disk
      */
@@ -136,57 +117,7 @@ export type SaveFile = TMessage<
   }
 >;
 
-/**
- * OT operation to make change to document
- */
-export type DocumentOperation = TMessage<
-  "file/documentOperation",
-  {
-    id: Id;
-    operation: ot.JSONTextOperation;
-    revision: number;
-  },
-  {
-    result: {
-      id: Id;
-      revision: number;
-    };
-    error: InvalidIdError | CommonError;
-  }
->;
-
-/**
- * Client acknowledges receiving a revision, so Pitcher
- * can keep track of what revisions each client is on
- */
-export type DocumentSelection = TMessage<
-  "file/documentSelection",
-  {
-    id: Id;
-    selection: ISelection;
-    /**
-     * Passing the selection reason allows for clients to separate selections, where
-     * for example Monaco/VSCode will filter out selections by CONTENT_CHANGE as they
-     * automatically transform selections with text operations
-     *
-     * NOTE! Will become a required property in later BREAKING version
-     */
-    reason?: SelectionsUpdateReason;
-  },
-  {
-    result: null;
-    error: InvalidIdError | CommonError;
-  }
->;
-
-type FileMessage =
-  | OpenFile
-  | OpenFileByPath
-  | CloseFile
-  | AckDocument
-  | SaveFile
-  | DocumentOperation
-  | DocumentSelection;
+type FileMessage = OpenFile | OpenFileByPath | CloseFile | SaveFile;
 
 export type FileRequest = FileMessage["request"];
 
@@ -195,7 +126,7 @@ export type FileResponse = FileMessage["response"];
 export type JoinFileNotification = TNotification<
   "file/join",
   {
-    id: Id;
+    id: string;
     isBinary: boolean;
     clientId: string;
     username: string;
@@ -205,7 +136,7 @@ export type JoinFileNotification = TNotification<
 export type LeaveFileNotification = TNotification<
   "file/leave",
   {
-    id: Id;
+    id: string;
     isBinary: boolean;
     clientId: string;
     username: string;
@@ -215,35 +146,14 @@ export type LeaveFileNotification = TNotification<
 export type SaveFileNotification = TNotification<
   "file/save",
   {
-    id: Id;
+    id: string;
     isBinary: boolean;
     content: string | Uint8Array;
     savedHash: string;
   }
 >;
 
-export type DocumentOperationNotification = TNotification<
-  "file/documentOperation",
-  {
-    id: Id;
-    operation: ot.JSONTextOperation;
-    revision: number;
-    reason: ot.OperationReason;
-  }
->;
-
-export type DocumentSelectionNotification = TNotification<
-  "file/documentSelection",
-  {
-    id: Id;
-    selections: IDocumentSelections;
-    reason?: SelectionsUpdateReason;
-  }
->;
-
 export type FileNotification =
   | JoinFileNotification
   | LeaveFileNotification
-  | SaveFileNotification
-  | DocumentOperationNotification
-  | DocumentSelectionNotification;
+  | SaveFileNotification;

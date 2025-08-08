@@ -1,10 +1,9 @@
 import { ProtocolError, TMessage, TNotification } from "../protocol";
-import { Id } from "@codesandbox/pitcher-common";
 
 export interface Step {
   name: string;
   command: string;
-  shellId: Id | null;
+  shellId: string | null;
   finishStatus: SetupShellStatus | null;
 }
 
