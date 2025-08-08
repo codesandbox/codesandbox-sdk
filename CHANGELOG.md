@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.1.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.7...v2.1.0) (2025-08-08)
+
+
+### Features
+
+* add fetching single sandbox ([#142](https://github.com/codesandbox/codesandbox-sdk/issues/142)) ([2f58d43](https://github.com/codesandbox/codesandbox-sdk/commit/2f58d43ee44c98eeb7d0e917c8b423a80d202585))
+* add listRunning method to sandboxes namespace ([#145](https://github.com/codesandbox/codesandbox-sdk/issues/145)) ([6050dbd](https://github.com/codesandbox/codesandbox-sdk/commit/6050dbd289058c782e634a7ce9e25d9cf5921276))
+* add open telemetry for sandboxes methods ([#147](https://github.com/codesandbox/codesandbox-sdk/issues/147)) ([b331315](https://github.com/codesandbox/codesandbox-sdk/commit/b3313153b357dfda0d666a6a56ea79f6aa3dbbdf))
+* add tracing to Sandbox and SandboxClient, also allow passing to browser and node connectors ([#150](https://github.com/codesandbox/codesandbox-sdk/issues/150)) ([6ef2bf5](https://github.com/codesandbox/codesandbox-sdk/commit/6ef2bf51120068e35ff43607e3353a69d8fbf070))
+
+
+### Bug Fixes
+
+* Decouple pitcher-client ([#148](https://github.com/codesandbox/codesandbox-sdk/issues/148)) ([3a6f9ea](https://github.com/codesandbox/codesandbox-sdk/commit/3a6f9ea213d978dc5a896bfc4d275deae6608abe))
+
 ## [2.0.7](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.6...v2.0.7) (2025-08-06)
 
 
