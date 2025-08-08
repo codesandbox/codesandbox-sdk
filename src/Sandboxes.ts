@@ -1,6 +1,7 @@
 import { Sandbox } from "./Sandbox";
 import { API } from "./API";
 import { getDefaultTemplateTag, getStartOptions } from "./utils/api";
+import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 
 import {
   CreateSandboxOpts,
@@ -16,11 +17,48 @@ import {
  * This class provides methods for creating and managing sandboxes.
  */
 export class Sandboxes {
+  private tracer?: Tracer;
+
   get defaultTemplateId() {
     return getDefaultTemplateTag(this.api.getClient());
   }
 
-  constructor(private api: API) {}
+  constructor(private api: API, tracer?: Tracer) {
+    this.tracer = tracer;
+  }
+
+  private async withSpan<T>(
+    operationName: string,
+    attributes: Record<string, string | number | boolean> = {},
+    operation: () => Promise<T>
+  ): Promise<T> {
+    if (!this.tracer) {
+      return operation();
+    }
+
+    return this.tracer.startActiveSpan(
+      operationName,
+      { attributes },
+      async (span) => {
+        try {
+          const result = await operation();
+          span.setStatus({ code: SpanStatusCode.OK });
+          return result;
+        } catch (error) {
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error instanceof Error ? error.message : String(error),
+          });
+          span.recordException(
+            error instanceof Error ? error : new Error(String(error))
+          );
+          throw error;
+        } finally {
+          span.end();
+        }
+      }
+    );
+  }
 
   private async createTemplateSandbox(
     opts?: CreateSandboxOpts & StartSandboxOpts
@@ -62,15 +100,27 @@ export class Sandboxes {
    * Note! On CLEAN bootups the setup will run again. When hibernated a new snapshot will be created.
    */
   async resume(sandboxId: string) {
-    const startResponse = await this.api.startVm(sandboxId);
-    return new Sandbox(sandboxId, this.api, startResponse);
+    return this.withSpan(
+      "sandboxes.resume",
+      { "sandbox.id": sandboxId },
+      async () => {
+        const startResponse = await this.api.startVm(sandboxId);
+        return new Sandbox(sandboxId, this.api, startResponse);
+      }
+    );
   }
 
   /**
    * Shuts down a sandbox. Files will be saved, and the sandbox will be stopped.
    */
   async shutdown(sandboxId: string): Promise<void> {
-    await this.api.shutdown(sandboxId);
+    return this.withSpan(
+      "sandboxes.shutdown",
+      { "sandbox.id": sandboxId },
+      async () => {
+        await this.api.shutdown(sandboxId);
+      }
+    );
   }
 
   /**
@@ -78,10 +128,16 @@ export class Sandboxes {
    * @deprecated This will be removed shortly to avoid having multiple ways of doing the same thing
    */
   public async fork(sandboxId: string, opts?: StartSandboxOpts) {
-    return this.create({
-      id: sandboxId,
-      ...opts,
-    });
+    return this.withSpan(
+      "sandboxes.fork",
+      { "sandbox.id": sandboxId },
+      async () => {
+        return this.create({
+          id: sandboxId,
+          ...opts,
+        });
+      }
+    );
   }
 
   /**
@@ -91,33 +147,54 @@ export class Sandboxes {
    * Will resolve once the sandbox is restarted with its setup running.
    */
   public async restart(sandboxId: string, opts?: StartSandboxOpts) {
-    try {
-      await this.shutdown(sandboxId);
-    } catch (e) {
-      throw new Error("Failed to shutdown VM, " + String(e));
-    }
+    return this.withSpan(
+      "sandboxes.restart",
+      { "sandbox.id": sandboxId },
+      async () => {
+        try {
+          await this.shutdown(sandboxId);
+        } catch (e) {
+          throw new Error("Failed to shutdown VM, " + String(e));
+        }
 
-    try {
-      const startResponse = await this.api.startVm(sandboxId, opts);
+        try {
+          const startResponse = await this.api.startVm(sandboxId, opts);
 
-      return new Sandbox(sandboxId, this.api, startResponse);
-    } catch (e) {
-      throw new Error("Failed to start VM, " + String(e));
-    }
+          return new Sandbox(sandboxId, this.api, startResponse);
+        } catch (e) {
+          throw new Error("Failed to start VM, " + String(e));
+        }
+      }
+    );
   }
   /**
    * Hibernates a sandbox. Files will be saved, and the sandbox will be put to sleep. Next time
    * you resume the sandbox it will continue from the last state it was in.
    */
   async hibernate(sandboxId: string): Promise<void> {
-    await this.api.hibernate(sandboxId);
+    return this.withSpan(
+      "sandboxes.hibernate",
+      { "sandbox.id": sandboxId },
+      async () => {
+        await this.api.hibernate(sandboxId);
+      }
+    );
   }
 
   /**
    * Create a sandbox from a template. By default we will create a sandbox from the default universal template.
    */
   async create(opts?: CreateSandboxOpts & StartSandboxOpts): Promise<Sandbox> {
-    return this.createTemplateSandbox(opts);
+    return this.withSpan(
+      "sandboxes.create",
+      {
+        "template.id": opts?.id || this.defaultTemplateId,
+        "sandbox.privacy": opts?.privacy || "unlisted",
+      },
+      async () => {
+        return this.createTemplateSandbox(opts);
+      }
+    );
   }
 
   /**
@@ -155,59 +232,70 @@ export class Sandboxes {
       pagination?: PaginationOpts;
     } = {}
   ): Promise<SandboxListResponse> {
-    const limit = opts.limit ?? 50;
-    let allSandboxes: SandboxInfo[] = [];
-    let currentPage = opts.pagination?.page ?? 1;
-    let pageSize = opts.pagination?.pageSize ?? limit;
-    let totalCount = 0;
-    let nextPage: number | null = null;
-
-    while (true) {
-      const info = await this.api.listSandboxes({
-        tags: opts.tags?.join(","),
-        page: currentPage,
-        page_size: pageSize,
-        order_by: opts.orderBy,
-        direction: opts.direction,
-        status: opts.status,
-      });
-      totalCount = info.pagination.total_records;
-      nextPage = info.pagination.next_page;
-
-      const sandboxes = info.sandboxes.map((sandbox) => ({
-        id: sandbox.id,
-        createdAt: new Date(sandbox.created_at),
-        updatedAt: new Date(sandbox.updated_at),
-        title: sandbox.title ?? undefined,
-        description: sandbox.description ?? undefined,
-        privacy: privacyFromNumber(sandbox.privacy),
-        tags: sandbox.tags,
-      }));
-
-      const newSandboxes = sandboxes.filter(
-        (sandbox) =>
-          !allSandboxes.some((existing) => existing.id === sandbox.id)
-      );
-      allSandboxes = [...allSandboxes, ...newSandboxes];
-
-      // Stop if we've hit the limit or there are no more pages
-      if (!nextPage || allSandboxes.length >= limit) {
-        break;
-      }
-
-      currentPage = nextPage;
-    }
-
-    return {
-      sandboxes: allSandboxes,
-      hasMore: totalCount > allSandboxes.length,
-      totalCount,
-      pagination: {
-        currentPage,
-        nextPage: allSandboxes.length >= limit ? nextPage : null,
-        pageSize,
+    return this.withSpan(
+      "sandboxes.list",
+      {
+        "list.limit": opts.limit ?? 50,
+        "list.tags": opts.tags?.join(",") || "",
+        "list.orderBy": opts.orderBy || "inserted_at",
+        "list.direction": opts.direction || "desc",
       },
-    };
+      async () => {
+        const limit = opts.limit ?? 50;
+        let allSandboxes: SandboxInfo[] = [];
+        let currentPage = opts.pagination?.page ?? 1;
+        let pageSize = opts.pagination?.pageSize ?? limit;
+        let totalCount = 0;
+        let nextPage: number | null = null;
+
+        while (true) {
+          const info = await this.api.listSandboxes({
+            tags: opts.tags?.join(","),
+            page: currentPage,
+            page_size: pageSize,
+            order_by: opts.orderBy,
+            direction: opts.direction,
+            status: opts.status,
+          });
+          totalCount = info.pagination.total_records;
+          nextPage = info.pagination.next_page;
+
+          const sandboxes = info.sandboxes.map((sandbox) => ({
+            id: sandbox.id,
+            createdAt: new Date(sandbox.created_at),
+            updatedAt: new Date(sandbox.updated_at),
+            title: sandbox.title ?? undefined,
+            description: sandbox.description ?? undefined,
+            privacy: privacyFromNumber(sandbox.privacy),
+            tags: sandbox.tags,
+          }));
+
+          const newSandboxes = sandboxes.filter(
+            (sandbox) =>
+              !allSandboxes.some((existing) => existing.id === sandbox.id)
+          );
+          allSandboxes = [...allSandboxes, ...newSandboxes];
+
+          // Stop if we've hit the limit or there are no more pages
+          if (!nextPage || allSandboxes.length >= limit) {
+            break;
+          }
+
+          currentPage = nextPage;
+        }
+
+        return {
+          sandboxes: allSandboxes,
+          hasMore: totalCount > allSandboxes.length,
+          totalCount,
+          pagination: {
+            currentPage,
+            nextPage: allSandboxes.length >= limit ? nextPage : null,
+            pageSize,
+          },
+        };
+      }
+    );
   }
 
   /**

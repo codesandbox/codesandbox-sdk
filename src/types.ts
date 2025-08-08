@@ -1,6 +1,7 @@
 import { VMTier } from "./VMTier";
 import { HostToken } from "./HostTokens";
 import { Config } from "@hey-api/client-fetch";
+import { Tracer } from "@opentelemetry/api";
 
 export interface PitcherManagerResponse {
   bootupType: "RUNNING" | "CLEAN" | "RESUME" | "FORK";
@@ -80,6 +81,11 @@ export interface ClientOpts {
    * Additional headers to send with each request
    */
   headers?: Record<string, string>;
+
+  /**
+   * Optional OpenTelemetry tracer for instrumenting SDK operations
+   */
+  tracer?: Tracer;
 }
 
 export const DEFAULT_SUBSCRIPTIONS = {

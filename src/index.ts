@@ -28,7 +28,7 @@ export class CodeSandbox {
     const apiKey = apiToken || getInferredApiKey();
     const api = new API({ apiKey, config: opts });
 
-    this.sandboxes = new Sandboxes(api);
+    this.sandboxes = new Sandboxes(api, opts.tracer);
     this.hosts = new HostTokens(api);
   }
 }
