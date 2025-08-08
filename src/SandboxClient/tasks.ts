@@ -3,6 +3,7 @@ import { Disposable, IDisposable } from "../utils/disposable";
 import { DEFAULT_SHELL_SIZE } from "./terminals";
 import { IAgentClient } from "../AgentClient/agent-client-interface";
 import { Emitter } from "../utils/event";
+import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 
 export type TaskDefinition = {
   name: string;
@@ -13,45 +14,95 @@ export type TaskDefinition = {
 export class Tasks {
   private disposable = new Disposable();
   private cachedTasks?: Task[];
+  private tracer?: Tracer;
+
   constructor(
     sessionDisposable: Disposable,
-    private agentClient: IAgentClient
+    private agentClient: IAgentClient,
+    tracer?: Tracer
   ) {
+    this.tracer = tracer;
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
     });
+  }
+
+  private async withSpan<T>(
+    operationName: string,
+    attributes: Record<string, string | number | boolean> = {},
+    operation: () => Promise<T>
+  ): Promise<T> {
+    if (!this.tracer) {
+      return operation();
+    }
+
+    return this.tracer.startActiveSpan(
+      operationName,
+      { attributes },
+      async (span) => {
+        try {
+          const result = await operation();
+          span.setStatus({ code: SpanStatusCode.OK });
+          return result;
+        } catch (error) {
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error instanceof Error ? error.message : String(error),
+          });
+          span.recordException(
+            error instanceof Error ? error : new Error(String(error))
+          );
+          throw error;
+        } finally {
+          span.end();
+        }
+      }
+    );
   }
 
   /**
    * Gets all tasks that are available in the current sandbox.
    */
   async getAll(): Promise<Task[]> {
-    if (!this.cachedTasks) {
-      const [tasks, ports] = await Promise.all([
-        this.agentClient.tasks.getTasks(),
-        this.agentClient.ports.getPorts(),
-      ]);
+    return this.withSpan(
+      "tasks.getAll",
+      { cached: !!this.cachedTasks },
+      async () => {
+        if (!this.cachedTasks) {
+          const [tasks, ports] = await Promise.all([
+            this.agentClient.tasks.getTasks(),
+            this.agentClient.ports.getPorts(),
+          ]);
 
-      this.cachedTasks = Object.values(tasks.tasks).map(
-        (task) => new Task(this.agentClient, task, ports)
-      );
-    }
+          this.cachedTasks = Object.values(tasks.tasks).map(
+            (task) => new Task(this.agentClient, task, ports, this.tracer)
+          );
+        }
 
-    return this.cachedTasks;
+        return this.cachedTasks;
+      }
+    );
   }
 
   /**
    * Gets a task by its ID.
    */
   async get(taskId: string): Promise<Task | undefined> {
-    const tasks = await this.getAll();
+    return this.withSpan(
+      "tasks.get",
+      { taskId },
+      async () => {
+        const tasks = await this.getAll();
 
-    return tasks.find((task) => task.id === taskId);
+        return tasks.find((task) => task.id === taskId);
+      }
+    );
   }
 }
 
 export class Task {
   private disposable = new Disposable();
+  private tracer?: Tracer;
   private get shell() {
     return this.data.shell;
   }
@@ -98,8 +149,10 @@ export class Task {
   constructor(
     private agentClient: IAgentClient,
     private data: protocol.task.TaskDTO,
-    private _ports: protocol.port.Port[]
+    private _ports: protocol.port.Port[],
+    tracer?: Tracer
   ) {
+    this.tracer = tracer;
     this.disposable.addDisposable(
       agentClient.ports.onPortsUpdated((ports) => {
         this._ports = ports;
@@ -158,65 +211,153 @@ export class Task {
       })
     );
   }
-  async open(dimensions = DEFAULT_SHELL_SIZE) {
-    if (!this.shell) {
-      throw new Error("Task is not running");
+
+  private async withSpan<T>(
+    operationName: string,
+    attributes: Record<string, string | number | boolean> = {},
+    operation: () => Promise<T>
+  ): Promise<T> {
+    if (!this.tracer) {
+      return operation();
     }
 
-    const openedShell = await this.agentClient.shells.open(
-      this.shell.shellId,
-      dimensions
+    return this.tracer.startActiveSpan(
+      operationName,
+      { attributes },
+      async (span) => {
+        try {
+          const result = await operation();
+          span.setStatus({ code: SpanStatusCode.OK });
+          return result;
+        } catch (error) {
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error instanceof Error ? error.message : String(error),
+          });
+          span.recordException(
+            error instanceof Error ? error : new Error(String(error))
+          );
+          throw error;
+        } finally {
+          span.end();
+        }
+      }
     );
+  }
 
-    this.openedShell = {
-      shellId: openedShell.shellId,
-      output: openedShell.buffer,
-      dimensions,
-    };
+  async open(dimensions = DEFAULT_SHELL_SIZE) {
+    return this.withSpan(
+      "task.open",
+      { 
+        taskId: this.id,
+        taskName: this.name,
+        cols: dimensions.cols,
+        rows: dimensions.rows,
+        hasShell: !!this.shell
+      },
+      async () => {
+        if (!this.shell) {
+          throw new Error("Task is not running");
+        }
 
-    return this.openedShell.output.join("\n");
+        const openedShell = await this.agentClient.shells.open(
+          this.shell.shellId,
+          dimensions
+        );
+
+        this.openedShell = {
+          shellId: openedShell.shellId,
+          output: openedShell.buffer,
+          dimensions,
+        };
+
+        return this.openedShell.output.join("\n");
+      }
+    );
   }
   async waitForPort(timeout: number = 30_000) {
-    if (this.ports.length) {
-      return this.ports[0];
-    }
+    return this.withSpan(
+      "task.waitForPort",
+      { 
+        taskId: this.id,
+        taskName: this.name,
+        timeout,
+        existingPortsCount: this.ports.length
+      },
+      async () => {
+        if (this.ports.length) {
+          return this.ports[0];
+        }
 
-    let disposer: IDisposable | undefined;
+        let disposer: IDisposable | undefined;
 
-    const [port] = await Promise.all([
-      new Promise<protocol.port.Port>((resolve) => {
-        disposer = this.agentClient.tasks.onTaskUpdate((task) => {
-          if (task.id !== this.id) {
-            return;
-          }
+        const [port] = await Promise.all([
+          new Promise<protocol.port.Port>((resolve) => {
+            disposer = this.agentClient.tasks.onTaskUpdate((task) => {
+              if (task.id !== this.id) {
+                return;
+              }
 
-          if (task.ports.length) {
-            disposer?.dispose();
-            resolve(task.ports[0]);
-          }
-        });
-        this.disposable.addDisposable(disposer);
-      }),
-      new Promise<protocol.port.Port>((resolve, reject) => {
-        setTimeout(() => {
-          disposer?.dispose();
-          reject(new Error("Timeout waiting for port"));
-        }, timeout);
-      }),
-    ]);
+              if (task.ports.length) {
+                disposer?.dispose();
+                resolve(task.ports[0]);
+              }
+            });
+            this.disposable.addDisposable(disposer);
+          }),
+          new Promise<protocol.port.Port>((resolve, reject) => {
+            setTimeout(() => {
+              disposer?.dispose();
+              reject(new Error("Timeout waiting for port"));
+            }, timeout);
+          }),
+        ]);
 
-    return port;
+        return port;
+      }
+    );
   }
   async run() {
-    await this.agentClient.tasks.runTask(this.id);
+    return this.withSpan(
+      "task.run",
+      { 
+        taskId: this.id,
+        taskName: this.name,
+        command: this.command,
+        runAtStart: this.runAtStart
+      },
+      async () => {
+        await this.agentClient.tasks.runTask(this.id);
+      }
+    );
   }
   async restart() {
-    await this.run();
+    return this.withSpan(
+      "task.restart",
+      { 
+        taskId: this.id,
+        taskName: this.name,
+        command: this.command
+      },
+      async () => {
+        await this.run();
+      }
+    );
   }
   async stop() {
-    if (this.shell) {
-      await this.agentClient.tasks.stopTask(this.id);
-    }
+    return this.withSpan(
+      "task.stop",
+      { 
+        taskId: this.id,
+        taskName: this.name,
+        hasShell: !!this.shell
+      },
+      async () => {
+        if (this.shell) {
+          await this.agentClient.tasks.stopTask(this.id);
+        }
+      }
+    );
   }
   dispose() {
     this.disposable.dispose();

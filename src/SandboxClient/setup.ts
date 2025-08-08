@@ -3,6 +3,7 @@ import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 import { DEFAULT_SHELL_SIZE } from "./terminals";
 import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 
 export class Setup {
   private disposable = new Disposable();
@@ -21,14 +22,41 @@ export class Setup {
   constructor(
     sessionDisposable: Disposable,
     private agentClient: IAgentClient,
-    private setupProgress: protocol.setup.SetupProgress
+    private setupProgress: protocol.setup.SetupProgress,
+    private tracer?: Tracer
   ) {
     sessionDisposable.onWillDispose(() => {
       this.disposable.dispose();
     });
     this.steps = this.setupProgress.steps.map(
-      (step, index) => new Step(index, step, agentClient)
+      (step, index) => new Step(index, step, agentClient, tracer)
     );
+  }
+
+  private withSpan<T>(
+    operationName: string,
+    attributes: Record<string, any>,
+    fn: () => Promise<T>
+  ): Promise<T> {
+    if (!this.tracer) {
+      return fn();
+    }
+    return this.tracer.startActiveSpan(operationName, { attributes }, async (span) => {
+      try {
+        const result = await fn();
+        span.setStatus({ code: SpanStatusCode.OK });
+        return result;
+      } catch (error) {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        span.recordException(error instanceof Error ? error : new Error(String(error)));
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
   }
 
   getSteps() {
@@ -36,29 +64,49 @@ export class Setup {
   }
 
   async run(): Promise<void> {
-    await this.agentClient.setup.init();
+    return this.withSpan(
+      "setup.run",
+      {
+        "setup.state": this.setupProgress.state,
+        "setup.currentStepIndex": this.setupProgress.currentStepIndex,
+        "setup.totalSteps": this.setupProgress.steps.length,
+      },
+      async () => {
+        await this.agentClient.setup.init();
+      }
+    );
   }
 
   async waitUntilComplete(): Promise<void> {
-    if (this.setupProgress.state === "STOPPED") {
-      throw new Error("Setup Failed");
-    }
-
-    if (this.setupProgress.state === "FINISHED") {
-      return;
-    }
-
-    return new Promise<void>((resolve, reject) => {
-      const disposer = this.onSetupProgressChange(() => {
-        if (this.setupProgress.state === "FINISHED") {
-          disposer.dispose();
-          resolve();
-        } else if (this.setupProgress.state === "STOPPED") {
-          disposer.dispose();
-          reject(new Error("Setup Failed"));
+    return this.withSpan(
+      "setup.waitUntilComplete",
+      {
+        "setup.state": this.setupProgress.state,
+        "setup.currentStepIndex": this.setupProgress.currentStepIndex,
+        "setup.totalSteps": this.setupProgress.steps.length,
+      },
+      async () => {
+        if (this.setupProgress.state === "STOPPED") {
+          throw new Error("Setup Failed");
         }
-      });
-    });
+
+        if (this.setupProgress.state === "FINISHED") {
+          return;
+        }
+
+        return new Promise<void>((resolve, reject) => {
+          const disposer = this.onSetupProgressChange(() => {
+            if (this.setupProgress.state === "FINISHED") {
+              disposer.dispose();
+              resolve();
+            } else if (this.setupProgress.state === "STOPPED") {
+              disposer.dispose();
+              reject(new Error("Setup Failed"));
+            }
+          });
+        });
+      }
+    );
   }
 }
 
@@ -89,9 +137,10 @@ export class Step {
   }
 
   constructor(
-    stepIndex: number,
+    private stepIndex: number,
     private step: protocol.setup.Step,
-    private agentClient: IAgentClient
+    private agentClient: IAgentClient,
+    private tracer?: Tracer
   ) {
     this.disposable.addDisposable(
       this.agentClient.setup.onSetupProgressUpdate((progress) => {
@@ -123,51 +172,103 @@ export class Step {
     );
   }
 
-  async open(dimensions = DEFAULT_SHELL_SIZE): Promise<string> {
-    const open = async (shellId: protocol.shell.ShellId) => {
-      const shell = await this.agentClient.shells.open(shellId, dimensions);
-
-      this.output = shell.buffer;
-
-      return this.output.join("\n");
-    };
-
-    if (this.step.shellId) {
-      return open(this.step.shellId);
+  private withSpan<T>(
+    operationName: string,
+    attributes: Record<string, any>,
+    fn: () => Promise<T>
+  ): Promise<T> {
+    if (!this.tracer) {
+      return fn();
     }
-
-    return new Promise<string>((resolve) => {
-      const disposable = this.onStatusChange(() => {
-        if (this.step.shellId) {
-          disposable.dispose();
-          resolve(open(this.step.shellId));
-        }
-      });
+    return this.tracer.startActiveSpan(operationName, { attributes }, async (span) => {
+      try {
+        const result = await fn();
+        span.setStatus({ code: SpanStatusCode.OK });
+        return result;
+      } catch (error) {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        span.recordException(error instanceof Error ? error : new Error(String(error)));
+        throw error;
+      } finally {
+        span.end();
+      }
     });
   }
 
-  async waitUntilComplete() {
-    if (this.step.finishStatus === "FAILED") {
-      throw new Error("Step Failed");
-    }
+  async open(dimensions = DEFAULT_SHELL_SIZE): Promise<string> {
+    return this.withSpan(
+      "setup.stepOpen",
+      {
+        "step.index": this.stepIndex,
+        "step.name": this.step.name,
+        "step.command": this.step.command,
+        "step.status": this.step.finishStatus || "IDLE",
+        "step.shellId": this.step.shellId,
+        "dimensions.cols": dimensions.cols,
+        "dimensions.rows": dimensions.rows,
+      },
+      async () => {
+        const open = async (shellId: protocol.shell.ShellId) => {
+          const shell = await this.agentClient.shells.open(shellId, dimensions);
 
-    if (
-      this.step.finishStatus === "SUCCEEDED" ||
-      this.step.finishStatus === "SKIPPED"
-    ) {
-      return;
-    }
+          this.output = shell.buffer;
 
-    return new Promise<void>((resolve, reject) => {
-      const disposable = this.onStatusChange((status) => {
-        if (status === "SUCCEEDED" || status === "SKIPPED") {
-          disposable.dispose();
-          resolve();
-        } else if (status === "FAILED") {
-          disposable.dispose();
-          reject(new Error("Step Failed"));
+          return this.output.join("\n");
+        };
+
+        if (this.step.shellId) {
+          return open(this.step.shellId);
         }
-      });
-    });
+
+        return new Promise<string>((resolve) => {
+          const disposable = this.onStatusChange(() => {
+            if (this.step.shellId) {
+              disposable.dispose();
+              resolve(open(this.step.shellId));
+            }
+          });
+        });
+      }
+    );
+  }
+
+  async waitUntilComplete() {
+    return this.withSpan(
+      "setup.stepWaitUntilComplete",
+      {
+        "step.index": this.stepIndex,
+        "step.name": this.step.name,
+        "step.command": this.step.command,
+        "step.status": this.step.finishStatus || "IDLE",
+        "step.shellId": this.step.shellId,
+      },
+      async () => {
+        if (this.step.finishStatus === "FAILED") {
+          throw new Error("Step Failed");
+        }
+
+        if (
+          this.step.finishStatus === "SUCCEEDED" ||
+          this.step.finishStatus === "SKIPPED"
+        ) {
+          return;
+        }
+
+        return new Promise<void>((resolve, reject) => {
+          const disposable = this.onStatusChange((status) => {
+            if (status === "SUCCEEDED" || status === "SKIPPED") {
+              disposable.dispose();
+              resolve();
+            } else if (status === "FAILED") {
+              disposable.dispose();
+              reject(new Error("Step Failed"));
+            }
+          });
+        });
+      }
+    );
   }
 }

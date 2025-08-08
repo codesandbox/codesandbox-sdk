@@ -119,7 +119,7 @@ export class SandboxClient {
   /**
    * Namespace for managing ports on this Sandbox
    */
-  public readonly ports = new Ports(this.disposable, this.agentClient);
+  public readonly ports = new Ports(this.disposable, this.agentClient, this.tracer);
 
   /**
    * Namespace for the setup that runs when the Sandbox starts from scratch.
@@ -129,7 +129,7 @@ export class SandboxClient {
   /**
    * Namespace for tasks that are defined in the Sandbox.
    */
-  public readonly tasks = new Tasks(this.disposable, this.agentClient);
+  public readonly tasks: Tasks;
 
   constructor(
     protected agentClient: IAgentClient,
@@ -147,14 +147,16 @@ export class SandboxClient {
     this.setup = new Setup(
       this.disposable,
       this.agentClient,
-      initialSetupProgress
+      initialSetupProgress,
+      tracer
     );
-    this.fs = new FileSystem(this.disposable, this.agentClient, username);
-    this.terminals = new Terminals(this.disposable, this.agentClient);
-    this.commands = new SandboxCommands(this.disposable, this.agentClient);
+    this.fs = new FileSystem(this.disposable, this.agentClient, username, tracer);
+    this.terminals = new Terminals(this.disposable, this.agentClient, tracer);
+    this.tasks = new Tasks(this.disposable, this.agentClient, tracer);
+    this.commands = new SandboxCommands(this.disposable, this.agentClient, tracer);
 
-    this.hosts = new Hosts(this.agentClient.sandboxId, hostToken);
-    this.interpreters = new Interpreters(this.disposable, this.commands);
+    this.hosts = new Hosts(this.agentClient.sandboxId, hostToken, tracer);
+    this.interpreters = new Interpreters(this.disposable, this.commands, tracer);
     this.disposable.onWillDispose(() => this.agentClient.dispose());
 
     this.disposable.onWillDispose(() => {
