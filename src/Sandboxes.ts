@@ -74,12 +74,16 @@ export class Sandboxes {
 
     // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
     const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
+    
+    const { mappedPrivacy, privatePreview } = mapPrivacyForApi(privacy);
+    
     const sandbox = await this.api.forkSandbox(templateId, {
-      privacy: privacyToNumber(privacy),
+      privacy: mappedPrivacy,
       title: opts?.title,
       description: opts?.description,
       tags: tagsWithSdk,
       path,
+      private_preview: privatePreview,
     });
 
     const startResponse = await this.api.startVm(
@@ -362,29 +366,35 @@ export class Sandboxes {
 
 }
 
-function parseTimestamp(timestamp: number): Date | undefined {
+function parseTimestamp(timestamp: number | string): Date | undefined {
   if (!timestamp || timestamp === 0) {
     return undefined;
   }
   
+  // Convert string to number if needed
+  const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+  
   // Handle both seconds and milliseconds timestamps
-  const ts = timestamp < 10000000000 ? timestamp * 1000 : timestamp;
+  const ts = numTimestamp < 10000000000 ? numTimestamp * 1000 : numTimestamp;
   const date = new Date(ts);
   
   // Return undefined if the date is invalid
   return isNaN(date.getTime()) ? undefined : date;
 }
 
-function privacyToNumber(privacy: SandboxPrivacy): number {
+function mapPrivacyForApi(privacy: SandboxPrivacy): { mappedPrivacy: number; privatePreview?: boolean } {
   switch (privacy) {
-    case "public":
-      return 0;
     case "unlisted":
-      return 1;
+      return { mappedPrivacy: 1 }; // Keep as unlisted
     case "private":
-      return 2;
+      return { mappedPrivacy: 2 }; // Keep as private
+    case "public":
+      return { mappedPrivacy: 1 }; // Map to unlisted
+    case "public-hosts":
+      return { mappedPrivacy: 2, privatePreview: false }; // Map to private with public preview
   }
 }
+
 
 function privacyFromNumber(privacy: number): SandboxPrivacy {
   switch (privacy) {
