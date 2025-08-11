@@ -33,7 +33,14 @@ export interface SystemMetricsStatus {
   };
 }
 
-export type SandboxPrivacy = "public" | "unlisted" | "private";
+/**
+ * Sandbox privacy settings
+ */
+export type SandboxPrivacy = 
+  | "public" 
+  | "unlisted" /** @deprecated Use "public" or "public-hosts" instead */
+  | "private" 
+  | "public-hosts";
 
 export type SandboxInfo = {
   id: string;

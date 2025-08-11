@@ -317,8 +317,14 @@
                       "properties": {
                         "credit_basis": { "type": "string" },
                         "id": { "type": "string" },
-                        "last_active_at": { "type": "integer" },
-                        "session_started_at": { "type": "integer" },
+                        "last_active_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "session_started_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
                         "specs": {
                           "properties": {
                             "cpu": { "type": "integer" },
@@ -405,6 +411,10 @@
             "default": 0,
             "description": "Sandbox privacy. 0 for public, 1 for unlisted, and 2 for private. Subject to the minimum privacy restrictions of the workspace. Defaults to the privacy of the original sandbox.",
             "type": "integer"
+          },
+          "private_preview": {
+            "description": "Determines whether the preview of a private sandbox is private or public. Has no effect on public or unlisted sandboxes; their previews are always publicly accessible",
+            "type": "boolean"
           },
           "start_options": {
             "description": "Optional VM start configuration. If provided, the sandbox VM will be started immediately after creation.",
@@ -1041,6 +1051,10 @@
             "maximum": 2,
             "minimum": 0,
             "type": "integer"
+          },
+          "private_preview": {
+            "description": "Determines whether the preview of a private sandbox is private or public. Has no effect on public or unlisted sandboxes; their previews are always publicly accessible",
+            "type": "boolean"
           },
           "runtime": {
             "default": "browser",
@@ -2590,6 +2604,6 @@
     }
   },
   "security": [],
-  "servers": [{ "url": "https://api.codesandbox.stream", "variables": {} }],
+  "servers": [{ "url": "https://api.codesandbox.io", "variables": {} }],
   "tags": []
 }

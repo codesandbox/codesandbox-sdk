@@ -141,8 +141,8 @@ export type VmListRunningVmsResponse = {
         vms: Array<{
             credit_basis?: string;
             id?: string;
-            last_active_at?: number;
-            session_started_at?: number;
+            last_active_at?: string;
+            session_started_at?: string;
             specs?: {
                 cpu?: number;
                 memory?: number;
@@ -178,6 +178,10 @@ export type SandboxForkRequest = {
      * Sandbox privacy. 0 for public, 1 for unlisted, and 2 for private. Subject to the minimum privacy restrictions of the workspace. Defaults to the privacy of the original sandbox.
      */
     privacy?: number;
+    /**
+     * Determines whether the preview of a private sandbox is private or public. Has no effect on public or unlisted sandboxes; their previews are always publicly accessible
+     */
+    private_preview?: boolean;
     /**
      * Optional VM start configuration. If provided, the sandbox VM will be started immediately after creation.
      */
@@ -519,6 +523,10 @@ export type SandboxCreateRequest = {
      * 0 for public, 1 for unlisted, and 2 for private. Privacy is subject to certain restrictions (team minimum setting, drafts must be private, etc.). Defaults to public.
      */
     privacy?: number;
+    /**
+     * Determines whether the preview of a private sandbox is private or public. Has no effect on public or unlisted sandboxes; their previews are always publicly accessible
+     */
+    private_preview?: boolean;
     /**
      * Runtime to use for the sandbox. Defaults to `"browser"`.
      */
