@@ -18,7 +18,6 @@ import {
   IAgentClientTasks,
   PickRawFsResult,
 } from "../agent-client-interface";
-import { AgentConnection } from "./AgentConnection";
 import { Emitter, Event } from "../utils/event";
 import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../types";
 import { SandboxClient } from "../SandboxClient";
@@ -388,7 +387,7 @@ class AgentClientSystem implements IAgentClientSystem {
   }
 }
 
-export class AgentClient implements IAgentClient {
+export class PintAgentClient implements IAgentClient {
   static async create({
     session,
     getSession,
@@ -397,24 +396,9 @@ export class AgentClient implements IAgentClient {
     getSession: (sandboxId: string) => Promise<SandboxSession>;
   }) {
     const url = `${session.pitcherURL}/?token=${session.pitcherToken}`;
-    const agentConnection = await AgentConnection.create(url);
-    const joinResult = await agentConnection.request({
-      method: "client/join",
-      params: {
-        clientInfo: {
-          protocolVersion: version,
-          appId: "sdk",
-        },
-        asyncProgress: true,
-        subscriptions: DEFAULT_SUBSCRIPTIONS,
-      },
-    });
-
-    // Now that we have initialized we set an appropriate timeout to more efficiently detect disconnects
-    agentConnection.connection.setPongDetectionTimeout(PONG_DETECTION_TIMEOUT);
 
     return {
-      client: new AgentClient(getSession, agentConnection, {
+      client: new PintAgentClient(getSession, agentConnection, {
         sandboxId: session.sandboxId,
         workspacePath: session.userWorkspacePath,
         reconnectToken: joinResult.reconnectToken,
