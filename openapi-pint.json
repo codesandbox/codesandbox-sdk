@@ -1,0 +1,2231 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Pint API",
+    "description": "Pint (formerly Sandbox Agent) is a Go CLI tool that exposes REST API endpoints for file operations, terminal management, and task execution, designed to enable building code editor applications similar to VSCode.\n\nThe application uses file-based authentication with admin and readonly tokens, supporting CodeSandbox-compatible task management with robust workspace isolation.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "CodeSandbox",
+      "url": "https://codesandbox.io"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:57468",
+      "description": "Default development server"
+    },
+    {
+      "url": "http://localhost:{port}",
+      "description": "Custom port server",
+      "variables": {
+        "port": {
+          "default": "57468",
+          "description": "Custom port number"
+        }
+      }
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "tokenAuth": []
+    },
+    {
+      "queryToken": []
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Returns the health status of the server",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/{path}": {
+      "parameters": [
+        {
+          "name": "path",
+          "in": "path",
+          "required": true,
+          "description": "Absolute file path",
+          "schema": {
+            "type": "string"
+          },
+          "example": "/workspace/src/main.go"
+        }
+      ],
+      "post": {
+        "summary": "Create a new file",
+        "description": "Creates a new file with optional content. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "File content (optional)",
+                    "example": "package main\n\nfunc main() {\n\tfmt.Println(\"Hello World\")\n}"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Read file contents",
+        "description": "Reads the contents of a file. Accessible by admin and readonly users (within workspace).",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File contents retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileReadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a file",
+        "description": "Deletes a file. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/move/{path}": {
+      "parameters": [
+        {
+          "name": "path",
+          "in": "path",
+          "required": true,
+          "description": "Source path (absolute path of file or directory to move)",
+          "schema": {
+            "type": "string"
+          },
+          "example": "/workspace/src/old_name.go"
+        }
+      ],
+      "post": {
+        "summary": "Move file or directory",
+        "description": "Moves a file or directory to a new location. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["to"],
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "description": "Destination path (absolute)",
+                    "example": "/workspace/src/new_name.go"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File or directory moved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileMoveResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid path or request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/directories/{path}": {
+      "parameters": [
+        {
+          "name": "path",
+          "in": "path",
+          "required": true,
+          "description": "Absolute directory path",
+          "schema": {
+            "type": "string"
+          },
+          "example": "/workspace/src"
+        }
+      ],
+      "post": {
+        "summary": "Create a new directory",
+        "description": "Creates a new directory. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Directory created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List directory contents",
+        "description": "Lists the contents of a directory. Accessible by admin and readonly users (within workspace).",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Directory contents retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Directory not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a directory",
+        "description": "Deletes a directory and all its contents. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Directory deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/terminals": {
+      "get": {
+        "summary": "List all terminals",
+        "description": "Lists all existing terminals with their status and details.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of terminals retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new terminal",
+        "description": "Creates a new terminal with the specified command and arguments. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["command"],
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "Command to execute in the terminal",
+                    "example": "bash"
+                  },
+                  "args": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Command arguments",
+                    "example": ["-c", "echo hello"]
+                  },
+                  "autorun": {
+                    "type": "boolean",
+                    "description": "Whether to start the terminal automatically (default true)",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Terminal created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/terminals/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Terminal ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "term_12345"
+        }
+      ],
+      "get": {
+        "summary": "Get terminal details",
+        "description": "Gets details about a specific terminal.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Terminal details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalGetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - terminal ID required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Terminal not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update terminal status",
+        "description": "Updates the status of a terminal. Currently only supports setting status to \"running\". Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["running"],
+                    "description": "New terminal status",
+                    "example": "running"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Terminal updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalUpdateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid status or terminal ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Terminal not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - terminal already running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a terminal",
+        "description": "Deletes a terminal and kills its process. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Terminal deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalDeleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - terminal ID required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Terminal not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/terminals/{id}/output": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Terminal ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "term_12345"
+        }
+      ],
+      "get": {
+        "summary": "Get terminal output",
+        "description": "Gets the complete buffered output of a terminal as plain text.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Terminal output retrieved successfully",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "$ echo hello\nhello\n$ ls\nfile1.txt  file2.txt\n"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - terminal ID required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Terminal not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "summary": "List all tasks",
+        "description": "Lists all configured tasks from .codesandbox/tasks.json with their current status.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tasks retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Task ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "build"
+        }
+      ],
+      "get": {
+        "summary": "Get task details",
+        "description": "Gets detailed information about a specific task.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskGetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - task ID required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/run": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Task ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "build"
+        }
+      ],
+      "post": {
+        "summary": "Run a task",
+        "description": "Starts executing a task. Creates a new terminal for the task execution. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task started successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - task ID required or invalid command",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - task already running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/stop": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Task ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "build"
+        }
+      ],
+      "post": {
+        "summary": "Stop a running task",
+        "description": "Stops a running task by killing its process. The terminal is preserved for debugging. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task stopped successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - task ID required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - task not running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/restart": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Task ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "build"
+        }
+      ],
+      "post": {
+        "summary": "Restart a task",
+        "description": "Restarts a task by stopping it (if running) and starting it again with a new terminal. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task restarted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskActionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - task ID required or invalid command",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/reload": {
+      "post": {
+        "summary": "Reload task configuration",
+        "description": "Reloads the task configuration from .codesandbox/tasks.json file. Requires admin permission.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task configuration reloaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin permission required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/setup-tasks": {
+      "get": {
+        "summary": "List setup tasks",
+        "description": "Lists all configured setup tasks that are automatically executed.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of setup tasks retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupTasksResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ports": {
+      "get": {
+        "summary": "List open ports",
+        "description": "Lists all open TCP ports on the system (excluding ignored ports like the server port).",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of open ports retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortsListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ws/terminals/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Terminal ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "term_12345"
+        },
+        {
+          "name": "token",
+          "in": "query",
+          "required": true,
+          "description": "Authentication token for WebSocket connection",
+          "schema": {
+            "type": "string"
+          },
+          "example": "your-admin-or-readonly-token"
+        }
+      ],
+      "get": {
+        "summary": "WebSocket terminal interaction",
+        "description": "Establishes a WebSocket connection for real-time terminal interaction.\n\n**Authentication**: Use query parameter `token` or `Authorization` header.\n\n**Permissions**:\n- Admin users: Can send input, resize terminal, receive output\n- Readonly users: Can only receive output\n\n**Message Format**:\n- Input messages: Send plain text to be executed in the terminal\n- Resize messages: Send JSON `{\"type\": \"resize\", \"rows\": 24, \"cols\": 80}`\n- Output messages: Receive terminal output as plain text\n\n**Features**:\n- Complete terminal history is sent on connection\n- Real-time bidirectional communication\n- Multiple clients can connect to the same terminal\n- Automatic reconnection support with buffered output",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "tokenAuth": []
+          },
+          {
+            "queryToken": []
+          }
+        ],
+        "responses": {
+          "101": {
+            "description": "WebSocket connection established"
+          },
+          "400": {
+            "description": "Bad request - terminal ID required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication token required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Terminal not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Use 'Bearer <token>' format with admin or readonly token"
+      },
+      "tokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Use token directly in Authorization header (without 'Bearer' prefix)"
+      },
+      "queryToken": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "token",
+        "description": "Use token as query parameter (mainly for WebSocket connections)"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message",
+            "example": "Authentication token required"
+          }
+        }
+      },
+      "FileCreateResponse": {
+        "type": "object",
+        "required": ["message", "path"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "File created successfully"
+          },
+          "path": {
+            "type": "string",
+            "example": "/workspace/src/main.go"
+          }
+        }
+      },
+      "FileReadResponse": {
+        "type": "object",
+        "required": ["path", "content"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "example": "/workspace/src/main.go"
+          },
+          "content": {
+            "type": "string",
+            "example": "package main\n\nfunc main() {\n\tfmt.Println(\"Hello World\")\n}"
+          }
+        }
+      },
+      "FileDeleteResponse": {
+        "type": "object",
+        "required": ["message", "path"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "File deleted successfully"
+          },
+          "path": {
+            "type": "string",
+            "example": "/workspace/src/main.go"
+          }
+        }
+      },
+      "FileMoveResponse": {
+        "type": "object",
+        "required": ["message", "from", "to"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "File moved successfully"
+          },
+          "from": {
+            "type": "string",
+            "example": "/workspace/src/old_name.go"
+          },
+          "to": {
+            "type": "string",
+            "example": "/workspace/src/new_name.go"
+          }
+        }
+      },
+      "DirectoryCreateResponse": {
+        "type": "object",
+        "required": ["message", "path"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Directory created successfully"
+          },
+          "path": {
+            "type": "string",
+            "example": "/workspace/src"
+          }
+        }
+      },
+      "DirectoryListResponse": {
+        "type": "object",
+        "required": ["path", "files"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "example": "/workspace/src"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileInfo"
+            }
+          }
+        }
+      },
+      "DirectoryDeleteResponse": {
+        "type": "object",
+        "required": ["message", "path"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Directory deleted successfully"
+          },
+          "path": {
+            "type": "string",
+            "example": "/workspace/src"
+          }
+        }
+      },
+      "FileInfo": {
+        "type": "object",
+        "required": ["name", "path", "isDir", "size", "modTime"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "File or directory name",
+            "example": "main.go"
+          },
+          "path": {
+            "type": "string",
+            "description": "Full absolute path",
+            "example": "/workspace/src/main.go"
+          },
+          "isDir": {
+            "type": "boolean",
+            "description": "Whether this is a directory",
+            "example": false
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "description": "File size in bytes (0 for directories)",
+            "example": 1024
+          },
+          "modTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last modification time in ISO 8601 format",
+            "example": "2024-01-15T10:30:45Z07:00"
+          }
+        }
+      },
+      "TerminalListResponse": {
+        "type": "object",
+        "required": ["terminals"],
+        "properties": {
+          "terminals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TerminalItem"
+            }
+          }
+        }
+      },
+      "TerminalGetResponse": {
+        "type": "object",
+        "required": ["terminal"],
+        "properties": {
+          "terminal": {
+            "$ref": "#/components/schemas/TerminalItem"
+          }
+        }
+      },
+      "TerminalCreateResponse": {
+        "type": "object",
+        "required": ["terminal"],
+        "properties": {
+          "terminal": {
+            "$ref": "#/components/schemas/TerminalItem"
+          }
+        }
+      },
+      "TerminalUpdateResponse": {
+        "type": "object",
+        "required": ["terminal"],
+        "properties": {
+          "terminal": {
+            "$ref": "#/components/schemas/TerminalItem"
+          }
+        }
+      },
+      "TerminalDeleteResponse": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Terminal deleted successfully"
+          }
+        }
+      },
+      "TerminalItem": {
+        "type": "object",
+        "required": ["id", "command", "args", "status", "pid"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique terminal identifier",
+            "example": "term_12345"
+          },
+          "command": {
+            "type": "string",
+            "description": "Command being executed",
+            "example": "bash"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Command arguments",
+            "example": ["-c", "echo hello"]
+          },
+          "status": {
+            "type": "string",
+            "description": "Current terminal status",
+            "enum": ["created", "running", "finished", "error"],
+            "example": "running"
+          },
+          "pid": {
+            "type": "integer",
+            "description": "Process ID (0 if not running)",
+            "example": 12345
+          }
+        }
+      },
+      "TaskListResponse": {
+        "type": "object",
+        "required": ["tasks"],
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskItem"
+            }
+          }
+        }
+      },
+      "TaskGetResponse": {
+        "type": "object",
+        "required": ["task"],
+        "properties": {
+          "task": {
+            "$ref": "#/components/schemas/TaskItem"
+          }
+        }
+      },
+      "TaskActionResponse": {
+        "type": "object",
+        "required": ["id", "name", "status", "message"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task ID",
+            "example": "build"
+          },
+          "name": {
+            "type": "string",
+            "description": "Task name",
+            "example": "Build Application"
+          },
+          "command": {
+            "type": "string",
+            "description": "Command being executed",
+            "example": "npm run build"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "terminalId": {
+            "type": "string",
+            "description": "Associated terminal ID",
+            "example": "term_12345"
+          },
+          "message": {
+            "type": "string",
+            "description": "Action result message",
+            "example": "Task started successfully"
+          }
+        }
+      },
+      "TaskItem": {
+        "type": "object",
+        "required": ["id", "status", "config"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique task identifier",
+            "example": "build"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "terminalId": {
+            "type": "string",
+            "description": "Associated terminal ID (if running)",
+            "example": "term_12345"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Task start time",
+            "example": "2024-01-15T10:30:45Z"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Task end time",
+            "example": "2024-01-15T10:31:45Z"
+          },
+          "config": {
+            "$ref": "#/components/schemas/TaskConfig"
+          }
+        }
+      },
+      "TaskStatus": {
+        "type": "string",
+        "enum": [
+          "RUNNING",
+          "FINISHED",
+          "ERROR",
+          "KILLED",
+          "RESTARTING",
+          "IDLE"
+        ],
+        "description": "Current task status",
+        "example": "IDLE"
+      },
+      "TaskConfig": {
+        "type": "object",
+        "required": ["name", "command"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Human-readable task name",
+            "example": "Build Application"
+          },
+          "command": {
+            "type": "string",
+            "description": "Command to execute",
+            "example": "npm run build"
+          },
+          "runAtStart": {
+            "type": "boolean",
+            "description": "Whether task should run automatically on startup",
+            "example": false
+          },
+          "restartOn": {
+            "$ref": "#/components/schemas/RestartOn"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/Preview"
+          }
+        }
+      },
+      "RestartOn": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "File patterns that trigger restart",
+            "example": ["src/**/*.go", "*.json"]
+          },
+          "clone": {
+            "type": "boolean",
+            "description": "Restart on repository clone",
+            "example": false
+          },
+          "resume": {
+            "type": "boolean",
+            "description": "Restart on session resume",
+            "example": true
+          },
+          "branch": {
+            "type": "boolean",
+            "description": "Restart on branch change",
+            "example": false
+          }
+        }
+      },
+      "Preview": {
+        "type": "object",
+        "properties": {
+          "port": {
+            "type": "integer",
+            "description": "Port number for preview",
+            "example": 3000
+          }
+        }
+      },
+      "SetupTasksResponse": {
+        "type": "object",
+        "required": ["setupTasks"],
+        "properties": {
+          "setupTasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetupTaskItem"
+            }
+          }
+        }
+      },
+      "SetupTaskItem": {
+        "type": "object",
+        "required": ["name", "command", "status", "terminalId"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Setup task name",
+            "example": "Install Dependencies"
+          },
+          "command": {
+            "type": "string",
+            "description": "Command to execute",
+            "example": "npm install"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          "terminalId": {
+            "type": "string",
+            "description": "Associated terminal ID",
+            "example": "term_setup_123"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Task start time",
+            "example": "2024-01-15T10:30:45Z07:00"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Task end time",
+            "example": "2024-01-15T10:31:45Z07:00"
+          }
+        }
+      },
+      "PortsListResponse": {
+        "type": "object",
+        "required": ["ports"],
+        "properties": {
+          "ports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortInfo"
+            }
+          }
+        }
+      },
+      "PortInfo": {
+        "type": "object",
+        "required": ["port", "address"],
+        "properties": {
+          "port": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "Port number",
+            "example": 3000
+          },
+          "address": {
+            "type": "string",
+            "description": "Bind address",
+            "example": "0.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "Files",
+      "description": "File system operations"
+    },
+    {
+      "name": "Directories",
+      "description": "Directory operations"
+    },
+    {
+      "name": "Terminals",
+      "description": "Terminal management and interaction"
+    },
+    {
+      "name": "Tasks",
+      "description": "Task execution and management"
+    },
+    {
+      "name": "Ports",
+      "description": "Port monitoring"
+    },
+    {
+      "name": "WebSocket",
+      "description": "Real-time terminal communication"
+    }
+  ]
+}
