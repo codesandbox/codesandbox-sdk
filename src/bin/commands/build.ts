@@ -18,6 +18,11 @@ import { hashDirectory as getFilePaths } from "../utils/files";
 import { mkdir, writeFile } from "fs/promises";
 import { sleep } from "../../utils/sleep";
 
+function logWithTimestamp(message: string) {
+  const timestamp = new Date().toISOString();
+  console.log(`\t[${timestamp}] ${message}`);
+}
+
 export type BuildCommandArgs = {
   directory: string;
   name?: string;
@@ -120,12 +125,15 @@ export const buildCommand: yargs.CommandModule<
     const filePaths = await getFilePaths(argv.directory);
 
     try {
+      logWithTimestamp(`[BUILD] Creating template with title: ${argv.name || 'undefined'}`);
+      logWithTimestamp(`[BUILD] Fork from: ${argv.fromSandbox || getDefaultTemplateId(api.getClient())}`);
       const templateData = await api.createTemplate({
         forkOf: argv.fromSandbox || getDefaultTemplateId(api.getClient()),
         title: argv.name,
         // We filter out sdk-templates on the dashboard
         tags: ["sdk-template"],
       });
+      logWithTimestamp(`[BUILD] Template created successfully with tag: ${templateData.tag}`);
 
       const spinner = ora({ stream: process.stdout });
       let spinnerMessages: string[] = templateData.sandboxes.map(() => "");
@@ -216,16 +224,22 @@ export const buildCommand: yargs.CommandModule<
 
       const tasks = templateData.sandboxes.map(async ({ id }, index) => {
         try {
+          logWithTimestamp(`[BUILD] Processing sandbox ${id} (index: ${index})`);
           spinner.start(updateSpinnerMessage(index, "Starting sandbox..."));
 
+          logWithTimestamp(`[BUILD] Starting VM ${id} with retry delay 200ms`);
           const startResponse = await withCustomError(
             api.startVm(id, { retryDelay: 200 }),
             "Failed to start sandbox at all"
           );
+          logWithTimestamp(`[BUILD] VM ${id} started successfully`);
           let sandboxVM = new Sandbox(id, api, startResponse);
 
+          logWithTimestamp(`[BUILD] Connecting to sandbox ${id}`);
           let session = await sandboxVM.connect();
+          logWithTimestamp(`[BUILD] Connected to sandbox ${id}`);
 
+          logWithTimestamp(`[BUILD] Writing ${filePaths.length} files to sandbox ${id}`);
           spinner.start(
             updateSpinnerMessage(index, "Writing files to sandbox...")
           );
@@ -248,9 +262,12 @@ export const buildCommand: yargs.CommandModule<
               )
             )
           ).catch((error) => {
+            logWithTimestamp(`[BUILD] Failed to write files to sandbox ${id}: ${error}`);
             throw new Error(`Failed to write files to sandbox: ${error}`);
           });
+          logWithTimestamp(`[BUILD] Files written successfully to sandbox ${id}`);
 
+          logWithTimestamp(`[BUILD] Restarting sandbox ${id} for building with tier ${buildTier.name}`);
           spinner.start(updateSpinnerMessage(index, "Building sandbox..."));
 
           sandboxVM = await withCustomError(
@@ -259,14 +276,20 @@ export const buildCommand: yargs.CommandModule<
             }),
             "Failed to restart sandbox after building"
           );
+          logWithTimestamp(`[BUILD] Sandbox ${id} restarted for building`);
 
+          logWithTimestamp(`[BUILD] Reconnecting to sandbox ${id} after restart`);
           session = await withCustomError(
             sandboxVM.connect(),
             "Failed to connect to sandbox after building"
           );
+          logWithTimestamp(`[BUILD] Reconnected to sandbox ${id}`);
 
+          logWithTimestamp(`[BUILD] Waiting for setup completion on sandbox ${id}`);
           await waitForSetup(session, index);
+          logWithTimestamp(`[BUILD] Setup completed for sandbox ${id}`);
 
+          logWithTimestamp(`[BUILD] Optimizing initial state for sandbox ${id} with tier ${sandboxTier.name}`);
           spinner.start(
             updateSpinnerMessage(index, "Optimizing initial state...")
           );
@@ -276,13 +299,18 @@ export const buildCommand: yargs.CommandModule<
             }),
             "Failed to restart sandbox after optimizing initial state"
           );
+          logWithTimestamp(`[BUILD] Sandbox ${id} restarted for optimization`);
 
+          logWithTimestamp(`[BUILD] Reconnecting to sandbox ${id} after optimization restart`);
           session = await withCustomError(
             sandboxVM.connect(),
             "Failed to connect to sandbox after optimizing initial state"
           );
+          logWithTimestamp(`[BUILD] Reconnected to sandbox ${id} after optimization`);
 
+          logWithTimestamp(`[BUILD] Waiting for setup completion after optimization on sandbox ${id}`);
           await waitForSetup(session, index);
+          logWithTimestamp(`[BUILD] Optimization setup completed for sandbox ${id}`);
 
           const ports = argv.ports || [];
           const updatePortSpinner = () => {
@@ -298,28 +326,36 @@ export const buildCommand: yargs.CommandModule<
           };
 
           if (ports.length > 0) {
+            logWithTimestamp(`[BUILD] Waiting for ports ${ports.join(', ')} to open on sandbox ${id}`);
             updatePortSpinner();
 
             await Promise.all(
               ports.map(async (port) => {
+                logWithTimestamp(`[BUILD] Waiting for port ${port} on sandbox ${id}`);
                 const portInfo = await session.ports.waitForPort(port, {
                   timeoutMs: 60000,
                 });
+                logWithTimestamp(`[BUILD] Port ${port} opened on sandbox ${id} with host: ${portInfo.host}`);
 
+                logWithTimestamp(`[BUILD] Testing port ${port} health on sandbox ${id}`);
                 // eslint-disable-next-line no-constant-condition
                 while (true) {
                   const res = await fetch("https://" + portInfo.host);
+                  logWithTimestamp(`[BUILD] Port ${port} health check: ${res.status} ${res.statusText} on sandbox ${id}`);
                   if (res.status !== 502 && res.status !== 503) {
                     break;
                   }
 
                   await sleep(1000);
                 }
+                logWithTimestamp(`[BUILD] Port ${port} is healthy on sandbox ${id}`);
 
                 updatePortSpinner();
               })
             );
+            logWithTimestamp(`[BUILD] All ports are ready on sandbox ${id}`);
           } else {
+            logWithTimestamp(`[BUILD] No ports specified, waiting 5 seconds for tasks to run on sandbox ${id}`);
             spinner.start(
               updateSpinnerMessage(
                 index,
@@ -327,13 +363,16 @@ export const buildCommand: yargs.CommandModule<
               )
             );
             await new Promise((resolve) => setTimeout(resolve, 5000));
+            logWithTimestamp(`[BUILD] Wait period completed for sandbox ${id}`);
           }
 
+          logWithTimestamp(`[BUILD] Creating snapshot for sandbox ${id}`);
           spinner.start(updateSpinnerMessage(index, "Creating snapshot..."));
           await withCustomError(
             sdk.sandboxes.hibernate(id),
             "Failed to hibernate after building and optimizing sandbox"
           );
+          logWithTimestamp(`[BUILD] Snapshot created successfully for sandbox ${id}`);
           spinner.start(updateSpinnerMessage(index, "Snapshot created"));
 
           return id;
