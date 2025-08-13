@@ -48,7 +48,7 @@ import type {
   VmCreateSessionData,
   VmShutdownData,
   VmUpdateSpecsData,
-  VmStartData,
+  VmStartRequest,
   VmUpdateSpecs2Data,
   PreviewHostListData,
   PreviewHostCreateData,
@@ -109,6 +109,10 @@ export interface APIOptions {
   apiKey: string;
   config?: Config;
   instrumentation?: (request: Request) => Promise<Response>;
+}
+
+export interface StartVmOptions extends VmStartRequest {
+  retryDelay?: number;
 }
 
 export class API {
@@ -353,7 +357,8 @@ export class API {
     return handleResponse(response, `Failed to update specs for VM ${id}`);
   }
 
-  async startVm(id: string, data?: VmStartData["body"], retryDelay: number = 200) {
+  async startVm(id: string, options?: StartVmOptions) {
+    const { retryDelay = 200, ...data } = options || {};
     const response = await retryWithDelay(
       () =>
         vmStart({
