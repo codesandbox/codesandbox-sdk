@@ -176,8 +176,8 @@ export const buildCommand: yargs.CommandModule<
               if (isContainerStep && cleanOutput.trim()) {
                 const currentLogLine = cleanOutput.trim();
                 const logPreview =
-                  currentLogLine.length > 200
-                    ? currentLogLine.slice(0, 200) + "..."
+                  currentLogLine.length > 100
+                    ? currentLogLine.slice(0, 100) + "..."
                     : currentLogLine;
 
                 spinner.start(
