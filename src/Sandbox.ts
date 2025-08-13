@@ -127,7 +127,7 @@ export class Sandbox {
   ) {
     const client = await SandboxClient.create(
       session, 
-      async () => this.getSession(await this.api.startVm(this.id), customSession),
+      async () => this.getSession(await this.api.startVm(this.id, undefined, 200), customSession),
       undefined,
       this.tracer
     );
@@ -241,7 +241,7 @@ export class Sandbox {
               client ||
               SandboxClient.create(
                 session, 
-                async () => this.getSession(await this.api.startVm(this.id), customSession),
+                async () => this.getSession(await this.api.startVm(this.id, undefined, 200), customSession),
                 undefined,
                 this.tracer
               )

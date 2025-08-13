@@ -353,7 +353,7 @@ export class API {
     return handleResponse(response, `Failed to update specs for VM ${id}`);
   }
 
-  async startVm(id: string, data?: VmStartData["body"]) {
+  async startVm(id: string, data?: VmStartData["body"], retryDelay: number = 200) {
     const response = await retryWithDelay(
       () =>
         vmStart({
@@ -362,7 +362,7 @@ export class API {
           body: data,
         }),
       3,
-      200
+      retryDelay
     );
     const handledResponse = handleResponse(
       response,
