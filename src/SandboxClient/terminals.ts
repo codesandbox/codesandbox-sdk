@@ -2,7 +2,7 @@ import * as protocol from "../pitcher-protocol";
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 import { isCommandShell, ShellRunOpts } from "./commands";
-import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { IAgentClient } from "../agent-client-interface";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 
 export type ShellSize = { cols: number; rows: number };
@@ -104,40 +104,32 @@ export class Terminals {
   }
 
   async get(shellId: string) {
-    return this.withSpan(
-      "terminals.get",
-      { shellId },
-      async () => {
-        const shells = await this.agentClient.shells.getShells();
+    return this.withSpan("terminals.get", { shellId }, async () => {
+      const shells = await this.agentClient.shells.getShells();
 
-        const shell = shells.find((shell) => shell.shellId === shellId);
+      const shell = shells.find((shell) => shell.shellId === shellId);
 
-        if (!shell) {
-          return;
-        }
-
-        return new Terminal(shell, this.agentClient, this.tracer);
+      if (!shell) {
+        return;
       }
-    );
+
+      return new Terminal(shell, this.agentClient, this.tracer);
+    });
   }
 
   /**
    * Gets all terminals running in the current sandbox
    */
   async getAll() {
-    return this.withSpan(
-      "terminals.getAll",
-      {},
-      async () => {
-        const shells = await this.agentClient.shells.getShells();
+    return this.withSpan("terminals.getAll", {}, async () => {
+      const shells = await this.agentClient.shells.getShells();
 
-        return shells
-          .filter(
-            (shell) => shell.shellType === "TERMINAL" && !isCommandShell(shell)
-          )
-          .map((shell) => new Terminal(shell, this.agentClient, this.tracer));
-      }
-    );
+      return shells
+        .filter(
+          (shell) => shell.shellType === "TERMINAL" && !isCommandShell(shell)
+        )
+        .map((shell) => new Terminal(shell, this.agentClient, this.tracer));
+    });
   }
 }
 
@@ -253,7 +245,11 @@ export class Terminal {
         rows: dimensions.rows,
       },
       async () => {
-        await this.agentClient.shells.send(this.shell.shellId, input, dimensions);
+        await this.agentClient.shells.send(
+          this.shell.shellId,
+          input,
+          dimensions
+        );
       }
     );
   }

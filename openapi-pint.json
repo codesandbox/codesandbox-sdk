@@ -1,0 +1,1255 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Pint API",
+    "description": "Pint (formerly Sandbox Agent) is a Go CLI tool that exposes REST API endpoints for file operations, terminal management, and task execution, designed to enable building code editor applications similar to VSCode.\n\nThe application uses file-based authentication with admin and readonly tokens, supporting CodeSandbox-compatible task management with robust workspace isolation.\n\nSupports Server-Sent Events (SSE) for real-time updates by passing `Accept: text/event-stream` header.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "CodeSandbox",
+      "url": "https://codesandbox.io"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:57468",
+      "description": "Default development server"
+    },
+    {
+      "url": "http://localhost:{port}",
+      "description": "Custom port server",
+      "variables": {
+        "port": {
+          "default": "57468",
+          "description": "Custom port number"
+        }
+      }
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "tokenAuth": []
+    },
+    {
+      "queryToken": []
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Returns the health status of the server",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fs/events": {
+      "get": {
+        "summary": "Watch filesystem events",
+        "description": "Watch filesystem changes matching a glob pattern. Use SSE for real-time events.",
+        "parameters": [
+          {
+            "name": "glob",
+            "in": "header",
+            "required": true,
+            "description": "Glob pattern for files to watch",
+            "schema": {
+              "type": "string"
+            },
+            "example": "**/*.js"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File system events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events containing filesystem changes",
+                  "example": "data: {\"type\":\"create\",\"path\":\"/workspace/file.js\",\"timestamp\":\"2024-01-15T10:30:45Z\"}\n\n"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Filesystem watcher started"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fs/stats/{path}": {
+      "parameters": [
+        {
+          "name": "path",
+          "in": "path",
+          "required": true,
+          "description": "File or directory path",
+          "schema": {
+            "type": "string"
+          },
+          "example": "/workspace/src/main.go"
+        }
+      ],
+      "get": {
+        "summary": "Get file or directory stats",
+        "description": "Get filesystem statistics for a file or directory",
+        "responses": {
+          "200": {
+            "description": "File stats retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileStats"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/fs/files/{path}": {
+      "parameters": [
+        {
+          "name": "path",
+          "in": "path",
+          "required": true,
+          "description": "File path",
+          "schema": {
+            "type": "string"
+          },
+          "example": "/workspace/src/main.go"
+        }
+      ],
+      "get": {
+        "summary": "Read file contents",
+        "description": "Read file contents. Use SSE for chunked reading of large files.",
+        "responses": {
+          "200": {
+            "description": "File contents",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "package main\n\nfunc main() {\n\tfmt.Println(\"Hello World\")\n}"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "File content streamed in chunks",
+                  "example": "data: {\"chunk\":\"package main\\n\",\"offset\":0,\"total\":1024}\n\n"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "summary": "Write to file",
+        "description": "Write content to file or perform file operations",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["operation"],
+                "properties": {
+                  "operation": {
+                    "type": "string",
+                    "enum": ["write", "moveFrom", "copyFrom"],
+                    "description": "File operation to perform"
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "File content (for write operation)",
+                    "example": "package main\n\nfunc main() {\n\tfmt.Println(\"Hello World\")\n}"
+                  },
+                  "source": {
+                    "type": "string",
+                    "description": "Source path (for moveFrom/copyFrom operations)",
+                    "example": "/workspace/src/old_file.go"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File operation completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileOperationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete file",
+        "description": "Delete a file",
+        "responses": {
+          "200": {
+            "description": "File deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileDeleteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/directories/{path}": {
+      "parameters": [
+        {
+          "name": "path",
+          "in": "path",
+          "required": true,
+          "description": "Directory path",
+          "schema": {
+            "type": "string"
+          },
+          "example": "/workspace/src"
+        }
+      ],
+      "post": {
+        "summary": "Create directory",
+        "description": "Create a new directory",
+        "responses": {
+          "201": {
+            "description": "Directory created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      },
+      "get": {
+        "summary": "List directory contents",
+        "description": "List files and subdirectories in a directory",
+        "responses": {
+          "200": {
+            "description": "Directory contents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete directory",
+        "description": "Delete a directory and all its contents",
+        "responses": {
+          "200": {
+            "description": "Directory deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryDeleteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/terminals": {
+      "get": {
+        "summary": "List terminals",
+        "description": "Get list of all terminals. Use SSE for real-time updates.",
+        "responses": {
+          "200": {
+            "description": "Terminal list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalListResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Real-time terminal list updates",
+                  "example": "data: {\"terminals\":[{\"id\":\"term_123\",\"status\":\"running\",\"pid\":1234}]}\n\n"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new terminal",
+        "description": "Create a new terminal instance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["command"],
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "Command to execute",
+                    "example": "bash"
+                  },
+                  "args": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Command arguments",
+                    "example": ["-l"]
+                  },
+                  "workingDir": {
+                    "type": "string",
+                    "description": "Working directory",
+                    "example": "/workspace"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Terminal created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/terminals/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Terminal ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "term_123"
+        }
+      ],
+      "get": {
+        "summary": "Get terminal state",
+        "description": "Get terminal information and state. Use SSE for real-time updates.",
+        "responses": {
+          "200": {
+            "description": "Terminal state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Real-time terminal state updates",
+                  "example": "data: {\"id\":\"term_123\",\"status\":\"running\",\"pid\":1234}\n\n"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete terminal",
+        "description": "Delete a terminal and kill its process",
+        "responses": {
+          "200": {
+            "description": "Terminal deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalDeleteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/terminals/{id}/stdout": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Terminal ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "term_123"
+        }
+      ],
+      "get": {
+        "summary": "Get terminal stdout",
+        "description": "Get terminal stdout output. Use SSE for real-time updates.",
+        "responses": {
+          "200": {
+            "description": "Terminal stdout",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "$ echo hello\nhello\n"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Real-time stdout updates",
+                  "example": "data: {\"output\":\"hello\\n\",\"timestamp\":\"2024-01-15T10:30:45Z\"}\n\n"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/terminals/{id}/stderr": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Terminal ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "term_123"
+        }
+      ],
+      "get": {
+        "summary": "Get terminal stderr",
+        "description": "Get terminal stderr output. Use SSE for real-time updates.",
+        "responses": {
+          "200": {
+            "description": "Terminal stderr",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Error: command not found\n"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Real-time stderr updates",
+                  "example": "data: {\"output\":\"Error: command not found\\n\",\"timestamp\":\"2024-01-15T10:30:45Z\"}\n\n"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/terminals/{id}/stdin": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Terminal ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "term_123"
+        }
+      ],
+      "post": {
+        "summary": "Send input to terminal",
+        "description": "Send input to terminal stdin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["input"],
+                "properties": {
+                  "input": {
+                    "type": "string",
+                    "description": "Input to send to terminal",
+                    "example": "echo hello\n"
+                  }
+                }
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "string",
+                "example": "echo hello\n"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Input sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Input sent to terminal"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "summary": "List tasks",
+        "description": "Get list of all tasks. Use SSE for real-time updates.",
+        "responses": {
+          "200": {
+            "description": "Task list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Real-time task list updates",
+                  "example": "data: {\"tasks\":[{\"id\":\"build\",\"status\":\"running\",\"name\":\"Build App\"}]}\n\n"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Task ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "build"
+        }
+      ],
+      "get": {
+        "summary": "Get task state",
+        "description": "Get task information and state. Use SSE for real-time updates.",
+        "responses": {
+          "200": {
+            "description": "Task state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Real-time task state updates",
+                  "example": "data: {\"id\":\"build\",\"status\":\"running\",\"progress\":75}\n\n"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/run": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Task ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "build"
+        }
+      ],
+      "post": {
+        "summary": "Run task",
+        "description": "Start executing a task",
+        "responses": {
+          "200": {
+            "description": "Task started successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "Task already running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/stop": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Task ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "build"
+        }
+      ],
+      "post": {
+        "summary": "Stop task",
+        "description": "Stop a running task",
+        "responses": {
+          "200": {
+            "description": "Task stopped successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "Task not running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/restart": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Task ID",
+          "schema": {
+            "type": "string"
+          },
+          "example": "build"
+        }
+      ],
+      "post": {
+        "summary": "Restart task",
+        "description": "Restart a task (stop if running, then start)",
+        "responses": {
+          "200": {
+            "description": "Task restarted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskActionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/state": {
+      "get": {
+        "summary": "Get sandbox state",
+        "description": "Get the current state of the sandbox including version and setup status",
+        "responses": {
+          "200": {
+            "description": "Sandbox state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ports": {
+      "get": {
+        "summary": "List open ports",
+        "description": "Get list of open ports. Use SSE for real-time updates.",
+        "responses": {
+          "200": {
+            "description": "Port list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortListResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Real-time port updates",
+                  "example": "data: {\"ports\":[{\"port\":3000,\"status\":\"open\",\"process\":\"node\"}]}\n\n"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Use 'Bearer <token>' format with admin or readonly token"
+      },
+      "tokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Use token directly in Authorization header (without 'Bearer' prefix)"
+      },
+      "queryToken": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "token",
+        "description": "Use token as query parameter (mainly for WebSocket connections)"
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request - invalid parameters or request body",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized - authentication required",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message",
+            "example": "Resource not found"
+          }
+        }
+      },
+      "FileStats": {
+        "type": "object",
+        "required": ["name", "path", "isDir", "size", "modTime"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "File or directory name",
+            "example": "main.go"
+          },
+          "path": {
+            "type": "string",
+            "description": "Full path",
+            "example": "/workspace/src/main.go"
+          },
+          "isDir": {
+            "type": "boolean",
+            "description": "Whether this is a directory",
+            "example": false
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "description": "File size in bytes",
+            "example": 1024
+          },
+          "modTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last modification time",
+            "example": "2024-01-15T10:30:45Z"
+          },
+          "permissions": {
+            "type": "string",
+            "description": "File permissions",
+            "example": "rw-r--r--"
+          }
+        }
+      },
+      "FileOperationResponse": {
+        "type": "object",
+        "required": ["message", "path", "operation"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "File operation completed successfully"
+          },
+          "path": {
+            "type": "string",
+            "example": "/workspace/src/main.go"
+          },
+          "operation": {
+            "type": "string",
+            "enum": ["write", "moveFrom", "copyFrom"],
+            "example": "write"
+          },
+          "bytesWritten": {
+            "type": "integer",
+            "description": "Number of bytes written (for write operation)",
+            "example": 1024
+          }
+        }
+      },
+      "FileDeleteResponse": {
+        "type": "object",
+        "required": ["message", "path"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "File deleted successfully"
+          },
+          "path": {
+            "type": "string",
+            "example": "/workspace/src/main.go"
+          }
+        }
+      },
+      "DirectoryCreateResponse": {
+        "type": "object",
+        "required": ["message", "path"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Directory created successfully"
+          },
+          "path": {
+            "type": "string",
+            "example": "/workspace/src"
+          }
+        }
+      },
+      "DirectoryListResponse": {
+        "type": "object",
+        "required": ["path", "entries"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "example": "/workspace/src"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileStats"
+            }
+          }
+        }
+      },
+      "DirectoryDeleteResponse": {
+        "type": "object",
+        "required": ["message", "path"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Directory deleted successfully"
+          },
+          "path": {
+            "type": "string",
+            "example": "/workspace/src"
+          }
+        }
+      },
+      "TerminalListResponse": {
+        "type": "object",
+        "required": ["terminals"],
+        "properties": {
+          "terminals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Terminal"
+            }
+          }
+        }
+      },
+      "TerminalCreateResponse": {
+        "type": "object",
+        "required": ["terminal"],
+        "properties": {
+          "terminal": {
+            "$ref": "#/components/schemas/Terminal"
+          }
+        }
+      },
+      "TerminalResponse": {
+        "type": "object",
+        "required": ["terminal"],
+        "properties": {
+          "terminal": {
+            "$ref": "#/components/schemas/Terminal"
+          }
+        }
+      },
+      "TerminalDeleteResponse": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Terminal deleted successfully"
+          }
+        }
+      },
+      "Terminal": {
+        "type": "object",
+        "required": ["id", "command", "status", "pid"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Terminal ID",
+            "example": "term_123"
+          },
+          "command": {
+            "type": "string",
+            "description": "Command being executed",
+            "example": "bash"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Command arguments",
+            "example": ["-l"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["created", "running", "finished", "error"],
+            "description": "Terminal status",
+            "example": "running"
+          },
+          "pid": {
+            "type": "integer",
+            "description": "Process ID",
+            "example": 1234
+          },
+          "workingDir": {
+            "type": "string",
+            "description": "Working directory",
+            "example": "/workspace"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp",
+            "example": "2024-01-15T10:30:45Z"
+          }
+        }
+      },
+      "TaskListResponse": {
+        "type": "object",
+        "required": ["tasks"],
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            }
+          }
+        }
+      },
+      "TaskResponse": {
+        "type": "object",
+        "required": ["task"],
+        "properties": {
+          "task": {
+            "$ref": "#/components/schemas/Task"
+          }
+        }
+      },
+      "TaskActionResponse": {
+        "type": "object",
+        "required": ["message", "task"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Task started successfully"
+          },
+          "task": {
+            "$ref": "#/components/schemas/Task"
+          }
+        }
+      },
+      "Task": {
+        "type": "object",
+        "required": ["id", "name", "command", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task ID",
+            "example": "build"
+          },
+          "name": {
+            "type": "string",
+            "description": "Task name",
+            "example": "Build Application"
+          },
+          "command": {
+            "type": "string",
+            "description": "Command to execute",
+            "example": "npm run build"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["idle", "running", "finished", "error", "killed"],
+            "description": "Task status",
+            "example": "idle"
+          },
+          "terminalId": {
+            "type": "string",
+            "description": "Associated terminal ID",
+            "example": "term_123"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start time",
+            "example": "2024-01-15T10:30:45Z"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End time",
+            "example": "2024-01-15T10:35:45Z"
+          },
+          "exitCode": {
+            "type": "integer",
+            "description": "Exit code (if finished)",
+            "example": 0
+          }
+        }
+      },
+      "SandboxState": {
+        "type": "object",
+        "required": ["version", "setupCompleted"],
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "Pint version",
+            "example": "1.0.0"
+          },
+          "setupCompleted": {
+            "type": "boolean",
+            "description": "Whether initial setup is completed",
+            "example": true
+          },
+          "workspace": {
+            "type": "string",
+            "description": "Workspace path",
+            "example": "/workspace"
+          },
+          "uptime": {
+            "type": "integer",
+            "description": "Server uptime in seconds",
+            "example": 3600
+          }
+        }
+      },
+      "PortListResponse": {
+        "type": "object",
+        "required": ["ports"],
+        "properties": {
+          "ports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Port"
+            }
+          }
+        }
+      },
+      "Port": {
+        "type": "object",
+        "required": ["port", "status"],
+        "properties": {
+          "port": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Port number",
+            "example": 3000
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "closed", "listening"],
+            "description": "Port status",
+            "example": "open"
+          },
+          "process": {
+            "type": "string",
+            "description": "Process name using the port",
+            "example": "node"
+          },
+          "pid": {
+            "type": "integer",
+            "description": "Process ID",
+            "example": 1234
+          },
+          "address": {
+            "type": "string",
+            "description": "Bind address",
+            "example": "0.0.0.0"
+          }
+        }
+      }
+    }
+  }
+}

@@ -17,7 +17,7 @@ import {
   IAgentClientSystem,
   IAgentClientTasks,
   PickRawFsResult,
-} from "./agent-client-interface";
+} from "../agent-client-interface";
 import { AgentConnection } from "./AgentConnection";
 import { Emitter, Event } from "../utils/event";
 import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../types";
