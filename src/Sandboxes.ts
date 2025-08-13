@@ -88,7 +88,7 @@ export class Sandboxes {
 
     const startResponse = await this.api.startVm(
       sandbox.id,
-      getStartOptions(opts)
+      { ...getStartOptions(opts), retryDelay: 200 } // Keep 200ms delay for creation
     );
 
     return new Sandbox(sandbox.id, this.api, startResponse, this.tracer);
@@ -108,7 +108,7 @@ export class Sandboxes {
       "sandboxes.resume",
       { "sandbox.id": sandboxId },
       async () => {
-        const startResponse = await this.api.startVm(sandboxId);
+        const startResponse = await this.api.startVm(sandboxId, { retryDelay: 500 }); // Use 500ms delay for resume
         return new Sandbox(sandboxId, this.api, startResponse, this.tracer);
       }
     );
@@ -162,7 +162,7 @@ export class Sandboxes {
         }
 
         try {
-          const startResponse = await this.api.startVm(sandboxId, opts);
+          const startResponse = await this.api.startVm(sandboxId, { ...opts, retryDelay: 1000 }); // Use 1000ms delay for restart
 
           return new Sandbox(sandboxId, this.api, startResponse, this.tracer);
         } catch (e) {
