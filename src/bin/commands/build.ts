@@ -145,18 +145,50 @@ export const buildCommand: yargs.CommandModule<
           const buffer: string[] = [];
 
           try {
-            spinner.start(
-              updateSpinnerMessage(
-                index,
-                `Running setup ${steps.indexOf(step) + 1} / ${steps.length} - ${
-                  step.name
-                }...`
-              )
-            );
+            // Check if this is a container setup step and handle it specially
+            const isContainerStep =
+              step.name.toLowerCase().includes("starting container");
+
+            if (isContainerStep) {
+              spinner.start(
+                updateSpinnerMessage(
+                  index,
+                  `Building and starting container...`
+                )
+              );
+            } else {
+              spinner.start(
+                updateSpinnerMessage(
+                  index,
+                  `Running setup ${steps.indexOf(step) + 1} / ${
+                    steps.length
+                  } - ${step.name}...`
+                )
+              );
+            }
 
             step.onOutput((output) => {
-              buffer.push(stripAnsiCodes(output));
+              const cleanOutput = stripAnsiCodes(output);
+
+              buffer.push(cleanOutput);
+
+              // For container steps, update spinner with current log line
+              if (isContainerStep && cleanOutput.trim()) {
+                const currentLogLine = cleanOutput.trim();
+                const logPreview =
+                  currentLogLine.length > 200
+                    ? currentLogLine.slice(0, 200) + "..."
+                    : currentLogLine;
+
+                spinner.start(
+                  updateSpinnerMessage(
+                    index,
+                    `Building and starting container (${logPreview})...`
+                  )
+                );
+              }
             });
+            
             const output = await step.open();
 
             buffer.push(...output.split("\n").map(stripAnsiCodes));
