@@ -187,7 +187,7 @@ export const buildCommand: yargs.CommandModule<
           spinner.start(updateSpinnerMessage(index, "Starting sandbox..."));
 
           const startResponse = await withCustomError(
-            api.startVm(id),
+            api.startVm(id, undefined, 200),
             "Failed to start sandbox at all"
           );
           let sandboxVM = new Sandbox(id, api, startResponse);
