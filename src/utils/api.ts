@@ -101,16 +101,32 @@ export async function retryWithDelay<T>(
 ): Promise<T> {
   let lastError: Error;
 
+  const startTimestamp = new Date().toISOString();
+  console.log(`\t[${startTimestamp}] [RETRY] Starting operation with ${retries} max retries, ${delay}ms delay`);
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      return await callback();
+      const attemptTimestamp = new Date().toISOString();
+      console.log(`\t[${attemptTimestamp}] [RETRY] Attempt ${attempt}/${retries}`);
+      const startTime = Date.now();
+      const result = await callback();
+      const duration = Date.now() - startTime;
+      const successTimestamp = new Date().toISOString();
+      console.log(`\t[${successTimestamp}] [RETRY] Attempt ${attempt}/${retries} succeeded (${duration}ms)`);
+      return result;
     } catch (error) {
       lastError = error as Error;
-
+      const failTimestamp = new Date().toISOString();
+      console.log(`\t[${failTimestamp}] [RETRY] Attempt ${attempt}/${retries} failed: ${lastError.message}`);
+      
       if (attempt === retries) {
+        const finalFailTimestamp = new Date().toISOString();
+        console.log(`\t[${finalFailTimestamp}] [RETRY] All ${retries} attempts failed. Final error: ${lastError.message}`);
         throw lastError;
       }
 
+      const waitTimestamp = new Date().toISOString();
+      console.log(`\t[${waitTimestamp}] [RETRY] Waiting ${delay}ms before retry ${attempt + 1}/${retries}`);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }

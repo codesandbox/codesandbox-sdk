@@ -56,6 +56,17 @@ import type {
 } from "./api-clients/client";
 import { PitcherManagerResponse } from "./types";
 
+function generateTraceParent(): string {
+  // Generate W3C Trace Context traceparent header
+  // Format: version-trace-id-span-id-trace-flags
+  const version = '00'; // Current version is 00
+  const traceId = Array.from({length: 32}, () => Math.floor(Math.random() * 16).toString(16)).join(''); // 128-bit (32 hex chars)
+  const spanId = Array.from({length: 16}, () => Math.floor(Math.random() * 16).toString(16)).join(''); // 64-bit (16 hex chars)
+  const traceFlags = '01'; // Sampled flag set to 1
+  
+  return `${version}-${traceId}-${spanId}-${traceFlags}`;
+}
+
 async function enhanceFetch(
   request: Request,
   instrumentation?: (request: Request) => Promise<Response>
@@ -73,18 +84,52 @@ async function enhanceFetch(
     }`.trim()
   );
 
+  // Add W3C Trace Context traceparent header for OpenTelemetry correlation
+  const traceparent = generateTraceParent();
+  headers.set("traceparent", traceparent);
+
+  const enhancedRequest = new Request(request, { headers });
+  
+  // Log API request details
+  const requestTimestamp = new Date().toISOString();
+  console.log(`[${requestTimestamp}] [API REQUEST] ${request.method} ${request.url} traceparent=${traceparent}`);
+
+  const startTime = Date.now();
+
   // Create new request with updated headers and optionally add instrumentation
-  return instrumentation
-    ? instrumentation(
-        new Request(request, {
-          headers,
-        })
-      )
-    : fetch(
-        new Request(request, {
-          headers,
-        })
-      );
+  const response = instrumentation
+    ? await instrumentation(enhancedRequest)
+    : await fetch(enhancedRequest);
+
+  const duration = Date.now() - startTime;
+
+  // Log API response details
+  const responseTimestamp = new Date().toISOString();
+  let logMessage = `[${responseTimestamp}] [API RESPONSE] ${response.status} ${response.statusText} (${duration}ms) ${request.method} ${request.url} traceparent=${traceparent}`;
+  
+  // Add error message for non-success responses
+  if (!response.ok) {
+    try {
+      const responseClone = response.clone();
+      const responseText = await responseClone.text();
+      if (responseText) {
+        // Try to parse as JSON to get error message, fallback to text
+        try {
+          const errorData = JSON.parse(responseText);
+          const errorMessage = errorData.error || errorData.message || responseText;
+          logMessage += ` error="${errorMessage}"`;
+        } catch {
+          logMessage += ` error="${responseText.substring(0, 200)}"`;
+        }
+      }
+    } catch (e) {
+      logMessage += ` error="[Unable to read error - ${e instanceof Error ? e.message : String(e)}]"`;
+    }
+  }
+  
+  console.log(logMessage);
+
+  return response;
 }
 
 function createApiClient(
