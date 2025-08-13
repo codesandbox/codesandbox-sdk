@@ -119,7 +119,11 @@ export class SandboxClient {
   /**
    * Namespace for managing ports on this Sandbox
    */
-  public readonly ports = new Ports(this.disposable, this.agentClient, this.tracer);
+  public readonly ports = new Ports(
+    this.disposable,
+    this.agentClient,
+    this.tracer
+  );
 
   /**
    * Namespace for the setup that runs when the Sandbox starts from scratch.
@@ -150,13 +154,26 @@ export class SandboxClient {
       initialSetupProgress,
       tracer
     );
-    this.fs = new FileSystem(this.disposable, this.agentClient, username, tracer);
+    this.fs = new FileSystem(
+      this.disposable,
+      this.agentClient,
+      username,
+      tracer
+    );
     this.terminals = new Terminals(this.disposable, this.agentClient, tracer);
     this.tasks = new Tasks(this.disposable, this.agentClient, tracer);
-    this.commands = new SandboxCommands(this.disposable, this.agentClient, tracer);
+    this.commands = new SandboxCommands(
+      this.disposable,
+      this.agentClient,
+      tracer
+    );
 
     this.hosts = new Hosts(this.agentClient.sandboxId, hostToken, tracer);
-    this.interpreters = new Interpreters(this.disposable, this.commands, tracer);
+    this.interpreters = new Interpreters(
+      this.disposable,
+      this.commands,
+      tracer
+    );
     this.disposable.onWillDispose(() => this.agentClient.dispose());
 
     this.disposable.onWillDispose(() => {
@@ -329,7 +346,7 @@ export class SandboxClient {
    */
   public reconnect() {
     return this.withSpan(
-      "sandboxClient.reconnect", 
+      "sandboxClient.reconnect",
       { "sandbox.id": this.id },
       async () => {
         this.isExplicitlyDisconnected = false;
@@ -350,7 +367,9 @@ export class SandboxClient {
           await retryWithDelay(
             async () => {
               if (this.isExplicitlyDisconnected) {
-                throw new Error("Explicit disconnect - stopping auto-reconnect");
+                throw new Error(
+                  "Explicit disconnect - stopping auto-reconnect"
+                );
               }
               await this.agentClient.reconnect();
             },
@@ -380,10 +399,10 @@ export class SandboxClient {
     if (enabled) {
       if (!this.keepAliveInterval) {
         this.keepAliveInterval = setInterval(() => {
-          this.agentClient.system.update().catch(() => {
-            // We do not care about errors here
+          this.agentClient.system.update().catch((error) => {
+            console.warn("Unable to keep active while connected", error);
           });
-        }, 1000 * 30);
+        }, 1000 * 10);
       }
     } else {
       if (this.keepAliveInterval) {
