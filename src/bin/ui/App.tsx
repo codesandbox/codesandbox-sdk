@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import { Dashboard } from "./views/Dashboard";
 import { useView } from "./viewContext";
 import { Sandbox } from "./views/Sandbox";
+import { Debug } from "./views/Debug";
 import { useTerminalSize } from "./hooks/useTerminalSize";
 
 export function App() {
@@ -16,6 +17,7 @@ export function App() {
       </Box>
       {view.name === "dashboard" && <Dashboard />}
       {view.name === "sandbox" && <Sandbox />}
+      {view.name === "debug" && <Debug />}
     </Box>
   );
 }

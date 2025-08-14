@@ -61,7 +61,7 @@ export const Sandbox = () => {
   const getMenuOptions = () => {
     switch (sandboxState) {
       case "RUNNING":
-        return ["Hibernate", "Shutdown", "Restart"];
+        return ["Debug", "Hibernate", "Shutdown", "Restart"];
       case "IDLE":
         return ["Start"];
       default:
@@ -74,6 +74,9 @@ export const Sandbox = () => {
   // Handle menu options
   const handleAction = async (action: string) => {
     switch (action) {
+      case "Debug":
+        setView({ name: "debug", params: { id: view.params.id } });
+        break;
       case "Hibernate":
       case "Shutdown":
         setSandboxState("PENDING");
