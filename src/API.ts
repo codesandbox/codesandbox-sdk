@@ -1,6 +1,5 @@
 import type { Client, Config } from "@hey-api/client-fetch";
-import { createClient, createConfig } from "@hey-api/client-fetch";
-import { handleResponse, retryWithDelay } from "./utils/api";
+import { handleResponse, retryWithDelay, createApiClient } from "./utils/api";
 import { getInferredBaseUrl } from "./utils/constants";
 import {
   metaInfo,
@@ -56,54 +55,6 @@ import type {
 } from "./api-clients/client";
 import { PitcherManagerResponse } from "./types";
 
-async function enhanceFetch(
-  request: Request,
-  instrumentation?: (request: Request) => Promise<Response>
-) {
-  // Clone the request to modify headers
-  const headers = new Headers(request.headers);
-  const existingUserAgent = headers.get("User-Agent") || "";
-
-  // Extend User-Agent with SDK version
-  headers.set(
-    "User-Agent",
-    `${existingUserAgent ? `${existingUserAgent} ` : ""}codesandbox-sdk/${
-      // @ts-expect-error - Replaced at build time
-      CSB_SDK_VERSION
-    }`.trim()
-  );
-
-  // Create new request with updated headers and optionally add instrumentation
-  return instrumentation
-    ? instrumentation(
-        new Request(request, {
-          headers,
-        })
-      )
-    : fetch(
-        new Request(request, {
-          headers,
-        })
-      );
-}
-
-function createApiClient(
-  apiKey: string,
-  config: Config = {},
-  instrumentation?: (request: Request) => Promise<Response>
-) {
-  return createClient(
-    createConfig({
-      baseUrl: config.baseUrl || getInferredBaseUrl(apiKey),
-      fetch: (request) => enhanceFetch(request, instrumentation),
-      ...config,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        ...config.headers,
-      },
-    })
-  );
-}
 
 export interface APIOptions {
   apiKey: string;
@@ -297,17 +248,18 @@ export class API {
   }
 
   async hibernate(id: string, data?: VmHibernateData["body"]) {
-    const response = await retryWithDelay(
-      () =>
-        vmHibernate({
+    return retryWithDelay(
+      async () => {
+        const response = await vmHibernate({
           client: this.client,
           path: { id },
           body: data,
-        }),
+        });
+        return handleResponse(response, `Failed to hibernate VM ${id}`);
+      },
       3,
       200
     );
-    return handleResponse(response, `Failed to hibernate VM ${id}`);
   }
 
   async updateHibernationTimeout(
@@ -335,17 +287,18 @@ export class API {
   }
 
   async shutdown(id: string, data?: VmShutdownData["body"]) {
-    const response = await retryWithDelay(
-      () =>
-        vmShutdown({
+    return retryWithDelay(
+      async () => {
+        const response = await vmShutdown({
           client: this.client,
           path: { id },
           body: data,
-        }),
+        });
+        return handleResponse(response, `Failed to shutdown VM ${id}`);
+      },
       3,
       200
     );
-    return handleResponse(response, `Failed to shutdown VM ${id}`);
   }
 
   async updateSpecs(id: string, data: VmUpdateSpecsData["body"]) {
@@ -359,19 +312,17 @@ export class API {
 
   async startVm(id: string, options?: StartVmOptions) {
     const { retryDelay = 200, ...data } = options || {};
-    const response = await retryWithDelay(
-      () =>
-        vmStart({
+    const handledResponse = await retryWithDelay(
+      async () => {
+        const response = await vmStart({
           client: this.client,
           path: { id },
           body: data,
-        }),
+        });
+        return handleResponse(response, `Failed to start VM ${id}`);
+      },
       3,
       retryDelay
-    );
-    const handledResponse = handleResponse(
-      response,
-      `Failed to start VM ${id}`
     );
 
     return {
