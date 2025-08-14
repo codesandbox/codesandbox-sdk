@@ -215,6 +215,7 @@ export const buildCommand: yargs.CommandModule<
       };
 
       const tasks = templateData.sandboxes.map(async ({ id }, index) => {
+        let currentSession: SandboxClient | null = null;
         try {
           spinner.start(updateSpinnerMessage(index, "Starting sandbox..."));
 
@@ -225,6 +226,7 @@ export const buildCommand: yargs.CommandModule<
           let sandboxVM = new Sandbox(id, api, startResponse);
 
           let session = await sandboxVM.connect();
+          currentSession = session;
 
           spinner.start(
             updateSpinnerMessage(index, "Writing files to sandbox...")
@@ -251,6 +253,10 @@ export const buildCommand: yargs.CommandModule<
             throw new Error(`Failed to write files to sandbox: ${error}`);
           });
 
+          // Dispose of the session after writing files to prevent reconnection
+          session.dispose();
+          currentSession = null;
+
           spinner.start(updateSpinnerMessage(index, "Building sandbox..."));
 
           sandboxVM = await withCustomError(
@@ -264,8 +270,13 @@ export const buildCommand: yargs.CommandModule<
             sandboxVM.connect(),
             "Failed to connect to sandbox after building"
           );
+          currentSession = session;
 
           await waitForSetup(session, index);
+
+          // Dispose of the session after setup to prevent reconnection
+          session.dispose();
+          currentSession = null;
 
           spinner.start(
             updateSpinnerMessage(index, "Optimizing initial state...")
@@ -281,6 +292,7 @@ export const buildCommand: yargs.CommandModule<
             sandboxVM.connect(),
             "Failed to connect to sandbox after optimizing initial state"
           );
+          currentSession = session;
 
           await waitForSetup(session, index);
 
@@ -329,6 +341,10 @@ export const buildCommand: yargs.CommandModule<
             await new Promise((resolve) => setTimeout(resolve, 5000));
           }
 
+          // Dispose of the session after port operations to prevent reconnection
+          session.dispose();
+          currentSession = null;
+
           spinner.start(updateSpinnerMessage(index, "Creating snapshot..."));
           await withCustomError(
             sdk.sandboxes.hibernate(id),
@@ -338,6 +354,12 @@ export const buildCommand: yargs.CommandModule<
 
           return id;
         } catch (error) {
+          // Dispose of any active session to prevent reconnection attempts
+          if (currentSession) {
+            currentSession.dispose();
+            currentSession = null;
+          }
+
           spinner.start(
             updateSpinnerMessage(
               index,

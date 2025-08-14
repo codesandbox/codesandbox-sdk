@@ -258,11 +258,11 @@ export class AgentConnection {
   }
 
   dispose(): void {
+    this.errorEmitter.dispose();
+    this.messageEmitter.dispose();
     this.connection.dispose();
     this.disposePendingMessages();
     this.pendingMessages.clear();
     this.notificationListeners = {};
-    this.errorEmitter.dispose();
-    this.messageEmitter.dispose();
   }
 }
