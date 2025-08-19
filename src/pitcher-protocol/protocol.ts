@@ -31,7 +31,7 @@ export type TMessage<
       data?: unknown;
       publicMessage?: string;
     };
-  },
+  }
 > = {
   request: {
     method: Method;

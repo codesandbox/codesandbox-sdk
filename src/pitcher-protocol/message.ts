@@ -41,7 +41,7 @@ export function decodeMessage(blob: Uint8Array): any {
 }
 
 export function isNotificationPayload(
-  payload: any,
+  payload: any
 ): payload is PitcherNotificationPayload {
   return !("id" in payload) && "params" in payload;
 }
@@ -51,25 +51,25 @@ export function isErrorPayload(payload: any): payload is PitcherErrorPayload {
 }
 
 export function isResultPayload(
-  payload: any,
+  payload: any
 ): payload is PitcherResponsePayload {
   return "result" in payload;
 }
 
 export function createNotificationPayload(
-  payload: PitcherNotificationPayload,
+  payload: PitcherNotificationPayload
 ): Uint8Array {
   return encodeMessage(payload);
 }
 
 export function createRequestPayload(
-  payload: PitcherRequestPayload,
+  payload: PitcherRequestPayload
 ): Uint8Array {
   return encodeMessage(payload);
 }
 
 export function createResponsePayload(
-  payload: PitcherResponsePayload | PitcherErrorPayload,
+  payload: PitcherResponsePayload | PitcherErrorPayload
 ): Uint8Array {
   return encodeMessage(payload);
 }

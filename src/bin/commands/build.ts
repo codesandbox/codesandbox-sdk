@@ -146,8 +146,9 @@ export const buildCommand: yargs.CommandModule<
 
           try {
             // Check if this is a container setup step and handle it specially
-            const isContainerStep =
-              step.name.toLowerCase().includes("starting container");
+            const isContainerStep = step.name
+              .toLowerCase()
+              .includes("starting container");
 
             if (isContainerStep) {
               spinner.start(
@@ -188,7 +189,7 @@ export const buildCommand: yargs.CommandModule<
                 );
               }
             });
-            
+
             const output = await step.open();
 
             buffer.push(...output.split("\n").map(stripAnsiCodes));

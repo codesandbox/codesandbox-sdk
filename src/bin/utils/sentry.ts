@@ -4,13 +4,13 @@ let sentryInitialized = false;
 // Function to initialize Sentry if conditions are met
 async function initializeSentry() {
   if (sentryInitialized) return;
-  
+
   // Only initialize Sentry if the CODESANDBOX_SENTRY_ENABLED environment variable is set to "true"
   // and the @sentry/node package is available
   if (process.env.CODESANDBOX_SENTRY_ENABLED === "true") {
     try {
       Sentry = await import("@sentry/node");
-      
+
       // This can happen when the CLI uses Sentry for its own requests, but also the SDK for other requests
       if (!Sentry.isInitialized()) {
         Sentry.init({
@@ -20,17 +20,19 @@ async function initializeSentry() {
       }
     } catch (error) {
       // Sentry is not available, continue without it
-      console.warn("Sentry error reporting is enabled but @sentry/node is not available. Install it as a dependency to enable error reporting.");
+      console.warn(
+        "Sentry error reporting is enabled but @sentry/node is not available. Install it as a dependency to enable error reporting."
+      );
     }
   }
-  
+
   sentryInitialized = true;
 }
 
 export async function instrumentedFetch(request: Request) {
   // Initialize Sentry if needed
   await initializeSentry();
-  
+
   // We are cloning the request to be able to read its body on errors
   const res = await fetch(request.clone());
 

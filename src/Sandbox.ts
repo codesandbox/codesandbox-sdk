@@ -90,9 +90,9 @@ export class Sandbox {
   async updateTier(tier: VMTier): Promise<void> {
     return this.withSpan(
       "sandbox.updateTier",
-      { 
+      {
         "sandbox.id": this.id,
-        "tier.name": tier.name
+        "tier.name": tier.name,
       },
       async () => {
         await this.api.updateSpecs(this.id, {
@@ -111,7 +111,7 @@ export class Sandbox {
       "sandbox.updateHibernationTimeout",
       {
         "sandbox.id": this.id,
-        "hibernation.timeoutSeconds": timeoutSeconds
+        "hibernation.timeoutSeconds": timeoutSeconds,
       },
       async () => {
         await this.api.updateHibernationTimeout(this.id, {
@@ -126,8 +126,12 @@ export class Sandbox {
     session: SandboxSession
   ) {
     const client = await SandboxClient.create(
-      session, 
-      async () => this.getSession(await this.api.startVm(this.id, { retryDelay: 200 }), customSession),
+      session,
+      async () =>
+        this.getSession(
+          await this.api.startVm(this.id, { retryDelay: 200 }),
+          customSession
+        ),
       undefined,
       this.tracer
     );
@@ -220,7 +224,7 @@ export class Sandbox {
       {
         "sandbox.id": this.id,
         "session.hasCustomSession": !!customSession,
-        "session.id": customSession?.id || "default"
+        "session.id": customSession?.id || "default",
       },
       async () => {
         return await retryWithDelay(
@@ -234,14 +238,21 @@ export class Sandbox {
 
             // We might create a client here if git or env is configured, we can reuse that
             if (customSession) {
-              client = await this.initializeCustomSession(customSession, session);
+              client = await this.initializeCustomSession(
+                customSession,
+                session
+              );
             }
 
             return (
               client ||
               SandboxClient.create(
-                session, 
-                async () => this.getSession(await this.api.startVm(this.id, { retryDelay: 200 }), customSession),
+                session,
+                async () =>
+                  this.getSession(
+                    await this.api.startVm(this.id, { retryDelay: 200 }),
+                    customSession
+                  ),
                 undefined,
                 this.tracer
               )
@@ -271,7 +282,7 @@ export class Sandbox {
         "session.hasCustomSession": !!customSession,
         "session.id": customSession?.id || "default",
         "session.hasGit": !!customSession?.git,
-        "session.hasEnv": !!customSession?.env
+        "session.hasEnv": !!customSession?.env,
       },
       async () => {
         if (customSession?.git || customSession?.env) {

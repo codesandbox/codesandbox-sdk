@@ -16,9 +16,7 @@ export const SDKContext = createContext<{ sdk: CodeSandbox; api: API }>({
 
 export const SDKProvider = ({ children }: { children: React.ReactNode }) => {
   return (
-    <SDKContext.Provider value={{ sdk, api }}>
-      {children}
-    </SDKContext.Provider>
+    <SDKContext.Provider value={{ sdk, api }}>{children}</SDKContext.Provider>
   );
 };
 

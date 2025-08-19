@@ -15,7 +15,7 @@ export const useVmInput = ({ vms, onSubmit }: UseVmInputOptions) => {
   const [sandboxId, setSandboxId] = useState("");
   const [selectedVm, setSelectedVm] = useState<string | null>(null);
   const [selectedVmIndex, setSelectedVmIndex] = useState<number>(-1);
-  
+
   const handleInputChange = (value: string) => {
     setSandboxId(value);
 
@@ -43,17 +43,20 @@ export const useVmInput = ({ vms, onSubmit }: UseVmInputOptions) => {
     if (key.upArrow || key.downArrow) {
       if (vms && vms.length > 0) {
         let newIndex = selectedVmIndex;
-        
+
         if (key.upArrow) {
-          newIndex = selectedVmIndex <= 0 ? vms.length - 1 : selectedVmIndex - 1;
+          newIndex =
+            selectedVmIndex <= 0 ? vms.length - 1 : selectedVmIndex - 1;
         } else if (key.downArrow) {
-          newIndex = selectedVmIndex >= vms.length - 1 ? 0 : selectedVmIndex + 1;
+          newIndex =
+            selectedVmIndex >= vms.length - 1 ? 0 : selectedVmIndex + 1;
         }
-        
+
         setSelectedVmIndex(newIndex);
-        const vmId = vms[newIndex]?.id || null;
+        const vm = vms[newIndex];
+        const vmId = (vm?.id && typeof vm.id === 'string') ? vm.id : null;
         setSelectedVm(vmId);
-        
+
         // Set the selected VM ID in the text input
         if (vmId) {
           setSandboxId(vmId);
@@ -70,4 +73,4 @@ export const useVmInput = ({ vms, onSubmit }: UseVmInputOptions) => {
     handleInputSubmit,
     handleVmSelect,
   };
-}; 
+};
