@@ -83,8 +83,13 @@ const nodeClientEsmBuild = esbuild.build({
   bundle: true,
   format: "esm",
   outfile: "dist/esm/node.js",
+  // Handle dynamic requires (WS)
+  banner: {
+    js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
+  },
   platform: "node",
-  external: externalModules,
+  // These has to be optional deps, due to being native and only working in certain envs
+  external: externalModules.concat("bufferutil", "utf-8-validate"),
 });
 
 /**
@@ -107,8 +112,13 @@ const sdkEsmBuild = esbuild.build({
   format: "esm",
   define,
   platform: "node",
+  // Handle dynamic requires (WS)
+  banner: {
+    js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
+  },
   outfile: "dist/esm/index.js",
-  external: externalModules,
+  // These has to be optional deps, due to being native and only working in certain envs
+  external: externalModules.concat("bufferutil", "utf-8-validate"),
 });
 
 /**
