@@ -88,15 +88,11 @@ export class Tasks {
    * Gets a task by its ID.
    */
   async get(taskId: string): Promise<Task | undefined> {
-    return this.withSpan(
-      "tasks.get",
-      { taskId },
-      async () => {
-        const tasks = await this.getAll();
+    return this.withSpan("tasks.get", { taskId }, async () => {
+      const tasks = await this.getAll();
 
-        return tasks.find((task) => task.id === taskId);
-      }
-    );
+      return tasks.find((task) => task.id === taskId);
+    });
   }
 }
 
@@ -248,12 +244,12 @@ export class Task {
   async open(dimensions = DEFAULT_SHELL_SIZE) {
     return this.withSpan(
       "task.open",
-      { 
+      {
         taskId: this.id,
         taskName: this.name,
         cols: dimensions.cols,
         rows: dimensions.rows,
-        hasShell: !!this.shell
+        hasShell: !!this.shell,
       },
       async () => {
         if (!this.shell) {
@@ -278,11 +274,11 @@ export class Task {
   async waitForPort(timeout: number = 30_000) {
     return this.withSpan(
       "task.waitForPort",
-      { 
+      {
         taskId: this.id,
         taskName: this.name,
         timeout,
-        existingPortsCount: this.ports.length
+        existingPortsCount: this.ports.length,
       },
       async () => {
         if (this.ports.length) {
@@ -320,11 +316,11 @@ export class Task {
   async run() {
     return this.withSpan(
       "task.run",
-      { 
+      {
         taskId: this.id,
         taskName: this.name,
         command: this.command,
-        runAtStart: this.runAtStart
+        runAtStart: this.runAtStart,
       },
       async () => {
         await this.agentClient.tasks.runTask(this.id);
@@ -334,10 +330,10 @@ export class Task {
   async restart() {
     return this.withSpan(
       "task.restart",
-      { 
+      {
         taskId: this.id,
         taskName: this.name,
-        command: this.command
+        command: this.command,
       },
       async () => {
         await this.run();
@@ -347,10 +343,10 @@ export class Task {
   async stop() {
     return this.withSpan(
       "task.stop",
-      { 
+      {
         taskId: this.id,
         taskName: this.name,
-        hasShell: !!this.shell
+        hasShell: !!this.shell,
       },
       async () => {
         if (this.shell) {

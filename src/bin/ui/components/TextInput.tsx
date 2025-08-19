@@ -61,7 +61,7 @@ export const TextInput: React.FC<TextInputProps> = ({
             value.slice(0, cursorPosition - 1) + value.slice(cursorPosition);
           const newCursorPosition = cursorPosition - 1;
           isInternalChange.current = true;
-          
+
           onChange(newValue);
           setCursorPosition(newCursorPosition);
         }

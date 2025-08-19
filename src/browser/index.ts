@@ -33,7 +33,12 @@ export async function connectToSandbox({
   initStatusCb = () => {},
   tracer,
 }: ConnectToSandboxOptions): Promise<SandboxClient> {
-  const client = await SandboxClient.create(session, getSession, initStatusCb, tracer);
+  const client = await SandboxClient.create(
+    session,
+    getSession,
+    initStatusCb,
+    tracer
+  );
 
   onFocusChange((isFocused) => {
     // We immediately ping the connection when focusing, so that

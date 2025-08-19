@@ -74,9 +74,9 @@ export class Sandboxes {
 
     // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
     const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
-    
+
     const { mappedPrivacy, privatePreview } = mapPrivacyForApi(privacy);
-    
+
     const sandbox = await this.api.forkSandbox(templateId, {
       privacy: mappedPrivacy,
       title: opts?.title,
@@ -108,7 +108,9 @@ export class Sandboxes {
       "sandboxes.resume",
       { "sandbox.id": sandboxId },
       async () => {
-        const startResponse = await this.api.startVm(sandboxId, { retryDelay: 500 }); // Use 500ms delay for resume
+        const startResponse = await this.api.startVm(sandboxId, {
+          retryDelay: 500,
+        }); // Use 500ms delay for resume
         return new Sandbox(sandboxId, this.api, startResponse, this.tracer);
       }
     );
@@ -162,7 +164,10 @@ export class Sandboxes {
         }
 
         try {
-          const startResponse = await this.api.startVm(sandboxId, { ...opts, retryDelay: 1000 }); // Use 1000ms delay for restart
+          const startResponse = await this.api.startVm(sandboxId, {
+            ...opts,
+            retryDelay: 1000,
+          }); // Use 1000ms delay for restart
 
           return new Sandbox(sandboxId, this.api, startResponse, this.tracer);
         } catch (e) {
@@ -304,46 +309,48 @@ export class Sandboxes {
 
   /**
    * List information about currently running VMs.
-   * 
-   * This information is updated roughly every 30 seconds, so this data is not 
+   *
+   * This information is updated roughly every 30 seconds, so this data is not
    * guaranteed to be perfectly up-to-date.
    */
   async listRunning() {
-    return this.withSpan(
-      "sandboxes.listRunning",
-      {},
-      async () => {
-        const data = await this.api.listRunningVms();
-        
-        return {
-          concurrentVmCount: data.concurrent_vm_count,
-          concurrentVmLimit: data.concurrent_vm_limit,
-          vms: data.vms.map(vm => ({
-            id: vm.id,
-            creditBasis: vm.credit_basis,
-            lastActiveAt: vm.last_active_at ? parseTimestamp(vm.last_active_at) : undefined,
-            sessionStartedAt: vm.session_started_at ? parseTimestamp(vm.session_started_at) : undefined,
-            specs: vm.specs ? {
-              cpu: vm.specs.cpu,
-              memory: vm.specs.memory,
-              storage: vm.specs.storage,
-            } : undefined,
-          })),
-        };
-      }
-    );
+    return this.withSpan("sandboxes.listRunning", {}, async () => {
+      const data = await this.api.listRunningVms();
+
+      return {
+        concurrentVmCount: data.concurrent_vm_count,
+        concurrentVmLimit: data.concurrent_vm_limit,
+        vms: data.vms.map((vm) => ({
+          id: vm.id,
+          creditBasis: vm.credit_basis,
+          lastActiveAt: vm.last_active_at
+            ? parseTimestamp(vm.last_active_at)
+            : undefined,
+          sessionStartedAt: vm.session_started_at
+            ? parseTimestamp(vm.session_started_at)
+            : undefined,
+          specs: vm.specs
+            ? {
+                cpu: vm.specs.cpu,
+                memory: vm.specs.memory,
+                storage: vm.specs.storage,
+              }
+            : undefined,
+        })),
+      };
+    });
   }
 
   /**
    * Get a single sandbox by ID efficiently without listing all sandboxes.
-   * 
+   *
    * This method directly retrieves metadata for a specific sandbox ID,
    * avoiding the performance overhead of the list-and-filter pattern.
-   * 
+   *
    * @param sandboxId The ID of the sandbox to retrieve
    * @returns Promise<SandboxInfo> The sandbox metadata
    * @throws Error if the sandbox is not found or access is denied
-   * 
+   *
    * @example
    * ```ts
    * const sandbox = await client.sandboxes.get("sandbox-id");
@@ -352,7 +359,7 @@ export class Sandboxes {
    */
   async get(sandboxId: string): Promise<SandboxInfo> {
     const sandbox = await this.api.getSandbox(sandboxId);
-    
+
     return {
       id: sandbox.id,
       createdAt: new Date(sandbox.created_at),
@@ -363,26 +370,29 @@ export class Sandboxes {
       tags: sandbox.tags,
     };
   }
-
 }
 
 function parseTimestamp(timestamp: number | string): Date | undefined {
   if (!timestamp || timestamp === 0) {
     return undefined;
   }
-  
+
   // Convert string to number if needed
-  const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
-  
+  const numTimestamp =
+    typeof timestamp === "string" ? parseInt(timestamp, 10) : timestamp;
+
   // Handle both seconds and milliseconds timestamps
   const ts = numTimestamp < 10000000000 ? numTimestamp * 1000 : numTimestamp;
   const date = new Date(ts);
-  
+
   // Return undefined if the date is invalid
   return isNaN(date.getTime()) ? undefined : date;
 }
 
-function mapPrivacyForApi(privacy: SandboxPrivacy): { mappedPrivacy: number; privatePreview?: boolean } {
+function mapPrivacyForApi(privacy: SandboxPrivacy): {
+  mappedPrivacy: number;
+  privatePreview?: boolean;
+} {
   switch (privacy) {
     case "unlisted":
       return { mappedPrivacy: 1 }; // Keep as unlisted
@@ -394,7 +404,6 @@ function mapPrivacyForApi(privacy: SandboxPrivacy): { mappedPrivacy: number; pri
       return { mappedPrivacy: 2, privatePreview: false }; // Map to private with public preview
   }
 }
-
 
 function privacyFromNumber(privacy: number): SandboxPrivacy {
   switch (privacy) {
