@@ -1,6 +1,6 @@
 import { Disposable, DisposableStore } from "../utils/disposable";
 import { Emitter } from "../utils/event";
-import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { IAgentClient } from "../agent-client-interface";
 import * as protocol from "../pitcher-protocol";
 import { Barrier } from "../utils/barrier";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
@@ -88,7 +88,7 @@ export class SandboxCommands {
         "command.text": cmdString,
         "command.cwd": opts?.cwd || "/project",
         "command.asGlobalSession": opts?.asGlobalSession || false,
-        "command.name": opts?.name || ""
+        "command.name": opts?.name || "",
       },
       async () => {
         const disposableStore = new DisposableStore();
@@ -168,7 +168,7 @@ export class SandboxCommands {
       {
         "command.text": cmdString,
         "command.cwd": opts?.cwd || "/project",
-        "command.asGlobalSession": opts?.asGlobalSession || false
+        "command.asGlobalSession": opts?.asGlobalSession || false,
       },
       async () => {
         const cmd = await this.runBackground(command, opts);
@@ -181,21 +181,23 @@ export class SandboxCommands {
    * Get all running commands.
    */
   async getAll(): Promise<Command[]> {
-    return this.withSpan(
-      "commands.getAll",
-      {},
-      async () => {
-        const shells = await this.agentClient.shells.getShells();
+    return this.withSpan("commands.getAll", {}, async () => {
+      const shells = await this.agentClient.shells.getShells();
 
-        return shells
-          .filter(
-            (shell) => shell.shellType === "TERMINAL" && isCommandShell(shell)
-          )
-          .map(
-            (shell) => new Command(this.agentClient, shell, JSON.parse(shell.name), this.tracer)
-          );
-      }
-    );
+      return shells
+        .filter(
+          (shell) => shell.shellType === "TERMINAL" && isCommandShell(shell)
+        )
+        .map(
+          (shell) =>
+            new Command(
+              this.agentClient,
+              shell,
+              JSON.parse(shell.name),
+              this.tracer
+            )
+        );
+    });
   }
 }
 
@@ -348,7 +350,7 @@ export class Command {
         "command.shellId": this.shell.shellId,
         "command.text": this.command,
         "command.dimensions.cols": dimensions.cols,
-        "command.dimensions.rows": dimensions.rows
+        "command.dimensions.rows": dimensions.rows,
       },
       async () => {
         const shell = await this.agentClient.shells.open(
@@ -372,7 +374,7 @@ export class Command {
       {
         "command.shellId": this.shell.shellId,
         "command.text": this.command,
-        "command.status": this.status
+        "command.status": this.status,
       },
       async () => {
         await this.barrier.wait();
@@ -403,7 +405,7 @@ export class Command {
       {
         "command.shellId": this.shell.shellId,
         "command.text": this.command,
-        "command.status": this.status
+        "command.status": this.status,
       },
       async () => {
         this.disposable.dispose();
@@ -421,7 +423,7 @@ export class Command {
       {
         "command.shellId": this.shell.shellId,
         "command.text": this.command,
-        "command.status": this.status
+        "command.status": this.status,
       },
       async () => {
         if (this.status !== "RUNNING") {

@@ -1,6 +1,6 @@
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
-import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { IAgentClient } from "../agent-client-interface";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 
 export type Port = {
@@ -78,52 +78,50 @@ export class Ports {
     if (!this.tracer) {
       return fn();
     }
-    return this.tracer.startActiveSpan(operationName, { attributes }, async (span) => {
-      try {
-        const result = await fn();
-        span.setStatus({ code: SpanStatusCode.OK });
-        return result;
-      } catch (error) {
-        span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: error instanceof Error ? error.message : String(error),
-        });
-        span.recordException(error instanceof Error ? error : new Error(String(error)));
-        throw error;
-      } finally {
-        span.end();
+    return this.tracer.startActiveSpan(
+      operationName,
+      { attributes },
+      async (span) => {
+        try {
+          const result = await fn();
+          span.setStatus({ code: SpanStatusCode.OK });
+          return result;
+        } catch (error) {
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error instanceof Error ? error.message : String(error),
+          });
+          span.recordException(
+            error instanceof Error ? error : new Error(String(error))
+          );
+          throw error;
+        } finally {
+          span.end();
+        }
       }
-    });
+    );
   }
 
   /**
    * Get a port by number.
    */
   async get(port: number) {
-    return this.withSpan(
-      "ports.get",
-      { "port.number": port },
-      async () => {
-        const ports = await this.getAll();
+    return this.withSpan("ports.get", { "port.number": port }, async () => {
+      const ports = await this.getAll();
 
-        return ports.find((p) => p.port === port);
-      }
-    );
+      return ports.find((p) => p.port === port);
+    });
   }
 
   /**
    * Get all ports.
    */
   async getAll(): Promise<Port[]> {
-    return this.withSpan(
-      "ports.getAll",
-      {},
-      async () => {
-        const ports = await this.agentClient.ports.getPorts();
+    return this.withSpan("ports.getAll", {}, async () => {
+      const ports = await this.agentClient.ports.getPorts();
 
-        return ports.map(({ port, url }) => ({ port, host: url }));
-      }
-    );
+      return ports.map(({ port, url }) => ({ port, host: url }));
+    });
   }
 
   /**
@@ -141,9 +139,9 @@ export class Ports {
   ): Promise<Port> {
     return this.withSpan(
       "ports.waitForPort",
-      { 
+      {
         "port.number": port,
-        "port.timeout.ms": options?.timeoutMs
+        "port.timeout.ms": options?.timeoutMs,
       },
       async () => {
         return new Promise(async (resolve, reject) => {
