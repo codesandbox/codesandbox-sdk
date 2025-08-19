@@ -63,19 +63,19 @@ export class Interpreters {
       {
         "interpreter.language": "javascript",
         "interpreter.code": code,
-        "interpreter.codeLength": code.length
+        "interpreter.codeLength": code.length,
       },
       async () => {
         return this.run(
           `node -p "$(cat <<'EOF'
 (() => {${code
-          .split("\n")
-          .map((line, index, lines) => {
-            return index === lines.length - 1 && !line.startsWith("return")
-              ? `return ${line}`
-              : line;
-          })
-          .join("\n")}})()
+            .split("\n")
+            .map((line, index, lines) => {
+              return index === lines.length - 1 && !line.startsWith("return")
+                ? `return ${line}`
+                : line;
+            })
+            .join("\n")}})()
 EOF
 )"`,
           {
@@ -97,7 +97,7 @@ EOF
       {
         "interpreter.language": "python",
         "interpreter.code": code,
-        "interpreter.codeLength": code.length
+        "interpreter.codeLength": code.length,
       },
       async () => {
         return this.run(`python3 <<'PYCODE'

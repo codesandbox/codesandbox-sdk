@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState } from "react";
 
 type ViewState =
   | { name: "dashboard" }
-  | { name: "sandbox"; params: { id: string } };
+  | { name: "sandbox"; params: { id: string } }
+  | { name: "debug"; params: { id: string } }
+  | { name: "open"; params: { id: string } };
 
 export const ViewContext = createContext<{
   view: ViewState;

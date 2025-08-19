@@ -13,7 +13,7 @@ export const Table = ({ renderHeader, renderBody }: TableProps) => {
     let totalWidth = 0;
 
     const headerElement = renderHeader();
-    
+
     if (
       React.isValidElement(headerElement) &&
       headerElement.type === TableHeader

@@ -36,10 +36,10 @@ export interface SystemMetricsStatus {
 /**
  * Sandbox privacy settings
  */
-export type SandboxPrivacy = 
-  | "public" 
+export type SandboxPrivacy =
+  | "public"
   | "unlisted" /** @deprecated Use "public" or "public-hosts" instead */
-  | "private" 
+  | "private"
   | "public-hosts";
 
 export type SandboxInfo = {
@@ -58,7 +58,6 @@ export type SandboxListOpts = {
   direction?: "asc" | "desc";
   status?: "running";
 };
-
 
 export interface SandboxListResponse {
   sandboxes: SandboxInfo[];
