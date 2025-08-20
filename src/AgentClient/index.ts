@@ -25,7 +25,8 @@ import { SandboxClient } from "../SandboxClient";
 import { InitStatus } from "../pitcher-protocol/messages/system";
 
 // Timeout for detecting a pong response, leading to a forced disconnect
-let PONG_DETECTION_TIMEOUT = 15_000;
+// Increased from 15s to 30s to be more tolerant of network latency
+let PONG_DETECTION_TIMEOUT = 30_000;
 
 // When focusing the app we do a lower timeout to more quickly detect a potential disconnect
 const FOCUS_PONG_DETECTION_TIMEOUT = 5_000;

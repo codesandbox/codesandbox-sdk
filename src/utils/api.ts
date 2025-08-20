@@ -68,6 +68,15 @@ export type HandledResponse<D, E> = {
 export function getStartOptions(opts: StartSandboxOpts | undefined) {
   if (!opts) return {};
 
+  // Warn about hibernation timeouts that are too short and may cause connection issues
+  if (opts.hibernationTimeoutSeconds !== undefined && opts.hibernationTimeoutSeconds < 60) {
+    console.warn(
+      `Warning: hibernationTimeoutSeconds (${opts.hibernationTimeoutSeconds}s) is less than 60 seconds. ` +
+      `This may cause connection instability and frequent disconnections. ` +
+      `Consider using at least 60 seconds for stable websocket connections.`
+    );
+  }
+
   return {
     ipcountry: opts.ipcountry,
     tier: opts.vmTier?.name,

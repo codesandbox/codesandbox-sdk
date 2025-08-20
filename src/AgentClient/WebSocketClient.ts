@@ -235,6 +235,9 @@ export class WebSocketClient extends Disposable {
       );
     }
 
+    // Update lastActivity on send to prevent heartbeat suppression
+    this.lastActivity = Date.now();
+
     // This is an async operation in Node, but to avoid wrapping every send in a promise, we
     // rely on the error listener to deal with any errors. Any unsent messages will be timed out
     // by our PendingMessage logic
