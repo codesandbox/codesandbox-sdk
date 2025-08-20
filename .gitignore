@@ -102,3 +102,7 @@ typings/
 !.vscode/extensions.json
 
 # End of https://www.gitignore.io/api/node,visualstudiocode,macos
+
+### Vitepress ###
+docs/.vitepress/cache
+docs/.vitepress/dist
