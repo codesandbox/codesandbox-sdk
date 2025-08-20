@@ -195,6 +195,8 @@ export class SandboxClient {
           this.attemptAutoReconnect();
         }
       } else if (state === "CONNECTED") {
+        // Reset keep-alive failures on successful connection
+        this.keepAliveFailures = 0;
         if (this.shouldKeepAlive) {
           this.keepActiveWhileConnected(true);
         }
@@ -389,6 +391,8 @@ export class SandboxClient {
   private keepAliveInterval: NodeJS.Timeout | null = null;
   private shouldKeepAlive = false;
   private isExplicitlyDisconnected = false;
+  private keepAliveFailures = 0;
+  private maxKeepAliveFailures = 3;
   /**
    * If enabled, we will keep the sandbox from hibernating as long as the SDK is connected to it.
    */
@@ -399,9 +403,31 @@ export class SandboxClient {
     if (enabled) {
       if (!this.keepAliveInterval) {
         this.keepAliveInterval = setInterval(() => {
-          this.agentClient.system.update().catch((error) => {
-            console.warn("Unable to keep active while connected", error);
-          });
+          this.agentClient.system.update()
+            .then(() => {
+              // Reset failure count on success
+              this.keepAliveFailures = 0;
+            })
+            .catch((error) => {
+              this.keepAliveFailures++;
+              console.warn(`Keep-alive failed (${this.keepAliveFailures}/${this.maxKeepAliveFailures}):`, error);
+              
+              // If we've hit max failures, stop aggressive keep-alive to prevent connection thrashing
+              if (this.keepAliveFailures >= this.maxKeepAliveFailures) {
+                console.warn("Max keep-alive failures reached, reducing frequency to prevent connection issues");
+                if (this.keepAliveInterval) {
+                  clearInterval(this.keepAliveInterval);
+                  this.keepAliveInterval = null;
+                }
+                // Restart with longer interval after failures
+                setTimeout(() => {
+                  if (this.shouldKeepAlive && !this.keepAliveInterval) {
+                    this.keepActiveWhileConnected(true);
+                    this.keepAliveFailures = 0; // Reset for retry
+                  }
+                }, 60000); // Wait 1 minute before retrying
+              }
+            });
         }, 1000 * 10);
       }
     } else {
