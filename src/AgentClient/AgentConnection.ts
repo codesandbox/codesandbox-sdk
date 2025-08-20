@@ -93,8 +93,15 @@ export class AgentConnection {
     });
 
     connection.onMissingHeartbeat(() => {
+      // Be more conservative about disconnection - only disconnect if we have no activity
+      // and no pending messages, indicating a truly dead connection
       if (this.pendingMessages.size === 0) {
-        this.state = "DISCONNECTED";
+        // Add a small delay to allow for network recovery before declaring disconnection
+        setTimeout(() => {
+          if (this.pendingMessages.size === 0 && this.state === "CONNECTED") {
+            this.state = "DISCONNECTED";
+          }
+        }, 1000);
       }
     });
   }
