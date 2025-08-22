@@ -38,6 +38,7 @@ export class AgentConnection {
   }
 
   private _state: IAgentClientState = "CONNECTED";
+  private _isDisposed = false;
 
   get state() {
     return this._state;
@@ -172,6 +173,10 @@ export class AgentConnection {
     pitcherRequest: T,
     options: IRequestOptions = {}
   ) {
+    if (this._isDisposed) {
+      throw new Error("Cannot perform operation: SandboxClient has been disposed");
+    }
+    
     const { timeoutMs } = options;
     const request = this.createRequest(pitcherRequest, timeoutMs);
 
@@ -265,6 +270,7 @@ export class AgentConnection {
   }
 
   dispose(): void {
+    this._isDisposed = true;
     this.errorEmitter.dispose();
     this.messageEmitter.dispose();
     this.connection.dispose();
