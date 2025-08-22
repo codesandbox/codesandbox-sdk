@@ -190,8 +190,12 @@ export class SandboxClient {
         }
         this.keepAliveInterval = null;
 
-        // Only attempt auto-reconnect on DISCONNECTED, not HIBERNATED
-        if (state === "DISCONNECTED" && !this.isExplicitlyDisconnected) {
+        // Only attempt auto-reconnect on DISCONNECTED, not HIBERNATED, and not if disposed
+        if (
+          state === "DISCONNECTED" &&
+          !this.isExplicitlyDisconnected &&
+          !this.disposable.isDisposed
+        ) {
           this.attemptAutoReconnect();
         }
       } else if (state === "CONNECTED") {
@@ -332,6 +336,10 @@ export class SandboxClient {
       "sandboxClient.disconnect",
       { "sandbox.id": this.id },
       async () => {
+        if (this.disposable.isDisposed) {
+          throw new Error("Cannot disconnect: SandboxClient has been disposed");
+        }
+
         this.isExplicitlyDisconnected = true;
         if (this.keepAliveInterval) {
           clearInterval(this.keepAliveInterval);
@@ -351,6 +359,10 @@ export class SandboxClient {
       "sandboxClient.reconnect",
       { "sandbox.id": this.id },
       async () => {
+        if (this.disposable.isDisposed) {
+          throw new Error("Cannot reconnect: SandboxClient has been disposed");
+        }
+
         this.isExplicitlyDisconnected = false;
         return this.agentClient.reconnect();
       }
@@ -368,6 +380,9 @@ export class SandboxClient {
         try {
           await retryWithDelay(
             async () => {
+              if (this.disposable.isDisposed) {
+                throw new Error("Client disposed - stopping auto-reconnect");
+              }
               if (this.isExplicitlyDisconnected) {
                 throw new Error(
                   "Explicit disconnect - stopping auto-reconnect"
@@ -397,31 +412,53 @@ export class SandboxClient {
    * If enabled, we will keep the sandbox from hibernating as long as the SDK is connected to it.
    */
   public keepActiveWhileConnected(enabled: boolean) {
+    if (this.disposable.isDisposed) {
+      throw new Error("Client disposed");
+    }
+
     // Used to manage the interval when disconnects happen
     this.shouldKeepAlive = enabled;
 
     if (enabled) {
       if (!this.keepAliveInterval) {
         this.keepAliveInterval = setInterval(() => {
-          this.agentClient.system.update()
+          if (this.disposable.isDisposed) {
+            if (this.keepAliveInterval) {
+              clearInterval(this.keepAliveInterval);
+              this.keepAliveInterval = null;
+            }
+            return;
+          }
+
+          this.agentClient.system
+            .update()
             .then(() => {
               // Reset failure count on success
               this.keepAliveFailures = 0;
             })
             .catch((error) => {
               this.keepAliveFailures++;
-              console.warn(`Keep-alive failed (${this.keepAliveFailures}/${this.maxKeepAliveFailures}):`, error);
-              
+              console.warn(
+                `Keep-alive failed (${this.keepAliveFailures}/${this.maxKeepAliveFailures}):`,
+                error
+              );
+
               // If we've hit max failures, stop aggressive keep-alive to prevent connection thrashing
               if (this.keepAliveFailures >= this.maxKeepAliveFailures) {
-                console.warn("Max keep-alive failures reached, reducing frequency to prevent connection issues");
+                console.warn(
+                  "Max keep-alive failures reached, reducing frequency to prevent connection issues"
+                );
                 if (this.keepAliveInterval) {
                   clearInterval(this.keepAliveInterval);
                   this.keepAliveInterval = null;
                 }
-                // Restart with longer interval after failures
+                // Restart with longer interval after failures, but only if not disposed
                 setTimeout(() => {
-                  if (this.shouldKeepAlive && !this.keepAliveInterval) {
+                  if (
+                    this.shouldKeepAlive &&
+                    !this.keepAliveInterval &&
+                    !this.disposable.isDisposed
+                  ) {
                     this.keepActiveWhileConnected(true);
                     this.keepAliveFailures = 0; // Reset for retry
                   }
@@ -441,6 +478,17 @@ export class SandboxClient {
    * Dispose the session, this will disconnect from the sandbox and dispose all resources. If you want to do a clean disconnect, await "disconnect" method first.
    */
   dispose() {
+    // Prevent any future reconnection attempts
+    this.isExplicitlyDisconnected = true;
+
+    // Clear keep-alive settings to prevent restart
+    this.shouldKeepAlive = false;
+
+    if (this.keepAliveInterval) {
+      clearInterval(this.keepAliveInterval);
+      this.keepAliveInterval = null;
+    }
+
     this.disposable.dispose();
   }
 }
