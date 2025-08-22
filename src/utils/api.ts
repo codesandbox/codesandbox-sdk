@@ -148,6 +148,10 @@ export function handleResponse<D, E>(
     throw new Error(errorPrefix + ": Bad gateway");
   }
 
+  if (result.response.status === 503) {
+    throw new Error(errorPrefix + ": The sandbox is currently overloaded. Please review your logic to reduce the number of concurrent requests or try again in a moment.");
+  }
+
   if ("error" in result) {
     const error = (result.error as { errors: string[] }).errors[0];
     throw new Error(errorPrefix + ": " + error);
