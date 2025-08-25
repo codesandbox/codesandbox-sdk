@@ -3,6 +3,7 @@ import { type IAgentClient } from "../AgentClient/agent-client-interface";
 import { Disposable } from "../utils/disposable";
 import { Emitter, type Event } from "../utils/event";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
+import { zip } from "fflate";
 
 export type FSStatResult = {
   type: "file" | "directory";
@@ -37,6 +38,11 @@ export type WatchEvent = {
 export type Watcher = {
   dispose(): void;
   onEvent: Event<WatchEvent>;
+};
+
+export type BatchWriteFile = {
+  path: string;
+  content: string | Uint8Array;
 };
 
 export class FileSystem {
@@ -133,6 +139,97 @@ export class FileSystem {
       },
       async () => {
         return this.writeFile(path, new TextEncoder().encode(content), opts);
+      }
+    );
+  }
+
+  /**
+   * Batch write multiple files by zipping them, uploading the zip, and extracting it on the sandbox.
+   * This is more efficient than writing many files individually.
+   * Files will be created/overwritten as needed.
+   */
+  async batchWrite(files: BatchWriteFile[]): Promise<void> {
+    return this.withSpan(
+      "fs.batchWrite",
+      {
+        "fs.fileCount": files.length,
+      },
+      async () => {
+        if (files.length === 0) {
+          return;
+        }
+
+        // Create a zip file containing all the files
+        const zipData: Record<string, Uint8Array> = {};
+
+        for (const file of files) {
+          const content =
+            typeof file.content === "string"
+              ? new TextEncoder().encode(file.content)
+              : file.content;
+          zipData[file.path] = content;
+        }
+
+        // Create the zip using fflate
+        const zipBytes = await new Promise<Uint8Array>((resolve, reject) => {
+          zip(zipData, (err, data) => {
+            if (err) reject(err);
+            else resolve(data);
+          });
+        });
+
+        // Write the zip file to a temporary location
+        const tempZipPath = `/tmp/batch_write_${Date.now()}.zip`;
+        await this.writeFile(tempZipPath, zipBytes);
+
+        try {
+          // Extract the zip file using unzip command
+          const result = await this.agentClient.shells.create(
+            this.agentClient.workspacePath,
+            { cols: 128, rows: 24 },
+            `cd ${this.agentClient.workspacePath} && unzip -o ${tempZipPath}`,
+            "COMMAND",
+            true
+          );
+
+          if (result.status === "ERROR" || result.status === "KILLED") {
+            throw new Error(
+              `Failed to extract batch files: ${
+                result.buffer?.join("\n") || "Unknown error"
+              }`
+            );
+          }
+
+          // Wait for the command to complete if it's still running
+          if (result.status === "RUNNING") {
+            // Wait for shell exit event
+            await new Promise<void>((resolve, reject) => {
+              const disposable = this.agentClient.shells.onShellExited(
+                ({ shellId, exitCode }) => {
+                  if (shellId === result.shellId) {
+                    disposable.dispose();
+                    if (exitCode === 0) {
+                      resolve();
+                    } else {
+                      reject(
+                        new Error(
+                          `Unzip command failed with exit code ${exitCode}`
+                        )
+                      );
+                    }
+                  }
+                }
+              );
+            });
+          }
+        } finally {
+          // Always clean up the temporary zip file, regardless of success or failure
+          try {
+            await this.remove(tempZipPath);
+          } catch {
+            // Ignore cleanup errors - file might already be deleted or not exist
+          }
+        }
       }
     );
   }
