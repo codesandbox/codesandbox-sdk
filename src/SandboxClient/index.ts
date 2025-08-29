@@ -190,12 +190,7 @@ export class SandboxClient {
         }
         this.keepAliveInterval = null;
 
-        // Only attempt auto-reconnect on DISCONNECTED, not HIBERNATED, and not if disposed
-        if (
-          state === "DISCONNECTED" &&
-          !this.isExplicitlyDisconnected &&
-          !this.disposable.isDisposed
-        ) {
+        if (!this.isExplicitlyDisconnected && !this.disposable.isDisposed) {
           this.attemptAutoReconnect();
         }
       } else if (state === "CONNECTED") {

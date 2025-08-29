@@ -57,6 +57,7 @@ export class AgentConnection {
 
   private nextMessageId = 0;
   private pendingMessages = new Map<number, PendingPitcherMessage<any, any>>();
+  private messageQueue: PendingPitcherMessage<any, any>[] = [];
   private notificationListeners: Record<
     string,
     SliceList<(params: any) => void>
@@ -174,11 +175,19 @@ export class AgentConnection {
     options: IRequestOptions = {}
   ) {
     if (this._isDisposed) {
-      throw new Error("Cannot perform operation: SandboxClient has been disposed");
+      throw new Error(
+        "Cannot perform operation: SandboxClient has been disposed"
+      );
     }
-    
+
     const { timeoutMs } = options;
     const request = this.createRequest(pitcherRequest, timeoutMs);
+
+    // If not connected, queue the message for later
+    if (this.state !== "CONNECTED") {
+      this.messageQueue.push(request);
+      return request.unwrap();
+    }
 
     try {
       // This will throw if we are not in the right connection state
@@ -186,6 +195,9 @@ export class AgentConnection {
 
       return request.unwrap();
     } catch (error) {
+      // If send fails, queue the message for retry on reconnect
+      this.messageQueue.push(request);
+
       this.errorEmitter.fire({
         message: (error as Error).message,
         extras: {
@@ -195,9 +207,8 @@ export class AgentConnection {
         },
       });
 
-      // We always want to return a promise from the method so it does not matter if the error is related to disconnect
-      // or Pitcher giving an error. It all ends up in the `catch` of the unwrapped promise
-      return Promise.reject(error);
+      // Return the queued message's promise instead of rejecting
+      return request.unwrap();
     }
   }
 
@@ -267,6 +278,28 @@ export class AgentConnection {
     });
 
     this.state = "CONNECTED";
+
+    // Flush the message queue after successful reconnection
+    await this.flushMessageQueue();
+  }
+
+  private async flushMessageQueue() {
+    const queuedMessages = [...this.messageQueue];
+    this.messageQueue = [];
+
+    for (const message of queuedMessages) {
+      if (message.isDisposed) {
+        // Skip messages that have already been disposed (timed out)
+        continue;
+      }
+
+      try {
+        this.connection.send(message.message);
+      } catch (error) {
+        // If send still fails, reject the message
+        message.reject(error as Error);
+      }
+    }
   }
 
   dispose(): void {
@@ -275,7 +308,15 @@ export class AgentConnection {
     this.messageEmitter.dispose();
     this.connection.dispose();
     this.disposePendingMessages();
+    this.disposeQueuedMessages();
     this.pendingMessages.clear();
+    this.messageQueue = [];
     this.notificationListeners = {};
+  }
+
+  private disposeQueuedMessages() {
+    this.messageQueue.forEach((queuedMessage) => {
+      queuedMessage.dispose("Client disposed");
+    });
   }
 }
