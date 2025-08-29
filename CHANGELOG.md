@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.1](https://github.com/codesandbox/codesandbox-sdk/compare/v2.1.0...v2.1.1) (2025-08-29)
+
+
+### Bug Fixes
+
+* prevent api config overrides ([#177](https://github.com/codesandbox/codesandbox-sdk/issues/177)) ([a9ec1a7](https://github.com/codesandbox/codesandbox-sdk/commit/a9ec1a78c2c83a53dfd0649dfa1764589b9fa671))
+* Queue messages on lost connection and reconnect also on hibernation ([#176](https://github.com/codesandbox/codesandbox-sdk/issues/176)) ([c5a8ffd](https://github.com/codesandbox/codesandbox-sdk/commit/c5a8ffdf4bcba321c4d3c9581f752c5e72a3bc8f))
+
 ## [2.1.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.7...v2.1.0) (2025-08-22)
 
 
