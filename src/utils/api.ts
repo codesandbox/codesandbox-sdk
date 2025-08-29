@@ -46,9 +46,9 @@ export function createApiClient(
 ) {
   return createClient(
     createConfig({
-      ...config,
       baseUrl: config.baseUrl || getInferredBaseUrl(apiKey),
       fetch: (request) => enhanceFetch(request, instrumentation),
+      ...config,
       headers: {
         ...config.headers,
         Authorization: `Bearer ${apiKey}`,
