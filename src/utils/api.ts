@@ -50,8 +50,8 @@ export function createApiClient(
       fetch: (request) => enhanceFetch(request, instrumentation),
       ...config,
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         ...config.headers,
+        Authorization: `Bearer ${apiKey}`,
       },
     })
   );
@@ -69,11 +69,14 @@ export function getStartOptions(opts: StartSandboxOpts | undefined) {
   if (!opts) return {};
 
   // Warn about hibernation timeouts that are too short and may cause connection issues
-  if (opts.hibernationTimeoutSeconds !== undefined && opts.hibernationTimeoutSeconds < 60) {
+  if (
+    opts.hibernationTimeoutSeconds !== undefined &&
+    opts.hibernationTimeoutSeconds < 60
+  ) {
     console.warn(
       `Warning: hibernationTimeoutSeconds (${opts.hibernationTimeoutSeconds}s) is less than 60 seconds. ` +
-      `This may cause connection instability and frequent disconnections. ` +
-      `Consider using at least 60 seconds for stable websocket connections.`
+        `This may cause connection instability and frequent disconnections. ` +
+        `Consider using at least 60 seconds for stable websocket connections.`
     );
   }
 
@@ -149,7 +152,10 @@ export function handleResponse<D, E>(
   }
 
   if (result.response.status === 503) {
-    throw new Error(errorPrefix + ": The sandbox is currently overloaded. Please review your logic to reduce the number of concurrent requests or try again in a moment.");
+    throw new Error(
+      errorPrefix +
+        ": The sandbox is currently overloaded. Please review your logic to reduce the number of concurrent requests or try again in a moment."
+    );
   }
 
   if ("error" in result) {
