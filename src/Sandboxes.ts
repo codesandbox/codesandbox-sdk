@@ -397,7 +397,7 @@ function mapPrivacyForApi(privacy: SandboxPrivacy): {
     case "unlisted":
       return { mappedPrivacy: 1 }; // Keep as unlisted
     case "private":
-      return { mappedPrivacy: 2 }; // Keep as private
+      return { mappedPrivacy: 2, privatePreview: true }; // Keep as private
     case "public":
       return { mappedPrivacy: 1 }; // Map to unlisted
     case "public-hosts":
