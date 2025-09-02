@@ -25,6 +25,9 @@ async function enhanceFetch(
     }`.trim()
   );
 
+  // Add trace parent header for distributed tracing
+  headers.set("traceparent", generateTraceParent());
+
   // Create new request with updated headers and optionally add instrumentation
   return instrumentation
     ? instrumentation(
@@ -168,4 +171,19 @@ export function handleResponse<D, E>(
   }
 
   return result.data.data;
+}
+
+export function generateTraceParent(): string {
+  // Generate W3C Trace Context traceparent header
+  // Format: version-trace-id-span-id-trace-flags
+  const version = "00"; // Current version is 00
+  const traceId = Array.from({ length: 32 }, () =>
+    Math.floor(Math.random() * 16).toString(16)
+  ).join(""); // 128-bit (32 hex chars)
+  const spanId = Array.from({ length: 16 }, () =>
+    Math.floor(Math.random() * 16).toString(16)
+  ).join(""); // 64-bit (16 hex chars)
+  const traceFlags = "01"; // Sampled flag set to 1
+
+  return `${version}-${traceId}-${spanId}-${traceFlags}`;
 }
