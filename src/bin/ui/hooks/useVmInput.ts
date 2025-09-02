@@ -54,7 +54,7 @@ export const useVmInput = ({ vms, onSubmit }: UseVmInputOptions) => {
 
         setSelectedVmIndex(newIndex);
         const vm = vms[newIndex];
-        const vmId = (vm?.id && typeof vm.id === 'string') ? vm.id : null;
+        const vmId = vm?.id && typeof vm.id === "string" ? vm.id : null;
         setSelectedVm(vmId);
 
         // Set the selected VM ID in the text input

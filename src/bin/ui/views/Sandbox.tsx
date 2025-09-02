@@ -3,6 +3,7 @@ import { Box, Text, useInput } from "ink";
 import { useView } from "../viewContext";
 import { useQuery } from "@tanstack/react-query";
 import { useSDK } from "../sdkContext";
+import { exec } from "child_process";
 
 export const Sandbox = () => {
   const { view, setView } = useView<"sandbox">();
@@ -61,9 +62,16 @@ export const Sandbox = () => {
   const getMenuOptions = () => {
     switch (sandboxState) {
       case "RUNNING":
-        return ["Open", "Terminal", "Hibernate", "Shutdown", "Restart"];
+        return [
+          "Open",
+          "Open editor in browser",
+          "Terminal",
+          "Hibernate",
+          "Shutdown",
+          "Restart",
+        ];
       case "IDLE":
-        return ["Start"];
+        return ["Start", "Open editor in browser"];
       default:
         return [];
     }
@@ -79,6 +87,24 @@ export const Sandbox = () => {
         break;
       case "Open":
         setView({ name: "open", params: { id: view.params.id } });
+        break;
+      case "Open editor in browser":
+        const url = `https://codesandbox.io/s/${view.params.id}`;
+        const platform = process.platform;
+
+        // Open browser based on platform
+        const command =
+          platform === "darwin"
+            ? `open "${url}"`
+            : platform === "win32"
+            ? `start "${url}"`
+            : `xdg-open "${url}"`; // Linux
+
+        exec(command, (error) => {
+          if (error) {
+            console.error(`Failed to open browser: ${error.message}`);
+          }
+        });
         break;
       case "Hibernate":
       case "Shutdown":

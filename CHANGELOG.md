@@ -2,43 +2,39 @@
 
 ## [2.2.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.1.0...v2.2.0) (2025-09-02)
 
-
 ### Features
 
-* Add traceparent for all requests to API ([#180](https://github.com/codesandbox/codesandbox-sdk/issues/180)) ([b6f4846](https://github.com/codesandbox/codesandbox-sdk/commit/b6f484665de0bf0533127e098ff0ef1aa641a84b))
-* batch writes ([#175](https://github.com/codesandbox/codesandbox-sdk/issues/175)) ([493c5d5](https://github.com/codesandbox/codesandbox-sdk/commit/493c5d52d1eaa527d099b0270a5b0e78a694abbd))
-
+- Add traceparent for all requests to API ([#180](https://github.com/codesandbox/codesandbox-sdk/issues/180)) ([b6f4846](https://github.com/codesandbox/codesandbox-sdk/commit/b6f484665de0bf0533127e098ff0ef1aa641a84b))
+- batch writes ([#175](https://github.com/codesandbox/codesandbox-sdk/issues/175)) ([493c5d5](https://github.com/codesandbox/codesandbox-sdk/commit/493c5d52d1eaa527d099b0270a5b0e78a694abbd))
 
 ### Bug Fixes
 
-* ensure private preview on private sandbox ([#179](https://github.com/codesandbox/codesandbox-sdk/issues/179)) ([04381a0](https://github.com/codesandbox/codesandbox-sdk/commit/04381a071fb54aa385ad40ed7ff6d489945565ef))
-* prevent api config overrides ([#177](https://github.com/codesandbox/codesandbox-sdk/issues/177)) ([a9ec1a7](https://github.com/codesandbox/codesandbox-sdk/commit/a9ec1a78c2c83a53dfd0649dfa1764589b9fa671))
-* Queue messages on lost connection and reconnect also on hibernation ([#176](https://github.com/codesandbox/codesandbox-sdk/issues/176)) ([c5a8ffd](https://github.com/codesandbox/codesandbox-sdk/commit/c5a8ffdf4bcba321c4d3c9581f752c5e72a3bc8f))
+- ensure private preview on private sandbox ([#179](https://github.com/codesandbox/codesandbox-sdk/issues/179)) ([04381a0](https://github.com/codesandbox/codesandbox-sdk/commit/04381a071fb54aa385ad40ed7ff6d489945565ef))
+- prevent api config overrides ([#177](https://github.com/codesandbox/codesandbox-sdk/issues/177)) ([a9ec1a7](https://github.com/codesandbox/codesandbox-sdk/commit/a9ec1a78c2c83a53dfd0649dfa1764589b9fa671))
+- Queue messages on lost connection and reconnect also on hibernation ([#176](https://github.com/codesandbox/codesandbox-sdk/issues/176)) ([c5a8ffd](https://github.com/codesandbox/codesandbox-sdk/commit/c5a8ffdf4bcba321c4d3c9581f752c5e72a3bc8f))
 
 ## [2.1.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.7...v2.1.0) (2025-08-22)
 
-
 ### Features
 
-* add fetching single sandbox ([#142](https://github.com/codesandbox/codesandbox-sdk/issues/142)) ([2f58d43](https://github.com/codesandbox/codesandbox-sdk/commit/2f58d43ee44c98eeb7d0e917c8b423a80d202585))
-* add listRunning method to sandboxes namespace ([#145](https://github.com/codesandbox/codesandbox-sdk/issues/145)) ([6050dbd](https://github.com/codesandbox/codesandbox-sdk/commit/6050dbd289058c782e634a7ce9e25d9cf5921276))
-* add open telemetry for sandboxes methods ([#147](https://github.com/codesandbox/codesandbox-sdk/issues/147)) ([b331315](https://github.com/codesandbox/codesandbox-sdk/commit/b3313153b357dfda0d666a6a56ea79f6aa3dbbdf))
-* add tracing to Sandbox and SandboxClient, also allow passing to browser and node connectors ([#150](https://github.com/codesandbox/codesandbox-sdk/issues/150)) ([6ef2bf5](https://github.com/codesandbox/codesandbox-sdk/commit/6ef2bf51120068e35ff43607e3353a69d8fbf070))
-* Debug Sandboxes through CLI ([#163](https://github.com/codesandbox/codesandbox-sdk/issues/163)) ([9af1cdd](https://github.com/codesandbox/codesandbox-sdk/commit/9af1cdd0657c1a74572dc473ac6e04f6e1a40cd5))
-* enhance container setup logging in build command ([836a7a6](https://github.com/codesandbox/codesandbox-sdk/commit/836a7a6ed1dc7c73d737e04475083faf8d6d8fc4))
-* enhance container setup logging in build command ([a6f9fe7](https://github.com/codesandbox/codesandbox-sdk/commit/a6f9fe7c93450cfeded21048f62a6a2f0b842091))
-* private sandbox, public hosts with public-hosts privacy ([#154](https://github.com/codesandbox/codesandbox-sdk/issues/154)) ([dce7caf](https://github.com/codesandbox/codesandbox-sdk/commit/dce7cafd719e398b1f1421776bd55fa5601eccd0))
-
+- add fetching single sandbox ([#142](https://github.com/codesandbox/codesandbox-sdk/issues/142)) ([2f58d43](https://github.com/codesandbox/codesandbox-sdk/commit/2f58d43ee44c98eeb7d0e917c8b423a80d202585))
+- add listRunning method to sandboxes namespace ([#145](https://github.com/codesandbox/codesandbox-sdk/issues/145)) ([6050dbd](https://github.com/codesandbox/codesandbox-sdk/commit/6050dbd289058c782e634a7ce9e25d9cf5921276))
+- add open telemetry for sandboxes methods ([#147](https://github.com/codesandbox/codesandbox-sdk/issues/147)) ([b331315](https://github.com/codesandbox/codesandbox-sdk/commit/b3313153b357dfda0d666a6a56ea79f6aa3dbbdf))
+- add tracing to Sandbox and SandboxClient, also allow passing to browser and node connectors ([#150](https://github.com/codesandbox/codesandbox-sdk/issues/150)) ([6ef2bf5](https://github.com/codesandbox/codesandbox-sdk/commit/6ef2bf51120068e35ff43607e3353a69d8fbf070))
+- Debug Sandboxes through CLI ([#163](https://github.com/codesandbox/codesandbox-sdk/issues/163)) ([9af1cdd](https://github.com/codesandbox/codesandbox-sdk/commit/9af1cdd0657c1a74572dc473ac6e04f6e1a40cd5))
+- enhance container setup logging in build command ([836a7a6](https://github.com/codesandbox/codesandbox-sdk/commit/836a7a6ed1dc7c73d737e04475083faf8d6d8fc4))
+- enhance container setup logging in build command ([a6f9fe7](https://github.com/codesandbox/codesandbox-sdk/commit/a6f9fe7c93450cfeded21048f62a6a2f0b842091))
+- private sandbox, public hosts with public-hosts privacy ([#154](https://github.com/codesandbox/codesandbox-sdk/issues/154)) ([dce7caf](https://github.com/codesandbox/codesandbox-sdk/commit/dce7cafd719e398b1f1421776bd55fa5601eccd0))
 
 ### Bug Fixes
 
-* Add custom retry delay support for startVM API calls ([#156](https://github.com/codesandbox/codesandbox-sdk/issues/156)) ([ce3a282](https://github.com/codesandbox/codesandbox-sdk/commit/ce3a2823e66198f453d257a68757226d50e3bf17))
-* Decouple pitcher-client ([#148](https://github.com/codesandbox/codesandbox-sdk/issues/148)) ([3a6f9ea](https://github.com/codesandbox/codesandbox-sdk/commit/3a6f9ea213d978dc5a896bfc4d275deae6608abe))
-* friendly 503 error for overloaded Sandbox ([#172](https://github.com/codesandbox/codesandbox-sdk/issues/172)) ([f9987b1](https://github.com/codesandbox/codesandbox-sdk/commit/f9987b1a0b625bd580b94b6035c17d09d561cbbc))
-* include response handling in retries and dispose clients in build to avoid reconnecst ([#162](https://github.com/codesandbox/codesandbox-sdk/issues/162)) ([f70903a](https://github.com/codesandbox/codesandbox-sdk/commit/f70903a593c51bdfcdbf49d86b7b7bdce7cfe4a4))
-* properly dispose and prevent wakeups ([#170](https://github.com/codesandbox/codesandbox-sdk/issues/170)) ([029e3a5](https://github.com/codesandbox/codesandbox-sdk/commit/029e3a554010fe278eaeb6632f9df45264cbdc29))
-* Stabilize websocket connection ([#166](https://github.com/codesandbox/codesandbox-sdk/issues/166)) ([cb2f330](https://github.com/codesandbox/codesandbox-sdk/commit/cb2f330897c5e4c26637bc39a85d0e28dc4331d6))
-* update log line length to be smaller ([9a3099f](https://github.com/codesandbox/codesandbox-sdk/commit/9a3099fc3984c6ff01fa901ac1616cbc7b883119))
+- Add custom retry delay support for startVM API calls ([#156](https://github.com/codesandbox/codesandbox-sdk/issues/156)) ([ce3a282](https://github.com/codesandbox/codesandbox-sdk/commit/ce3a2823e66198f453d257a68757226d50e3bf17))
+- Decouple pitcher-client ([#148](https://github.com/codesandbox/codesandbox-sdk/issues/148)) ([3a6f9ea](https://github.com/codesandbox/codesandbox-sdk/commit/3a6f9ea213d978dc5a896bfc4d275deae6608abe))
+- friendly 503 error for overloaded Sandbox ([#172](https://github.com/codesandbox/codesandbox-sdk/issues/172)) ([f9987b1](https://github.com/codesandbox/codesandbox-sdk/commit/f9987b1a0b625bd580b94b6035c17d09d561cbbc))
+- include response handling in retries and dispose clients in build to avoid reconnecst ([#162](https://github.com/codesandbox/codesandbox-sdk/issues/162)) ([f70903a](https://github.com/codesandbox/codesandbox-sdk/commit/f70903a593c51bdfcdbf49d86b7b7bdce7cfe4a4))
+- properly dispose and prevent wakeups ([#170](https://github.com/codesandbox/codesandbox-sdk/issues/170)) ([029e3a5](https://github.com/codesandbox/codesandbox-sdk/commit/029e3a554010fe278eaeb6632f9df45264cbdc29))
+- Stabilize websocket connection ([#166](https://github.com/codesandbox/codesandbox-sdk/issues/166)) ([cb2f330](https://github.com/codesandbox/codesandbox-sdk/commit/cb2f330897c5e4c26637bc39a85d0e28dc4331d6))
+- update log line length to be smaller ([9a3099f](https://github.com/codesandbox/codesandbox-sdk/commit/9a3099fc3984c6ff01fa901ac1616cbc7b883119))
 
 ## [2.0.7](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.6...v2.0.7) (2025-08-06)
 
