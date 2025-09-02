@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.2.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.1.0...v2.2.0) (2025-09-02)
+
+
+### Features
+
+* Add traceparent for all requests to API ([#180](https://github.com/codesandbox/codesandbox-sdk/issues/180)) ([b6f4846](https://github.com/codesandbox/codesandbox-sdk/commit/b6f484665de0bf0533127e098ff0ef1aa641a84b))
+* batch writes ([#175](https://github.com/codesandbox/codesandbox-sdk/issues/175)) ([493c5d5](https://github.com/codesandbox/codesandbox-sdk/commit/493c5d52d1eaa527d099b0270a5b0e78a694abbd))
+
+
+### Bug Fixes
+
+* ensure private preview on private sandbox ([#179](https://github.com/codesandbox/codesandbox-sdk/issues/179)) ([04381a0](https://github.com/codesandbox/codesandbox-sdk/commit/04381a071fb54aa385ad40ed7ff6d489945565ef))
+* prevent api config overrides ([#177](https://github.com/codesandbox/codesandbox-sdk/issues/177)) ([a9ec1a7](https://github.com/codesandbox/codesandbox-sdk/commit/a9ec1a78c2c83a53dfd0649dfa1764589b9fa671))
+* Queue messages on lost connection and reconnect also on hibernation ([#176](https://github.com/codesandbox/codesandbox-sdk/issues/176)) ([c5a8ffd](https://github.com/codesandbox/codesandbox-sdk/commit/c5a8ffdf4bcba321c4d3c9581f752c5e72a3bc8f))
+
 ## [2.1.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.0.7...v2.1.0) (2025-08-22)
 
 
