@@ -32,8 +32,10 @@ const sandbox = await sdk.sandboxes.create();
 const client = await sandbox.connect();
 
 const output = await client.commands.run("echo 'Hello World'");
-
 console.log(output); // Hello World
+
+// Always properly shutdown when done to stop billing
+await sdk.sandboxes.shutdown(sandbox.id);
 ```
 
 ## Efficient Sandbox Retrieval
@@ -50,6 +52,44 @@ console.log(sandbox.title, sandbox.tags);
 
 This method is significantly more efficient than using `list()` and filtering, especially for large organizations with thousands of sandboxes.
 
+## Sandbox Lifecycle Management
+
+### Properly Shutting Down Sandboxes
+
+The user's original question demonstrates the correct way to stop billing:
+
+```typescript
+// ✅ CORRECT: This stops billing immediately
+const sandbox = await sdk.sandboxes.resume('sandbox-id');
+await sdk.sandboxes.shutdown(sandbox.id);
+```
+
+### Alternative: Hibernation for Temporary Pauses
+
+```typescript
+// Hibernate instead of shutdown for faster resume (1-2 seconds vs 3-5 seconds)
+await sdk.sandboxes.hibernate(sandbox.id);
+
+// Both shutdown and hibernate stop billing immediately
+```
+
+### Monitor Running Sandboxes and Usage
+
+```typescript
+// Check which sandboxes are currently consuming credits
+const running = await sdk.sandboxes.listRunning();
+
+console.log(`Running: ${running.concurrentVmCount}/${running.concurrentVmLimit}`);
+
+running.vms.forEach(vm => {
+  const runtimeHours = vm.sessionStartedAt 
+    ? (Date.now() - vm.sessionStartedAt.getTime()) / (1000 * 60 * 60)
+    : 0;
+  
+  console.log(`${vm.id}: ${runtimeHours.toFixed(1)}h runtime, ${vm.creditBasis} credits/hour`);
+});
+```
+
 ## Configuration
 
 The SDK supports the following environment variables for configuration:
@@ -61,6 +101,16 @@ The SDK supports the following environment variables for configuration:
 This SDK uses the API token from your workspace in CodeSandbox to authenticate and create sandboxes. Because of this, the sandboxes will be created inside your workspace, and the resources will be billed to your workspace.
 
 Build your own template that has all the dependencies you need (even running servers), and then use that template to create sandboxes from. This way, you can control the environment that the sandboxes run in.
+
+## Billing and Lifecycle Management
+
+⚠️ **Important**: Sandboxes consume credits while running. To optimize costs:
+
+- Use `await sdk.sandboxes.shutdown(sandboxId)` to stop billing immediately
+- Use `await sdk.sandboxes.hibernate(sandboxId)` to pause billing while preserving state
+- Monitor running sandboxes with `await sdk.sandboxes.listRunning()`
+
+For comprehensive billing information, cost optimization strategies, and lifecycle management, see [BILLING_AND_LIFECYCLE.md](./BILLING_AND_LIFECYCLE.md).
 
 ## Example Use Cases
 
