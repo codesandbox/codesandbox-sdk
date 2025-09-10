@@ -37,7 +37,7 @@ export class SandboxClient {
 
   static async create(
     session: SandboxSession,
-    getSession: (id: string) => Promise<SandboxSession>,
+    getSession: (sandboxId: string) => Promise<SandboxSession>,
     initStatusCb?: (event: system.InitStatus) => void,
     tracer?: Tracer
   ) {
@@ -474,6 +474,53 @@ export class SandboxClient {
       }
     }
   }
+  /**
+   * Configure git credentials and settings for the sandbox
+   */
+  async configureGit(gitConfig: {
+    provider: string;
+    username?: string;
+    accessToken?: string;
+    email: string;
+    name: string;
+  }) {
+    await Promise.all([
+      this.commands.run(
+        `echo "https://${gitConfig.username || "x-access-token"}:${
+          gitConfig.accessToken
+        }@${gitConfig.provider}" > $HOME/.private/.gitcredentials`
+      ),
+      this.commands.run(
+        `echo "[user]
+    name  = ${gitConfig.name}
+    email = ${gitConfig.email}
+[init]
+    defaultBranch = main
+[credential]
+    helper = store --file ~/.private/.gitcredentials" > $HOME/.gitconfig`
+      ),
+    ]);
+  }
+
+  /**
+   * Configure environment variables for the sandbox
+   */
+  async configureEnv(env: Record<string, string>) {
+    const envStrings = Object.entries(env)
+      .map(([key, value]) => {
+        // escape any single-quotes in the value
+        const safe = value.replace(/'/g, `'\\"'`);
+        return `export ${key}='${safe}'`;
+      })
+      .join("\n");
+    const cmd = [
+      `cat << 'EOF' > "$HOME/.private/.env"`,
+      envStrings,
+      `EOF`,
+    ].join("\n");
+    await this.commands.run(cmd);
+  }
+
   /**
    * Dispose the session, this will disconnect from the sandbox and dispose all resources. If you want to do a clean disconnect, await "disconnect" method first.
    */

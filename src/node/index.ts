@@ -5,7 +5,7 @@ import { Tracer } from "@opentelemetry/api";
 
 type ConnectToSandboxOptions = {
   session: SandboxSession;
-  getSession: (id: string) => Promise<SandboxSession>;
+  getSession: (sandboxId: string) => Promise<SandboxSession>;
   initStatusCb?: (event: protocol.system.InitStatus) => void;
   tracer?: Tracer;
 };

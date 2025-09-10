@@ -9,7 +9,7 @@ export { createPreview, Preview } from "./previews";
 
 type ConnectToSandboxOptions = {
   session: SandboxSession;
-  getSession: (id: string) => Promise<SandboxSession>;
+  getSession: (sandboxId: string) => Promise<SandboxSession>;
   onFocusChange?: (cb: (isFocused: boolean) => void) => () => void;
   initStatusCb?: (event: protocol.system.InitStatus) => void;
   tracer?: Tracer;

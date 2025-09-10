@@ -136,41 +136,6 @@ export class Sandbox {
       this.tracer
     );
 
-    if (customSession.env) {
-      const envStrings = Object.entries(customSession.env)
-        .map(([key, value]) => {
-          // escape any single-quotes in the value
-          const safe = value.replace(/'/g, `'\\"'`);
-          return `export ${key}='${safe}'`;
-        })
-        .join("\n");
-      const cmd = [
-        `cat << 'EOF' > "$HOME/.private/.env"`,
-        envStrings,
-        `EOF`,
-      ].join("\n");
-      await client.commands.run(cmd);
-    }
-
-    if (customSession.git) {
-      await Promise.all([
-        client.commands.run(
-          `echo "https://${customSession.git.username || "x-access-token"}:${
-            customSession.git.accessToken
-          }@${customSession.git.provider}" > $HOME/.private/.gitcredentials`
-        ),
-        client.commands.run(
-          `echo "[user]
-    name  = ${customSession.git.name || customSession.id}
-    email = ${customSession.git.email}
-[init]
-    defaultBranch = main
-[credential]
-    helper = store --file ~/.private/.gitcredentials" > $HOME/.gitconfig`
-        ),
-      ]);
-    }
-
     return client;
   }
 
@@ -193,18 +158,18 @@ export class Sandbox {
       };
     }
 
-    if (customSession.id.length > 20) {
+    if (customSession.userId.length > 20) {
       throw new Error("Session ID must be 20 characters or less");
     }
 
     const handledResponse = await this.api.createSession(this.id, {
-      session_id: customSession.id,
+      session_id: customSession.userId,
       permission: customSession.permission ?? "write",
     });
 
     return {
       sandboxId: this.id,
-      sessionId: customSession?.id,
+      sessionId: customSession?.userId,
       hostToken: customSession?.hostToken,
       bootupType: this.bootupType,
       cluster: this.cluster,
@@ -224,7 +189,7 @@ export class Sandbox {
       {
         "sandbox.id": this.id,
         "session.hasCustomSession": !!customSession,
-        "session.id": customSession?.id || "default",
+        "session.id": customSession?.userId || "default",
       },
       async () => {
         return await retryWithDelay(
@@ -265,13 +230,6 @@ export class Sandbox {
     );
   }
 
-  /**
-   * @deprecated Use createSession instead
-   */
-  async createBrowserSession(customSession?: SessionCreateOptions) {
-    return this.createSession(customSession);
-  }
-
   async createSession(
     customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
@@ -280,25 +238,11 @@ export class Sandbox {
       {
         "sandbox.id": this.id,
         "session.hasCustomSession": !!customSession,
-        "session.id": customSession?.id || "default",
-        "session.hasGit": !!customSession?.git,
-        "session.hasEnv": !!customSession?.env,
+        "session.id": customSession?.userId || "default",
+        "session.hasGit": false,
+        "session.hasEnv": false,
       },
       async () => {
-        if (customSession?.git || customSession?.env) {
-          const configureSession = await this.getSession(
-            this.pitcherManagerResponse,
-            customSession
-          );
-
-          const client = await this.initializeCustomSession(
-            customSession,
-            configureSession
-          );
-
-          client?.dispose();
-        }
-
         return this.getSession(this.pitcherManagerResponse, customSession);
       }
     );

@@ -36,10 +36,7 @@ export interface SystemMetricsStatus {
 /**
  * Sandbox privacy settings
  */
-export type SandboxPrivacy =
-  | "public"
-  | "private"
-  | "public-hosts";
+export type SandboxPrivacy = "public" | "private" | "public-hosts";
 
 export type SandboxInfo = {
   id: string;
@@ -200,16 +197,8 @@ export type CreateSandboxOpts = {
 };
 
 export interface SessionCreateOptions {
-  id: string;
+  userId: string;
   permission?: "read" | "write";
-  git?: {
-    provider: string;
-    username?: string;
-    accessToken?: string;
-    email: string;
-    name?: string;
-  };
-  env?: Record<string, string>;
   hostToken?: HostToken;
 }
 

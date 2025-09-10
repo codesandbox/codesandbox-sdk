@@ -277,13 +277,13 @@ export class API {
     );
   }
 
-  async createSession(id: string, data: VmCreateSessionData["body"]) {
+  async createSession(userId: string, data: VmCreateSessionData["body"]) {
     const response = await vmCreateSession({
       client: this.client,
-      path: { id },
+      path: { id: userId },
       body: data,
     });
-    return handleResponse(response, `Failed to create session for VM ${id}`);
+    return handleResponse(response, `Failed to create session for VM ${userId}`);
   }
 
   async shutdown(id: string, data?: VmShutdownData["body"]) {
