@@ -57,10 +57,6 @@ export const buildCommand: yargs.CommandModule<
     "Build an efficient memory snapshot from a directory. This snapshot can be used to create sandboxes quickly.",
   builder: (yargs: yargs.Argv) =>
     yargs
-      .option("from-sandbox", {
-        describe: "Use and update an existing sandbox as a template",
-        type: "string",
-      })
       .option("name", {
         describe: "Name for the resulting sandbox that will serve as snapshot",
         type: "string",
