@@ -86,8 +86,13 @@ export function getStartOptions(opts: StartSandboxOpts | undefined) {
   return {
     ipcountry: opts.ipcountry,
     tier: opts.vmTier?.name,
-    hibernation_timeout_seconds: opts.hibernationTimeoutSeconds,
-    automatic_wakeup_config: opts.automaticWakeupConfig,
+    // We default to 24hour to encourage active lifecycle management
+    hibernation_timeout_seconds: opts.hibernationTimeoutSeconds || 86400,
+    // We default to not automatically waking up to encourage active lifecycle management
+    automatic_wakeup_config: opts.automaticWakeupConfig || {
+      http: false,
+      websocket: false,
+    },
   };
 }
 
