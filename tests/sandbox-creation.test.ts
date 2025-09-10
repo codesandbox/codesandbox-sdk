@@ -36,7 +36,7 @@ describe('Sandbox Creation', () => {
     const sandbox = await sdk.sandboxes.create({
       title: 'Test Sandbox',
       description: 'Integration test sandbox',
-      privacy: 'unlisted',
+      privacy: 'public',
       tags: ['integration-test']
     })
 

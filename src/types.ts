@@ -38,7 +38,6 @@ export interface SystemMetricsStatus {
  */
 export type SandboxPrivacy =
   | "public"
-  | "unlisted" /** @deprecated Use "public" or "public-hosts" instead */
   | "private"
   | "public-hosts";
 
@@ -76,6 +75,8 @@ export type PaginationOpts = {
 };
 
 export interface ClientOpts {
+  apiKey?: string;
+
   baseUrl?: string;
   /**
    * Custom fetch implementation
@@ -171,9 +172,9 @@ export interface StartSandboxOpts {
   };
 }
 
-export type CreateSandboxBaseOpts = {
+export type CreateSandboxOpts = {
   /**
-   * What the privacy of the new sandbox should be. Defaults to "public".
+   * What the privacy of the new sandbox should be. Defaults to "public-hosts".
    */
   privacy?: SandboxPrivacy;
 
@@ -217,14 +218,6 @@ export type SandboxSessionDTO = {
   pitcherToken: string;
   pitcherURL: string;
   userWorkspacePath: string;
-};
-
-export type CreateSandboxOpts = CreateSandboxBaseOpts & {
-  /**
-   * What template to fork from, this is the id of another sandbox. Defaults to our
-   * [universal template](https://codesandbox.io/s/github/codesandbox/sandbox-templates/tree/main/universal).
-   */
-  id?: string;
 };
 
 export type SandboxOpts = {

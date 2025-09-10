@@ -19,7 +19,7 @@ import {
 export class Sandboxes {
   private tracer?: Tracer;
 
-  get defaultTemplateId() {
+  get UNIVERSAL_TEMPLATE_ID() {
     return getDefaultTemplateTag(this.api.getClient());
   }
 
@@ -60,40 +60,6 @@ export class Sandboxes {
     );
   }
 
-  private async createTemplateSandbox(
-    opts?: CreateSandboxOpts & StartSandboxOpts
-  ) {
-    const templateId = opts?.id || this.defaultTemplateId;
-    const privacy = opts?.privacy || "unlisted";
-    const tags = opts?.tags || ["sdk"];
-    let path = opts?.path || "/SDK";
-
-    if (!path.startsWith("/")) {
-      path = "/" + path;
-    }
-
-    // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
-    const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
-
-    const { mappedPrivacy, privatePreview } = mapPrivacyForApi(privacy);
-
-    const sandbox = await this.api.forkSandbox(templateId, {
-      privacy: mappedPrivacy,
-      title: opts?.title,
-      description: opts?.description,
-      tags: tagsWithSdk,
-      path,
-      private_preview: privatePreview,
-    });
-
-    const startResponse = await this.api.startVm(
-      sandbox.id,
-      { ...getStartOptions(opts), retryDelay: 200 } // Keep 200ms delay for creation
-    );
-
-    return new Sandbox(sandbox.id, this.api, startResponse, this.tracer);
-  }
-
   /**
    * Resume a sandbox.
    *
@@ -130,18 +96,26 @@ export class Sandboxes {
   }
 
   /**
-   * Forks a sandbox. This will create a new sandbox from the given sandbox.
-   * @deprecated This will be removed shortly to avoid having multiple ways of doing the same thing
+   * Fork an existing Sandbox.
+   *
+   * WARNING: Beware of forking running Sandboxes. Prefer hibernating Sandboxes
+   * before forking them.
    */
-  public async fork(sandboxId: string, opts?: StartSandboxOpts) {
+  public async fork(
+    sandboxId: string,
+    opts?: CreateSandboxOpts & StartSandboxOpts
+  ) {
     return this.withSpan(
       "sandboxes.fork",
       { "sandbox.id": sandboxId },
       async () => {
-        return this.create({
-          id: sandboxId,
-          ...opts,
-        });
+        if (this.isTemplateId(sandboxId)) {
+          throw new Error(
+            "Only fork existing Sandboxes, you passed a template reference"
+          );
+        }
+
+        return this.createSandbox(sandboxId, opts);
       }
     );
   }
@@ -190,18 +164,73 @@ export class Sandboxes {
     );
   }
 
+  private async createSandbox(
+    id: string,
+    opts?: CreateSandboxOpts & StartSandboxOpts
+  ) {
+    const tags = opts?.tags || ["sdk"];
+    let path = opts?.path || "/SDK";
+
+    if (!path.startsWith("/")) {
+      path = "/" + path;
+    }
+
+    // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
+    const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
+
+    // Default to public-hosts for best practices
+    const { mappedPrivacy, privatePreview } = opts?.privacy
+      ? mapPrivacyForApi(opts.privacy)
+      : mapPrivacyForApi("public-hosts");
+
+    const sandbox = await this.api.forkSandbox(id, {
+      privacy: mappedPrivacy,
+      title: opts?.title,
+      description: opts?.description,
+      tags: tagsWithSdk,
+      path,
+      private_preview: privatePreview,
+    });
+
+    const startResponse = await this.api.startVm(
+      sandbox.id,
+      { ...getStartOptions(opts), retryDelay: 200 } // Keep 200ms delay for creation
+    );
+
+    return new Sandbox(sandbox.id, this.api, startResponse, this.tracer);
+  }
+
+  private isTemplateId(id: string) {
+    return (
+      id === this.UNIVERSAL_TEMPLATE_ID ||
+      // We allow template tags
+      id.startsWith("pt_") ||
+      // We allow template aliases
+      id.match(/^[^@]+@[^@]+$/)
+    );
+  }
+
   /**
-   * Create a sandbox from a template. By default we will create a sandbox from the default universal template.
+   * Create a Sandbox from a template created with the CLI.
    */
-  async create(opts?: CreateSandboxOpts & StartSandboxOpts): Promise<Sandbox> {
+  async create(
+    templateId: string = this.UNIVERSAL_TEMPLATE_ID,
+    opts: CreateSandboxOpts & StartSandboxOpts = {}
+  ): Promise<Sandbox> {
     return this.withSpan(
       "sandboxes.create",
       {
-        "template.id": opts?.id || this.defaultTemplateId,
-        "sandbox.privacy": opts?.privacy || "unlisted",
+        "template.id": templateId,
+        "sandbox.privacy": opts?.privacy || "public-hosts",
       },
       async () => {
-        return this.createTemplateSandbox(opts);
+        if (!this.isTemplateId(templateId)) {
+          throw new Error(
+            'You can only create a Sandbox from a template, use "fork" to fork an existing Sandbox'
+          );
+        }
+
+        return this.createSandbox(templateId, opts);
       }
     );
   }
@@ -394,12 +423,10 @@ function mapPrivacyForApi(privacy: SandboxPrivacy): {
   privatePreview?: boolean;
 } {
   switch (privacy) {
-    case "unlisted":
-      return { mappedPrivacy: 1 }; // Keep as unlisted
     case "private":
       return { mappedPrivacy: 2, privatePreview: true }; // Keep as private
     case "public":
-      return { mappedPrivacy: 1 }; // Map to unlisted
+      return { mappedPrivacy: 1 }; // Map to public but unlisted in API
     case "public-hosts":
       return { mappedPrivacy: 2, privatePreview: false }; // Map to private with public preview
   }
@@ -410,7 +437,7 @@ function privacyFromNumber(privacy: number): SandboxPrivacy {
     case 0:
       return "public";
     case 1:
-      return "unlisted";
+      return "public"; // API's unlisted maps to public
     case 2:
       return "private";
   }

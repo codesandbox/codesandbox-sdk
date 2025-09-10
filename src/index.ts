@@ -24,8 +24,8 @@ export class CodeSandbox {
    */
   public readonly hosts: HostTokens;
 
-  constructor(apiToken?: string, opts: ClientOpts = {}) {
-    const apiKey = apiToken || getInferredApiKey();
+  constructor(opts: ClientOpts = {}) {
+    const apiKey = opts?.apiKey || getInferredApiKey();
     const api = new API({ apiKey, config: opts });
 
     this.sandboxes = new Sandboxes(api, opts.tracer);
