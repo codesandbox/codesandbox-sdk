@@ -196,11 +196,17 @@ export type CreateSandboxOpts = {
   path?: string;
 };
 
-export interface SessionCreateOptions {
-  userId: string;
-  permission?: "read" | "write";
-  hostToken?: HostToken;
-}
+export type SessionCreateOptions =
+  | {
+      userId: string;
+      permission?: "read" | "write";
+      hostToken?: HostToken;
+    }
+  | {
+      hostToken: HostToken;
+      userId?: never;
+      permission?: never;
+    };
 
 export type SandboxSessionDTO = {
   sandboxId: string;
