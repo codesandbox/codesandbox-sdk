@@ -164,6 +164,22 @@ export class Sandboxes {
     );
   }
 
+  /**
+   * Deletes a sandbox VM, permanently removing it from the system.
+   * 
+   * This operation is irreversible and will permanently delete all data associated with the VM.
+   * This can only be used on VMs that belong to your team's workspace.
+   */
+  async delete(sandboxId: string): Promise<void> {
+    return this.withSpan(
+      "sandboxes.delete",
+      { "sandbox.id": sandboxId },
+      async () => {
+        await this.api.deleteVm(sandboxId);
+      }
+    );
+  }
+
   private async createSandbox(
     id: string,
     opts?: CreateSandboxOpts & StartSandboxOpts

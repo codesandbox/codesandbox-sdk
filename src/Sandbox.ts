@@ -143,10 +143,11 @@ export class Sandbox {
     pitcherManagerResponse: PitcherManagerResponse,
     customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
-    if (!customSession) {
+    if (!customSession || !customSession.userId) {
       return {
         sandboxId: this.id,
         bootupType: this.bootupType,
+        hostToken: customSession?.hostToken,
         cluster: this.cluster,
         latestPitcherVersion: pitcherManagerResponse.latestPitcherVersion,
         pitcherManagerVersion: pitcherManagerResponse.pitcherManagerVersion,
@@ -169,7 +170,7 @@ export class Sandbox {
 
     return {
       sandboxId: this.id,
-      sessionId: customSession?.userId,
+      sessionId: customSession.userId,
       hostToken: customSession?.hostToken,
       bootupType: this.bootupType,
       cluster: this.cluster,
@@ -189,7 +190,7 @@ export class Sandbox {
       {
         "sandbox.id": this.id,
         "session.hasCustomSession": !!customSession,
-        "session.id": customSession?.userId || "default",
+        "session.id": customSession?.userId ?? "default",
       },
       async () => {
         return await retryWithDelay(

@@ -29,6 +29,7 @@ import {
   previewHostList,
   previewHostCreate,
   previewHostUpdate,
+  vmDelete,
 } from "./api-clients/client";
 import type {
   WorkspaceCreateData,
@@ -52,6 +53,7 @@ import type {
   PreviewHostListData,
   PreviewHostCreateData,
   PreviewHostUpdateData,
+  VmDeleteData,
 } from "./api-clients/client";
 import { PitcherManagerResponse } from "./types";
 
@@ -346,6 +348,14 @@ export class API {
       body: data,
     });
     return handleResponse(response, `Failed to update VM specs2 for ${id}`);
+  }
+
+  async deleteVm(id: string) {
+    const response = await vmDelete({
+      client: this.client,
+      path: { id },
+    });
+    return handleResponse(response, `Failed to delete VM ${id}`);
   }
 
   // Preview host endpoints
