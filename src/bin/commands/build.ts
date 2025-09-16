@@ -102,16 +102,35 @@ export const buildCommand: yargs.CommandModule<
       .check((argv) => {
         // Validate ports parameter - ensure all values are valid numbers
         if (argv.ports && argv.ports.length > 0) {
-          const invalidPorts = argv.ports.filter(
-            (port) =>
-              !Number.isInteger(port) ||
+          const invalidPortsWithOriginal: string[] = [];
+          
+          // Get the original arguments to show what the user actually typed
+          const originalArgs = process.argv;
+          const portArgIndices: number[] = [];
+          
+          // Find all --ports arguments in the original command
+          originalArgs.forEach((arg, i) => {
+            if (arg === '--ports' && i + 1 < originalArgs.length) {
+              portArgIndices.push(i + 1);
+            }
+          });
+          
+          argv.ports.forEach((port, i) => {
+            const isInvalid = !Number.isInteger(port) ||
               port <= 0 ||
               port > 65535 ||
-              !Number.isFinite(port)
-          );
-          if (invalidPorts.length > 0) {
+              !Number.isFinite(port);
+              
+            if (isInvalid) {
+              // Try to get the original input, fallback to the parsed value
+              const originalInput = portArgIndices[i] ? originalArgs[portArgIndices[i]] : String(port);
+              invalidPortsWithOriginal.push(originalInput);
+            }
+          });
+          
+          if (invalidPortsWithOriginal.length > 0) {
             throw new Error(
-              `Invalid port value(s): ${invalidPorts.join(
+              `Invalid port value(s): ${invalidPortsWithOriginal.join(
                 ", "
               )}. Ports must be integers between 1 and 65535.`
             );
