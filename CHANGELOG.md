@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/codesandbox/codesandbox-sdk/compare/v2.2.0...v2.2.1) (2025-09-16)
+
+
+### Bug Fixes
+
+* Throw error when invalid port is used ([#188](https://github.com/codesandbox/codesandbox-sdk/issues/188)) ([d0bdf31](https://github.com/codesandbox/codesandbox-sdk/commit/d0bdf3128787cdea22ea7e18c5af63594c303402))
+
 ## [2.2.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.1.0...v2.2.0) (2025-09-02)
 
 
