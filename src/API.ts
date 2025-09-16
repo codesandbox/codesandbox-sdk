@@ -55,7 +55,6 @@ import type {
 } from "./api-clients/client";
 import { PitcherManagerResponse } from "./types";
 
-
 export interface APIOptions {
   apiKey: string;
   config?: Config;
