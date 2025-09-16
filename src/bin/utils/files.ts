@@ -7,16 +7,14 @@ import ignore from "ignore";
 const MAX_FILES = 50_000;
 
 export async function hashDirectory(dirPath: string): Promise<string[]> {
-  // Initialize ignore rules from .gitignore, .dockerignore and .csbignore
+  // Initialize ignore rules from .csbignore only
   const ig = ignore();
-  const ignoreFiles = [".gitignore", ".dockerignore", ".csbignore"];
-  ignoreFiles.forEach((file) => {
-    const fullPath = join(dirPath, file);
-    if (existsSync(fullPath)) {
-      ig.add(readFileSync(fullPath, "utf8"));
-      ig.add(file);
-    }
-  });
+  const ignoreFile = ".csbignore";
+  const fullPath = join(dirPath, ignoreFile);
+  if (existsSync(fullPath)) {
+    ig.add(readFileSync(fullPath, "utf8"));
+    ig.add(ignoreFile);
+  }
 
   // Always ignore root .git folder
   ig.add("/.git/");
