@@ -98,9 +98,30 @@ export const buildCommand: yargs.CommandModule<
         describe: "Path to the project that we'll create a snapshot from",
         type: "string",
         demandOption: "Path to the project is required",
+      })
+      .check((argv) => {
+        // Validate ports parameter - ensure all values are valid numbers
+        if (argv.ports && argv.ports.length > 0) {
+          const invalidPorts = argv.ports.filter(
+            (port) =>
+              !Number.isInteger(port) ||
+              port <= 0 ||
+              port > 65535 ||
+              !Number.isFinite(port)
+          );
+          if (invalidPorts.length > 0) {
+            throw new Error(
+              `Invalid port value(s): ${invalidPorts.join(
+                ", "
+              )}. Ports must be integers between 1 and 65535.`
+            );
+          }
+        }
+        return true;
       }),
 
   handler: async (argv) => {
+
     const apiKey = getInferredApiKey();
     const api = new API({ apiKey, instrumentation: instrumentedFetch });
     const sdk = new CodeSandbox(apiKey);
