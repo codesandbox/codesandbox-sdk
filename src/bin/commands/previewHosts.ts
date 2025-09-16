@@ -3,8 +3,10 @@ import type * as yargs from "yargs";
 import { API } from "../../API";
 import { getInferredApiKey } from "../../utils/constants";
 
-const apiKey = getInferredApiKey();
-const api = new API({ apiKey });
+function getAPI() {
+  const apiKey = getInferredApiKey();
+  return new API({ apiKey });
+}
 
 export const previewHostsCommand: yargs.CommandModule = {
   command: "preview-hosts",
@@ -16,6 +18,7 @@ export const previewHostsCommand: yargs.CommandModule = {
         command: "list",
         describe: "List current preview hosts",
         handler: async () => {
+          const api = getAPI();
           const response = await api.listPreviewHosts();
           const hosts = response.preview_hosts.map(({ host }) => host);
           if (hosts.length) {
@@ -35,6 +38,7 @@ export const previewHostsCommand: yargs.CommandModule = {
             demandOption: true,
           }),
         handler: async (argv) => {
+          const api = getAPI();
           const response = await api.listPreviewHosts();
           let hosts = response.preview_hosts.map(({ host }) => host);
           const hostToAdd = (argv.host as string).trim();
@@ -57,6 +61,7 @@ export const previewHostsCommand: yargs.CommandModule = {
             demandOption: true,
           }),
         handler: async (argv) => {
+          const api = getAPI();
           const response = await api.listPreviewHosts();
           let hosts = response.preview_hosts.map(({ host }) => host);
           const hostToRemove = (argv.host as string).trim();
@@ -73,6 +78,7 @@ export const previewHostsCommand: yargs.CommandModule = {
         command: "clear",
         describe: "Clear all preview hosts",
         handler: async () => {
+          const api = getAPI();
           const response = await api.listPreviewHosts();
           const hosts = response.preview_hosts.map(({ host }) => host);
           if (hosts.length === 0) {
