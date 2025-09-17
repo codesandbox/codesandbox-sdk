@@ -60,40 +60,6 @@ export class Sandboxes {
     );
   }
 
-  private async createTemplateSandbox(
-    opts?: CreateSandboxOpts & StartSandboxOpts
-  ) {
-    const templateId = opts?.id || this.defaultTemplateId;
-    const privacy = opts?.privacy || "unlisted";
-    const tags = opts?.tags || ["sdk"];
-    let path = opts?.path || "/SDK";
-
-    if (!path.startsWith("/")) {
-      path = "/" + path;
-    }
-
-    // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
-    const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
-
-    const { mappedPrivacy, privatePreview } = mapPrivacyForApi(privacy);
-
-    const sandbox = await this.api.forkSandbox(templateId, {
-      privacy: mappedPrivacy,
-      title: opts?.title,
-      description: opts?.description,
-      tags: tagsWithSdk,
-      path,
-      private_preview: privatePreview,
-    });
-
-    const startResponse = await this.api.startVm(
-      sandbox.id,
-      { ...getStartOptions(opts), retryDelay: 200 } // Keep 200ms delay for creation
-    );
-
-    return new Sandbox(sandbox.id, this.api, startResponse, this.tracer);
-  }
-
   /**
    * Resume a sandbox.
    *
@@ -201,7 +167,35 @@ export class Sandboxes {
         "sandbox.privacy": opts?.privacy || "unlisted",
       },
       async () => {
-        return this.createTemplateSandbox(opts);
+        const templateId = opts?.id || this.defaultTemplateId;
+        const privacy = opts?.privacy || "public-hosts";
+        const tags = opts?.tags || ["sdk"];
+        let path = opts?.path || "/SDK";
+
+        if (!path.startsWith("/")) {
+          path = "/" + path;
+        }
+
+        // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
+        const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
+
+        const { mappedPrivacy, privatePreview } = mapPrivacyForApi(privacy);
+
+        const sandbox = await this.api.forkSandbox(templateId, {
+          privacy: mappedPrivacy,
+          title: opts?.title,
+          description: opts?.description,
+          tags: tagsWithSdk,
+          path,
+          private_preview: privatePreview,
+        });
+
+        const startResponse = await this.api.startVm(
+          sandbox.id,
+          { ...getStartOptions(opts), retryDelay: 200 } // Keep 200ms delay for creation
+        );
+
+        return new Sandbox(sandbox.id, this.api, startResponse, this.tracer);
       }
     );
   }
