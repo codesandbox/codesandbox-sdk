@@ -204,7 +204,15 @@ export type CreateSandboxBaseOpts = {
 };
 
 export interface SessionCreateOptions {
-  id: string;
+  /**
+   * @deprecated
+   * Best practice is to use the default global user by omitting this field. Please read best practices on creating users in the documentation.
+   */
+  id?: string;
+  /**
+   * @deprecated
+   * Best practice is to not use this field as it does not guarantee "read" for all operations. Please read best practices on creating users in the documentation.
+   */
   permission?: "read" | "write";
   git?: {
     provider: string;
