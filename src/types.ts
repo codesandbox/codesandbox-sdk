@@ -148,11 +148,16 @@ export interface StartSandboxOpts {
    * The amount of seconds to wait before hibernating the sandbox after inactivity.
    *
    * Defaults to 300 seconds for free users, 1800 seconds for pro users. Maximum is 86400 seconds (1 day).
+   *
+   * @deprecated
+   * Best practice is to manually manage the lifecycle of a sandbox. Please read documentation on lifecycle management.
    */
   hibernationTimeoutSeconds?: number;
 
   /**
    * Configuration for when the VM should automatically wake up from hibernation.
+   * @deprecated
+   * Best practice is to manually manage the lifecycle of a sandbox. Please read documentation on lifecycle management.
    */
   automaticWakeupConfig?: {
     /**
