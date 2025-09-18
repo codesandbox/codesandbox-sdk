@@ -14,7 +14,6 @@ export async function hashDirectory(dirPath: string): Promise<string[]> {
     const fullPath = join(dirPath, file);
     if (existsSync(fullPath)) {
       ig.add(readFileSync(fullPath, "utf8"));
-      ig.add(file);
     }
   });
 
