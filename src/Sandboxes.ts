@@ -60,40 +60,6 @@ export class Sandboxes {
     );
   }
 
-  private async createTemplateSandbox(
-    opts?: CreateSandboxOpts & StartSandboxOpts
-  ) {
-    const templateId = opts?.id || this.defaultTemplateId;
-    const privacy = opts?.privacy || "unlisted";
-    const tags = opts?.tags || ["sdk"];
-    let path = opts?.path || "/SDK";
-
-    if (!path.startsWith("/")) {
-      path = "/" + path;
-    }
-
-    // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
-    const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
-
-    const { mappedPrivacy, privatePreview } = mapPrivacyForApi(privacy);
-
-    const sandbox = await this.api.forkSandbox(templateId, {
-      privacy: mappedPrivacy,
-      title: opts?.title,
-      description: opts?.description,
-      tags: tagsWithSdk,
-      path,
-      private_preview: privatePreview,
-    });
-
-    const startResponse = await this.api.startVm(
-      sandbox.id,
-      { ...getStartOptions(opts), retryDelay: 200 } // Keep 200ms delay for creation
-    );
-
-    return new Sandbox(sandbox.id, this.api, startResponse, this.tracer);
-  }
-
   /**
    * Resume a sandbox.
    *
@@ -190,6 +156,16 @@ export class Sandboxes {
     );
   }
 
+  private isTemplateId(id: string) {
+    return (
+      id === this.defaultTemplateId ||
+      // We allow template tags
+      id.startsWith("pt_") ||
+      // We allow template aliases
+      id.match(/^[^@]+@[^@]+$/)
+    );
+  }
+
   /**
    * Create a sandbox from a template. By default we will create a sandbox from the default universal template.
    */
@@ -198,10 +174,45 @@ export class Sandboxes {
       "sandboxes.create",
       {
         "template.id": opts?.id || this.defaultTemplateId,
-        "sandbox.privacy": opts?.privacy || "unlisted",
+        "sandbox.privacy": opts?.privacy || "public-hosts",
       },
       async () => {
-        return this.createTemplateSandbox(opts);
+        const templateId = opts?.id || this.defaultTemplateId;
+
+        if (!this.isTemplateId(templateId)) {
+          console.warn(
+            `You are creating a sandbox from an existing sandbox. This can cause a degraded experience if the sandbox is running or has been archived. Please ensure you follow best practices documentation for creating sandboxes.`
+          );
+        }
+
+        const privacy = opts?.privacy || "public-hosts";
+        const tags = opts?.tags || ["sdk"];
+        let path = opts?.path || "/SDK";
+
+        if (!path.startsWith("/")) {
+          path = "/" + path;
+        }
+
+        // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
+        const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
+
+        const { mappedPrivacy, privatePreview } = mapPrivacyForApi(privacy);
+
+        const sandbox = await this.api.forkSandbox(templateId, {
+          privacy: mappedPrivacy,
+          title: opts?.title,
+          description: opts?.description,
+          tags: tagsWithSdk,
+          path,
+          private_preview: privatePreview,
+        });
+
+        const startResponse = await this.api.startVm(
+          sandbox.id,
+          { ...getStartOptions(opts), retryDelay: 200 } // Keep 200ms delay for creation
+        );
+
+        return new Sandbox(sandbox.id, this.api, startResponse, this.tracer);
       }
     );
   }
