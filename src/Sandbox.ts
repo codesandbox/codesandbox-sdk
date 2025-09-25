@@ -105,7 +105,6 @@ export class Sandbox {
   /**
    * Updates the hibernation timeout for this sandbox. This is the amount of seconds the sandbox
    * will be kept alive without activity before it is automatically hibernated. Activity can be sessions or interactions with any endpoints exposed by the Sandbox.
-   * @deprecated Read the documentation for best practices using manual lifecycle management
    */
   async updateHibernationTimeout(timeoutSeconds: number): Promise<void> {
     return this.withSpan(

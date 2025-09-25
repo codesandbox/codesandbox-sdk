@@ -148,16 +148,11 @@ export interface StartSandboxOpts {
    * The amount of seconds to wait before hibernating the sandbox after inactivity.
    *
    * Defaults to 300 seconds for free users, 1800 seconds for pro users. Maximum is 86400 seconds (1 day).
-   *
-   * @deprecated
-   * Best practice is to manually manage the lifecycle of a sandbox. Please read documentation on lifecycle management.
    */
   hibernationTimeoutSeconds?: number;
 
   /**
    * Configuration for when the VM should automatically wake up from hibernation.
-   * @deprecated
-   * Best practice is to manually manage the lifecycle of a sandbox. Please read documentation on lifecycle management.
    */
   automaticWakeupConfig?: {
     /**
@@ -204,15 +199,7 @@ export type CreateSandboxBaseOpts = {
 };
 
 export interface SessionCreateOptions {
-  /**
-   * @deprecated
-   * Best practice is to use the default global user by omitting this field. Please read best practices on creating users in the documentation.
-   */
   id?: string;
-  /**
-   * @deprecated
-   * Best practice is to not use this field as it does not guarantee "read" for all operations. Please read best practices on creating users in the documentation.
-   */
   permission?: "read" | "write";
   git?: {
     provider: string;
