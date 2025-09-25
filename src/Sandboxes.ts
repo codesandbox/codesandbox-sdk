@@ -96,6 +96,20 @@ export class Sandboxes {
   }
 
   /**
+   * Permanently deletes a sandbox. This action is irreversible and will delete all data associated with the sandbox.
+   * The sandbox must belong to your team's workspace to be deleted.
+   */
+  async delete(sandboxId: string): Promise<void> {
+    return this.withSpan(
+      "sandboxes.delete",
+      { "sandbox.id": sandboxId },
+      async () => {
+        await this.api.deleteVm(sandboxId);
+      }
+    );
+  }
+
+  /**
    * Forks a sandbox. This will create a new sandbox from the given sandbox.
    * @deprecated This will be removed shortly to avoid having multiple ways of doing the same thing
    */
