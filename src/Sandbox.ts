@@ -178,10 +178,11 @@ export class Sandbox {
     pitcherManagerResponse: PitcherManagerResponse,
     customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
-    if (!customSession) {
+    if (!customSession || !customSession.id) {
       return {
         sandboxId: this.id,
         bootupType: this.bootupType,
+        hostToken: customSession?.hostToken,
         cluster: this.cluster,
         latestPitcherVersion: pitcherManagerResponse.latestPitcherVersion,
         pitcherManagerVersion: pitcherManagerResponse.pitcherManagerVersion,

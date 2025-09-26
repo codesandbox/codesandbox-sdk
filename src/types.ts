@@ -199,7 +199,7 @@ export type CreateSandboxBaseOpts = {
 };
 
 export interface SessionCreateOptions {
-  id: string;
+  id?: string;
   permission?: "read" | "write";
   git?: {
     provider: string;

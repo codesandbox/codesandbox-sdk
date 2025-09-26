@@ -60,40 +60,6 @@ export class Sandboxes {
     );
   }
 
-  private async createTemplateSandbox(
-    opts?: CreateSandboxOpts & StartSandboxOpts
-  ) {
-    const templateId = opts?.id || this.defaultTemplateId;
-    const privacy = opts?.privacy || "unlisted";
-    const tags = opts?.tags || ["sdk"];
-    let path = opts?.path || "/SDK";
-
-    if (!path.startsWith("/")) {
-      path = "/" + path;
-    }
-
-    // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
-    const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
-
-    const { mappedPrivacy, privatePreview } = mapPrivacyForApi(privacy);
-
-    const sandbox = await this.api.forkSandbox(templateId, {
-      privacy: mappedPrivacy,
-      title: opts?.title,
-      description: opts?.description,
-      tags: tagsWithSdk,
-      path,
-      private_preview: privatePreview,
-    });
-
-    const startResponse = await this.api.startVm(
-      sandbox.id,
-      { ...getStartOptions(opts), retryDelay: 200 } // Keep 200ms delay for creation
-    );
-
-    return new Sandbox(sandbox.id, this.api, startResponse, this.tracer);
-  }
-
   /**
    * Resume a sandbox.
    *
@@ -125,6 +91,20 @@ export class Sandboxes {
       { "sandbox.id": sandboxId },
       async () => {
         await this.api.shutdown(sandboxId);
+      }
+    );
+  }
+
+  /**
+   * Permanently deletes a sandbox. This action is irreversible and will delete all data associated with the sandbox.
+   * The sandbox must belong to your team's workspace to be deleted.
+   */
+  async delete(sandboxId: string): Promise<void> {
+    return this.withSpan(
+      "sandboxes.delete",
+      { "sandbox.id": sandboxId },
+      async () => {
+        await this.api.deleteVm(sandboxId);
       }
     );
   }
@@ -198,10 +178,38 @@ export class Sandboxes {
       "sandboxes.create",
       {
         "template.id": opts?.id || this.defaultTemplateId,
-        "sandbox.privacy": opts?.privacy || "unlisted",
+        "sandbox.privacy": opts?.privacy || "public-hosts",
       },
       async () => {
-        return this.createTemplateSandbox(opts);
+        const templateId = opts?.id || this.defaultTemplateId;
+        const privacy = opts?.privacy || "public-hosts";
+        const tags = opts?.tags || ["sdk"];
+        let path = opts?.path || "/SDK";
+
+        if (!path.startsWith("/")) {
+          path = "/" + path;
+        }
+
+        // Always add the "sdk" tag to the sandbox, this is used to identify sandboxes created by the SDK.
+        const tagsWithSdk = tags.includes("sdk") ? tags : [...tags, "sdk"];
+
+        const { mappedPrivacy, privatePreview } = mapPrivacyForApi(privacy);
+
+        const sandbox = await this.api.forkSandbox(templateId, {
+          privacy: mappedPrivacy,
+          title: opts?.title,
+          description: opts?.description,
+          tags: tagsWithSdk,
+          path,
+          private_preview: privatePreview,
+        });
+
+        const startResponse = await this.api.startVm(
+          sandbox.id,
+          { ...getStartOptions(opts), retryDelay: 200 } // Keep 200ms delay for creation
+        );
+
+        return new Sandbox(sandbox.id, this.api, startResponse, this.tracer);
       }
     );
   }

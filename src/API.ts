@@ -19,6 +19,7 @@ import {
   vmListClusters,
   vmListRunningVms,
   vmCreateTag,
+  vmDelete,
   vmHibernate,
   vmUpdateHibernationTimeout,
   vmCreateSession,
@@ -42,6 +43,7 @@ import type {
   TemplatesCreateData,
   VmAssignTagAliasData,
   VmCreateTagData,
+  VmDeleteData,
   VmHibernateData,
   VmUpdateHibernationTimeoutData,
   VmCreateSessionData,
@@ -245,6 +247,14 @@ export class API {
       body: data,
     });
     return handleResponse(response, "Failed to create VM tag");
+  }
+
+  async deleteVm(id: string) {
+    const response = await vmDelete({
+      client: this.client,
+      path: { id },
+    });
+    return handleResponse(response, `Failed to delete VM ${id}`);
   }
 
   async hibernate(id: string, data?: VmHibernateData["body"]) {
