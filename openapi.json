@@ -1062,6 +1062,16 @@
             "enum": ["browser", "vm"],
             "type": "string"
           },
+          "settings": {
+            "description": "Sandbox settings.",
+            "properties": {
+              "use_pint": {
+                "description": "Whether to use Pint for the sandbox.",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
           "tags": {
             "default": [],
             "description": "List of string tags to apply to the sandbox. Only the first ten will be used. Defaults to no tags.",
@@ -1215,6 +1225,33 @@
           }
         ],
         "title": "TokenCreateResponse",
+        "type": "object"
+      },
+      "VMDeleteResponse": {
+        "allOf": [
+          {
+            "properties": {
+              "errors": {
+                "items": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "additionalProperties": true, "type": "object" }
+                  ],
+                  "title": "Error"
+                },
+                "type": "array"
+              },
+              "success": { "type": "boolean" }
+            },
+            "title": "Response",
+            "type": "object"
+          },
+          {
+            "properties": { "data": { "properties": {}, "type": "object" } },
+            "type": "object"
+          }
+        ],
+        "title": "VMDeleteResponse",
         "type": "object"
       },
       "TemplateCreateResponse": {
@@ -2234,6 +2271,36 @@
         "tags": ["vm"]
       }
     },
+    "/vm/{id}": {
+      "delete": {
+        "callbacks": {},
+        "description": "Deletes a VM, permanently removing it from the system.\n\nThis endpoint can only be used on VMs that belong to your team's workspace.\nDeleting a VM is irreversible and will permanently delete all data associated with it.\n",
+        "operationId": "vm/delete",
+        "parameters": [
+          {
+            "description": "Sandbox ID",
+            "example": "new",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VMDeleteResponse" }
+              }
+            },
+            "description": "VM Delete Response"
+          }
+        },
+        "security": [{ "authorization": ["vm:manage"] }],
+        "summary": "Delete a VM",
+        "tags": ["vm"]
+      }
+    },
     "/vm/{id}/hibernate": {
       "post": {
         "callbacks": {},
@@ -2604,6 +2671,6 @@
     }
   },
   "security": [],
-  "servers": [{ "url": "https://api.codesandbox.io", "variables": {} }],
+  "servers": [{ "url": "https://api.codesandbox.stream", "variables": {} }],
   "tags": []
 }
