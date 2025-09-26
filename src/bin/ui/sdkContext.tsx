@@ -5,16 +5,15 @@ import { API } from "../../API";
 import { getInferredApiKey } from "../../utils/constants";
 import { instrumentedFetch } from "../utils/sentry";
 
-const apiKey = getInferredApiKey();
-const sdk = new CodeSandbox(apiKey);
-const api = new API({ apiKey, instrumentation: instrumentedFetch });
-
-export const SDKContext = createContext<{ sdk: CodeSandbox; api: API }>({
-  sdk,
-  api,
-});
+export const SDKContext = createContext(
+  null as unknown as { sdk: CodeSandbox; api: API }
+);
 
 export const SDKProvider = ({ children }: { children: React.ReactNode }) => {
+  const apiKey = getInferredApiKey();
+  const sdk = new CodeSandbox(apiKey);
+  const api = new API({ apiKey, instrumentation: instrumentedFetch });
+
   return (
     <SDKContext.Provider value={{ sdk, api }}>{children}</SDKContext.Provider>
   );
