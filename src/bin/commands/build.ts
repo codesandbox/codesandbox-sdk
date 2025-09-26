@@ -37,6 +37,42 @@ async function writeFileEnsureDir(filePath, data) {
   await writeFile(filePath, data);
 }
 
+async function hasDockerfile(templateDirectory: string): Promise<boolean> {
+  try {
+    const dockerfilePath = path.join(templateDirectory, ".codesandbox", "Dockerfile");
+    await fs.access(dockerfilePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function removeDevcontainerFiles(session: SandboxClient): Promise<void> {
+  try {
+    // Check if .devcontainer directory exists
+    const devcontainerPath = ".devcontainer";
+    try {
+      await session.fs.stat(devcontainerPath);
+      // If we reach here, the directory exists, so remove it
+      await session.fs.remove(devcontainerPath, true);
+    } catch {
+      // Directory doesn't exist, nothing to remove
+    }
+
+    // Also check for .devcontainer.json file at root
+    try {
+      await session.fs.stat(".devcontainer.json");
+      // If we reach here, the file exists, so remove it
+      await session.fs.remove(".devcontainer.json");
+    } catch {
+      // File doesn't exist, nothing to remove
+    }
+  } catch (error) {
+    // Log but don't fail the build if devcontainer cleanup fails
+    console.warn(`Warning: Failed to remove .devcontainer files: ${error}`);
+  }
+}
+
 function stripAnsiCodes(str: string) {
   // Matches ESC [ params … finalChar
   //   \x1B       = ESC
@@ -293,6 +329,14 @@ export const buildCommand: yargs.CommandModule<
           ).catch((error) => {
             throw new Error(`Failed to write files to sandbox: ${error}`);
           });
+
+          // Check if template has .codesandbox/Dockerfile and remove .devcontainer files if so
+          if (await hasDockerfile(argv.directory)) {
+            spinner.start(
+              updateSpinnerMessage(index, "Removing .devcontainer files...")
+            );
+            await removeDevcontainerFiles(session);
+          }
 
           // Dispose of the session after writing files to prevent reconnection
           session.dispose();
