@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.3.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.2.1...v2.3.0) (2025-09-29)
+
+
+### Features
+
+* trigger release after squash merge ([#195](https://github.com/codesandbox/codesandbox-sdk/issues/195)) ([93e65b3](https://github.com/codesandbox/codesandbox-sdk/commit/93e65b3ae1754db43f72ae223feecb8e912ae7ee))
+
+
+### Bug Fixes
+
+* allow --help without api key ([#190](https://github.com/codesandbox/codesandbox-sdk/issues/190)) ([3f14843](https://github.com/codesandbox/codesandbox-sdk/commit/3f14843c2ea354cb9ba0c1b9137ca9ca92c2ee60))
+* Remove devcontainer folder when .codesandbox/Dockerfile identified ([#196](https://github.com/codesandbox/codesandbox-sdk/issues/196)) ([b5c6df9](https://github.com/codesandbox/codesandbox-sdk/commit/b5c6df9cd6b4c43859e85635c5fde4de50674b3d))
+
 ## [2.2.1](https://github.com/codesandbox/codesandbox-sdk/compare/v2.2.0...v2.2.1) (2025-09-16)
 
 
