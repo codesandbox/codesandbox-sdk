@@ -39,7 +39,11 @@ async function writeFileEnsureDir(filePath, data) {
 
 async function hasDockerfile(templateDirectory: string): Promise<boolean> {
   try {
-    const dockerfilePath = path.join(templateDirectory, ".codesandbox", "Dockerfile");
+    const dockerfilePath = path.join(
+      templateDirectory,
+      ".codesandbox",
+      "Dockerfile"
+    );
     await fs.access(dockerfilePath);
     return true;
   } catch {
@@ -57,15 +61,6 @@ async function removeDevcontainerFiles(session: SandboxClient): Promise<void> {
       await session.fs.remove(devcontainerPath, true);
     } catch {
       // Directory doesn't exist, nothing to remove
-    }
-
-    // Also check for .devcontainer.json file at root
-    try {
-      await session.fs.stat(".devcontainer.json");
-      // If we reach here, the file exists, so remove it
-      await session.fs.remove(".devcontainer.json");
-    } catch {
-      // File doesn't exist, nothing to remove
     }
   } catch (error) {
     // Log but don't fail the build if devcontainer cleanup fails
@@ -139,31 +134,34 @@ export const buildCommand: yargs.CommandModule<
         // Validate ports parameter - ensure all values are valid numbers
         if (argv.ports && argv.ports.length > 0) {
           const invalidPortsWithOriginal: string[] = [];
-          
+
           // Get the original arguments to show what the user actually typed
           const originalArgs = process.argv;
           const portArgIndices: number[] = [];
-          
+
           // Find all --ports arguments in the original command
           originalArgs.forEach((arg, i) => {
-            if (arg === '--ports' && i + 1 < originalArgs.length) {
+            if (arg === "--ports" && i + 1 < originalArgs.length) {
               portArgIndices.push(i + 1);
             }
           });
-          
+
           argv.ports.forEach((port, i) => {
-            const isInvalid = !Number.isInteger(port) ||
+            const isInvalid =
+              !Number.isInteger(port) ||
               port <= 0 ||
               port > 65535 ||
               !Number.isFinite(port);
-              
+
             if (isInvalid) {
               // Try to get the original input, fallback to the parsed value
-              const originalInput = portArgIndices[i] ? originalArgs[portArgIndices[i]] : String(port);
+              const originalInput = portArgIndices[i]
+                ? originalArgs[portArgIndices[i]]
+                : String(port);
               invalidPortsWithOriginal.push(originalInput);
             }
           });
-          
+
           if (invalidPortsWithOriginal.length > 0) {
             throw new Error(
               `Invalid port value(s): ${invalidPortsWithOriginal.join(
@@ -176,7 +174,6 @@ export const buildCommand: yargs.CommandModule<
       }),
 
   handler: async (argv) => {
-
     const apiKey = getInferredApiKey();
     const api = new API({ apiKey, instrumentation: instrumentedFetch });
     const sdk = new CodeSandbox(apiKey);
@@ -333,7 +330,7 @@ export const buildCommand: yargs.CommandModule<
           // Check if template has .codesandbox/Dockerfile and remove .devcontainer files if so
           if (await hasDockerfile(argv.directory)) {
             spinner.start(
-              updateSpinnerMessage(index, "Removing .devcontainer files...")
+              updateSpinnerMessage(index, "Configuring Docker file...")
             );
             await removeDevcontainerFiles(session);
           }
