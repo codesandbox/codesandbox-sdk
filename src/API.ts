@@ -30,7 +30,7 @@ import {
   previewHostList,
   previewHostCreate,
   previewHostUpdate,
-} from "./api-clients/client";
+} from "./api-clients/csb";
 import type {
   WorkspaceCreateData,
   TokenCreateData,
@@ -54,7 +54,7 @@ import type {
   PreviewHostListData,
   PreviewHostCreateData,
   PreviewHostUpdateData,
-} from "./api-clients/client";
+} from "./api-clients/csb";
 import { PitcherManagerResponse } from "./types";
 
 

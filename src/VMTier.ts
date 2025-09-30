@@ -1,4 +1,4 @@
-import { VmUpdateSpecsRequest } from "./api-clients/client";
+import { VmUpdateSpecsRequest } from "./api-clients/csb";
 
 /**
  * A VM tier is how we classify the specs of a VM. You can use this to request a VM with specific

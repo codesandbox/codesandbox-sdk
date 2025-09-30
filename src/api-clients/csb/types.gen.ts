@@ -98,6 +98,9 @@ export type Sandbox = {
     id: string;
     is_frozen: boolean;
     privacy: number;
+    settings: {
+        use_pint?: boolean;
+    };
     tags: Array<string>;
     title?: string | null;
     updated_at: string;
@@ -456,6 +459,7 @@ export type VmStartResponse = {
         pitcher_url: string;
         pitcher_version: string;
         reconnect_token: string;
+        use_pint: boolean;
         user_workspace_path: string;
         workspace_path: string;
     };
@@ -749,6 +753,7 @@ export type SandboxForkResponse = {
             pitcher_url: string;
             pitcher_version: string;
             reconnect_token: string;
+            use_pint: boolean;
             user_workspace_path: string;
             workspace_path: string;
         } | null;

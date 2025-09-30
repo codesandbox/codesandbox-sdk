@@ -11,7 +11,7 @@ import {
   SandboxClient,
   API,
 } from "@codesandbox/sdk";
-import { VmUpdateSpecsRequest } from "../../api-clients/client";
+import { VmUpdateSpecsRequest } from "../../api-clients/csb";
 import { getDefaultTemplateId, retryWithDelay } from "../../utils/api";
 import { getInferredApiKey } from "../../utils/constants";
 import { hashDirectory as getFilePaths } from "../utils/files";
