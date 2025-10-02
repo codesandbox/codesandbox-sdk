@@ -1,6 +1,6 @@
 import { Disposable, DisposableStore } from "../utils/disposable";
 import { Emitter } from "../utils/event";
-import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { IAgentClient } from "../agent-client-interface";
 import * as protocol from "../pitcher-protocol";
 import { Barrier } from "../utils/barrier";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
@@ -186,7 +186,8 @@ export class SandboxCommands {
 
       return shells
         .filter(
-          (shell) => shell.shellType === "TERMINAL" && isCommandShell(shell)
+          (shell): shell is protocol.shell.CommandShellDTO =>
+            shell.shellType === "TERMINAL" && isCommandShell(shell)
         )
         .map(
           (shell) =>
