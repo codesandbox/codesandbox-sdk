@@ -130,3 +130,53 @@ export class AsyncEmitter<T> implements IDisposable {
     this.registeredListeners = new Set();
   }
 }
+
+/**
+ * EmitterSubscription provides an abstraction that manages a subscription lifecycle
+ * tied to the number of listeners on an emitter. The subscription is created when
+ * the first listener is added and disposed when the last listener is removed.
+ */
+export class EmitterSubscription<T> implements IDisposable {
+  private emitter = new Emitter<T>();
+  private subscription: IDisposable | undefined;
+  private listenerCount = 0;
+
+  constructor(
+    private createSubscription: (fire: (value: T) => void) => IDisposable
+  ) {}
+
+  get event(): Event<T> {
+    return (listener: (e: T) => void) => {
+      // Add listener to emitter
+      const listenerDisposable = this.emitter.event(listener);
+
+      // Create subscription if this is the first listener
+      if (this.listenerCount === 0) {
+        this.subscription = this.createSubscription((value) =>
+          this.emitter.fire(value)
+        );
+      }
+
+      this.listenerCount++;
+
+      // Return disposable that removes listener and cleans up subscription if needed
+      return Disposable.create(() => {
+        listenerDisposable.dispose();
+        this.listenerCount--;
+
+        // Dispose subscription when last listener is removed
+        if (this.listenerCount === 0 && this.subscription) {
+          this.subscription.dispose();
+          this.subscription = undefined;
+        }
+      });
+    };
+  }
+
+  dispose(): void {
+    this.subscription?.dispose();
+    this.subscription = undefined;
+    this.emitter.dispose();
+    this.listenerCount = 0;
+  }
+}
