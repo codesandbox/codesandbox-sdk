@@ -1655,32 +1655,6 @@
           "200": {
             "description": "Open ports retrieved successfully",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PortsListResponse"
-                },
-                "examples": {
-                  "default": {
-                    "summary": "Example ports response",
-                    "value": {
-                      "ports": [
-                        {
-                          "port": 8080,
-                          "address": "0.0.0.0"
-                        },
-                        {
-                          "port": 3000,
-                          "address": "127.0.0.1"
-                        },
-                        {
-                          "port": 5432,
-                          "address": "::1"
-                        }
-                      ]
-                    }
-                  }
-                }
-              },
               "text/event-stream": {
                 "schema": {
                   "type": "string",
