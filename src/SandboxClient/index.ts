@@ -10,7 +10,7 @@ import { Terminals } from "./terminals";
 import { SandboxCommands } from "./commands";
 import { HostToken } from "../HostTokens";
 import { Hosts } from "./hosts";
-import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { IAgentClient } from "../agent-client-interface";
 import { setup, system } from "../pitcher-protocol";
 import { Barrier } from "../utils/barrier";
 import { AgentClient } from "../AgentClient";

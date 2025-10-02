@@ -37,9 +37,7 @@
     "/api/v1/files/{path}": {
       "post": {
         "summary": "Create a file",
-        "tags": [
-          "files"
-        ],
+        "tags": ["files"],
         "description": "Creates a new file at the specified path with optional content.",
         "operationId": "createFile",
         "security": [
@@ -124,9 +122,7 @@
       },
       "get": {
         "summary": "Read file content",
-        "tags": [
-          "files"
-        ],
+        "tags": ["files"],
         "description": "Reads the content of a file at the specified path.",
         "operationId": "readFile",
         "security": [
@@ -201,9 +197,7 @@
       },
       "patch": {
         "summary": "Perform file actions",
-        "tags": [
-          "files"
-        ],
+        "tags": ["files"],
         "description": "Performs actions on files (e.g., move operations).",
         "operationId": "performFileAction",
         "security": [
@@ -289,9 +283,7 @@
       },
       "delete": {
         "summary": "Delete a file",
-        "tags": [
-          "files"
-        ],
+        "tags": ["files"],
         "description": "Deletes a file at the specified path.",
         "operationId": "deleteFile",
         "security": [
@@ -378,9 +370,7 @@
     "/api/v1/directories/{path}": {
       "post": {
         "summary": "Create a directory",
-        "tags": [
-          "directories"
-        ],
+        "tags": ["directories"],
         "description": "Creates a new directory at the specified path.",
         "operationId": "createDirectory",
         "security": [
@@ -455,9 +445,7 @@
       },
       "get": {
         "summary": "List directory contents",
-        "tags": [
-          "directories"
-        ],
+        "tags": ["directories"],
         "description": "Lists the contents of a directory at the specified path.",
         "operationId": "listDirectory",
         "security": [
@@ -532,9 +520,7 @@
       },
       "delete": {
         "summary": "Delete a directory",
-        "tags": [
-          "directories"
-        ],
+        "tags": ["directories"],
         "description": "Deletes a directory at the specified path.",
         "operationId": "deleteDirectory",
         "security": [
@@ -621,9 +607,7 @@
     "/api/v1/execs": {
       "post": {
         "summary": "Create a new exec",
-        "tags": [
-          "execs"
-        ],
+        "tags": ["execs"],
         "description": "Creates a new exec with specified command and arguments.",
         "operationId": "createExec",
         "security": [
@@ -697,9 +681,7 @@
       },
       "get": {
         "summary": "List all execs",
-        "tags": [
-          "execs"
-        ],
+        "tags": ["execs"],
         "description": "Returns a list of all active execs.",
         "operationId": "listExecs",
         "security": [
@@ -750,9 +732,7 @@
     "/api/v1/execs/{id}": {
       "get": {
         "summary": "Get exec by ID",
-        "tags": [
-          "execs"
-        ],
+        "tags": ["execs"],
         "description": "Retrieves a specific exec by its ID.",
         "operationId": "getExec",
         "security": [
@@ -832,9 +812,7 @@
       },
       "put": {
         "summary": "Update exec",
-        "tags": [
-          "execs"
-        ],
+        "tags": ["execs"],
         "description": "Updates exec status (e.g., start a stopped exec).",
         "operationId": "updateExec",
         "security": [
@@ -939,9 +917,7 @@
       },
       "delete": {
         "summary": "Delete Exec",
-        "tags": [
-          "execs"
-        ],
+        "tags": ["execs"],
         "description": "Deletes a exec and execs its process.",
         "operationId": "deleteExec",
         "security": [
@@ -1017,9 +993,7 @@
     "/api/v1/execs/{id}/io": {
       "get": {
         "summary": "Get Exec output",
-        "tags": [
-          "execs"
-        ],
+        "tags": ["execs"],
         "description": "Retrieves the plain text output from a exec's buffer.",
         "operationId": "getExecOutput",
         "security": [
@@ -1101,9 +1075,7 @@
       },
       "post": {
         "summary": "exec exec stdin",
-        "tags": [
-          "execs"
-        ],
+        "tags": ["execs"],
         "description": "exec exec command (e.g., npm install).",
         "operationId": "execExecStdin",
         "security": [
@@ -1200,9 +1172,7 @@
     "/ws/v1/execs/{id}": {
       "get": {
         "summary": "Connect to exec via WebSocket",
-        "tags": [
-          "execs"
-        ],
+        "tags": ["execs"],
         "description": "Establishes a WebSocket connection for real-time exec interaction.\n\nAuthentication can be provided via:\n- Authorization header: `Authorization: Bearer <token>`\n- Query parameter: `?token=<token>`\n\nPermissions:\n- Admin users: Can send input and receive output\n- Readonly users: Can only receive output\n",
         "operationId": "connectToExecWebSocket",
         "security": [
@@ -1284,9 +1254,7 @@
     "/api/v1/tasks": {
       "get": {
         "summary": "List all tasks",
-        "tags": [
-          "tasks"
-        ],
+        "tags": ["tasks"],
         "description": "Lists all configured tasks from .codesandbox/tasks.json with their current status.",
         "operationId": "listTasks",
         "security": [
@@ -1331,9 +1299,7 @@
     "/api/v1/tasks/{id}": {
       "get": {
         "summary": "Get task by ID",
-        "tags": [
-          "tasks"
-        ],
+        "tags": ["tasks"],
         "description": "Retrieves a specific task by its ID with current status and configuration.",
         "operationId": "getTask",
         "security": [
@@ -1409,9 +1375,7 @@
     "/api/v1/tasks/{id}/actions": {
       "patch": {
         "summary": "Execute task action",
-        "tags": [
-          "tasks"
-        ],
+        "tags": ["tasks"],
         "description": "Executes an action on a specific task (start, stop, or restart).",
         "operationId": "executeTaskAction",
         "security": [
@@ -1516,9 +1480,7 @@
     "/api/v1/setup-tasks": {
       "get": {
         "summary": "List setup tasks",
-        "tags": [
-          "tasks"
-        ],
+        "tags": ["tasks"],
         "description": "Lists all setup tasks with their execution status. Setup tasks are auto-executed during server start.",
         "operationId": "listSetupTasks",
         "security": [
@@ -1563,9 +1525,7 @@
     "/api/v1/ports": {
       "get": {
         "summary": "List open ports",
-        "tags": [
-          "ports"
-        ],
+        "tags": ["ports"],
         "description": "Lists all open TCP ports on the system, excluding ignored ports configured in the server.",
         "operationId": "listPorts",
         "security": [
@@ -1641,9 +1601,7 @@
     "/api/v1/ports/stream": {
       "get": {
         "summary": "List open ports using Server-Sent Events (SSE)",
-        "tags": [
-          "ports"
-        ],
+        "tags": ["ports"],
         "description": "Lists all open TCP ports on the system AND LISTEN TO THE CHANGES, excluding ignored ports configured in the server.",
         "operationId": "ListPortsSSE",
         "security": [
@@ -1655,32 +1613,6 @@
           "200": {
             "description": "Open ports retrieved successfully",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PortsListResponse"
-                },
-                "examples": {
-                  "default": {
-                    "summary": "Example ports response",
-                    "value": {
-                      "ports": [
-                        {
-                          "port": 8080,
-                          "address": "0.0.0.0"
-                        },
-                        {
-                          "port": 3000,
-                          "address": "127.0.0.1"
-                        },
-                        {
-                          "port": 5432,
-                          "address": "::1"
-                        }
-                      ]
-                    }
-                  }
-                }
-              },
               "text/event-stream": {
                 "schema": {
                   "type": "string",
@@ -1747,10 +1679,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "code",
-          "message"
-        ]
+        "required": ["code", "message"]
       },
       "FileReadResponse": {
         "type": "object",
@@ -1764,10 +1693,7 @@
             "description": "File content"
           }
         },
-        "required": [
-          "path",
-          "content"
-        ]
+        "required": ["path", "content"]
       },
       "FileCreateRequest": {
         "type": "object",
@@ -1790,19 +1716,14 @@
             "description": "File or directory path"
           }
         },
-        "required": [
-          "message",
-          "path"
-        ]
+        "required": ["message", "path"]
       },
       "FileActionRequest": {
         "type": "object",
         "properties": {
           "action": {
             "type": "string",
-            "enum": [
-              "move"
-            ],
+            "enum": ["move"],
             "description": "Type of action to perform on the file"
           },
           "destination": {
@@ -1810,10 +1731,7 @@
             "description": "Destination path for move operation"
           }
         },
-        "required": [
-          "action",
-          "destination"
-        ]
+        "required": ["action", "destination"]
       },
       "FileActionResponse": {
         "type": "object",
@@ -1831,11 +1749,7 @@
             "description": "Destination path"
           }
         },
-        "required": [
-          "message",
-          "from",
-          "to"
-        ]
+        "required": ["message", "from", "to"]
       },
       "FileInfo": {
         "type": "object",
@@ -1862,13 +1776,7 @@
             "description": "Last modification time"
           }
         },
-        "required": [
-          "name",
-          "path",
-          "isDir",
-          "size",
-          "modTime"
-        ]
+        "required": ["name", "path", "isDir", "size", "modTime"]
       },
       "DirectoryListResponse": {
         "type": "object",
@@ -1885,10 +1793,7 @@
             "description": "List of files and directories"
           }
         },
-        "required": [
-          "path",
-          "files"
-        ]
+        "required": ["path", "files"]
       },
       "ExecItem": {
         "type": "object",
@@ -1917,13 +1822,7 @@
             "description": "Process ID of the exec"
           }
         },
-        "required": [
-          "id",
-          "command",
-          "args",
-          "status",
-          "pid"
-        ]
+        "required": ["id", "command", "args", "status", "pid"]
       },
       "ExecListResponse": {
         "type": "object",
@@ -1936,9 +1835,7 @@
             "description": "List of execs"
           }
         },
-        "required": [
-          "execs"
-        ]
+        "required": ["execs"]
       },
       "CreateExecRequest": {
         "type": "object",
@@ -1963,25 +1860,18 @@
             "description": "Whether to start interactive shell session or not (defaults to false)"
           }
         },
-        "required": [
-          "command",
-          "args"
-        ]
+        "required": ["command", "args"]
       },
       "UpdateExecRequest": {
         "type": "object",
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "running"
-            ],
+            "enum": ["running"],
             "description": "Status to set for the exec (currently only 'running' is supported)"
           }
         },
-        "required": [
-          "status"
-        ]
+        "required": ["status"]
       },
       "ExecDeleteResponse": {
         "type": "object",
@@ -1991,9 +1881,7 @@
             "description": "Deletion confirmation message"
           }
         },
-        "required": [
-          "message"
-        ]
+        "required": ["message"]
       },
       "ExecStdout": {
         "type": "object",
@@ -2001,10 +1889,7 @@
           "type": {
             "type": "string",
             "description": "Type of the exec output",
-            "enum": [
-              "stdout",
-              "stderr"
-            ]
+            "enum": ["stdout", "stderr"]
           },
           "output": {
             "type": "string",
@@ -2021,11 +1906,7 @@
             "description": "Timestamp of when the output was generated"
           }
         },
-        "required": [
-          "type",
-          "output",
-          "sequence"
-        ]
+        "required": ["type", "output", "sequence"]
       },
       "ExecStdin": {
         "type": "object",
@@ -2033,31 +1914,18 @@
           "type": {
             "type": "string",
             "description": "Type of the exec input",
-            "enum": [
-              "stdin",
-              "resize"
-            ]
+            "enum": ["stdin", "resize"]
           },
           "input": {
             "type": "string",
             "description": "Data associated with the exec input"
           }
         },
-        "required": [
-          "type",
-          "input"
-        ]
+        "required": ["type", "input"]
       },
       "TaskStatus": {
         "type": "string",
-        "enum": [
-          "RUNNING",
-          "FINISHED",
-          "ERROR",
-          "KILLED",
-          "RESTARTING",
-          "IDLE"
-        ]
+        "enum": ["RUNNING", "FINISHED", "ERROR", "KILLED", "RESTARTING", "IDLE"]
       },
       "TaskBase": {
         "type": "object",
@@ -2080,12 +1948,7 @@
             "example": "2017-08-21T17:32:28Z"
           }
         },
-        "required": [
-          "status",
-          "execId",
-          "startTime",
-          "endTime"
-        ],
+        "required": ["status", "execId", "startTime", "endTime"],
         "description": "Base schema for a task item, containing common fields shared across different task types.",
         "title": "TaskBase"
       },
@@ -2108,12 +1971,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "files",
-          "clone",
-          "resume",
-          "branch"
-        ]
+        "required": ["files", "clone", "resume", "branch"]
       },
       "TaskPreview": {
         "type": "object",
@@ -2122,9 +1980,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "port"
-        ]
+        "required": ["port"]
       },
       "TaskConfig": {
         "type": "object",
@@ -2145,13 +2001,7 @@
             "$ref": "#/components/schemas/TaskPreview"
           }
         },
-        "required": [
-          "name",
-          "command",
-          "runAtStart",
-          "restartOn",
-          "preview"
-        ]
+        "required": ["name", "command", "runAtStart", "restartOn", "preview"]
       },
       "TaskItem": {
         "allOf": [
@@ -2169,10 +2019,7 @@
                 "$ref": "#/components/schemas/TaskConfig"
               }
             },
-            "required": [
-              "id",
-              "config"
-            ]
+            "required": ["id", "config"]
           }
         ]
       },
@@ -2186,9 +2033,7 @@
             }
           }
         },
-        "required": [
-          "tasks"
-        ]
+        "required": ["tasks"]
       },
       "GetTaskResponse": {
         "type": "object",
@@ -2197,17 +2042,11 @@
             "$ref": "#/components/schemas/TaskItem"
           }
         },
-        "required": [
-          "task"
-        ]
+        "required": ["task"]
       },
       "TaskActionType": {
         "type": "string",
-        "enum": [
-          "start",
-          "stop",
-          "restart"
-        ],
+        "enum": ["start", "stop", "restart"],
         "description": "Type of action to execute on a task"
       },
       "TaskActionResponse": {
@@ -2235,12 +2074,7 @@
                 "description": "Action result message"
               }
             },
-            "required": [
-              "id",
-              "name",
-              "message",
-              "command"
-            ]
+            "required": ["id", "name", "message", "command"]
           }
         ],
         "description": "Schema for task action responses, containing details about the task and the action performed.",
@@ -2263,11 +2097,7 @@
                 "description": "Setup task command"
               }
             },
-            "required": [
-              "name",
-              "command",
-              "execId"
-            ]
+            "required": ["name", "command", "execId"]
           }
         ]
       },
@@ -2281,9 +2111,7 @@
             }
           }
         },
-        "required": [
-          "setupTasks"
-        ]
+        "required": ["setupTasks"]
       },
       "PortInfo": {
         "type": "object",
@@ -2302,10 +2130,7 @@
             "example": "0.0.0.0"
           }
         },
-        "required": [
-          "port",
-          "address"
-        ]
+        "required": ["port", "address"]
       },
       "PortsListResponse": {
         "type": "object",
@@ -2318,9 +2143,7 @@
             "description": "List of open ports"
           }
         },
-        "required": [
-          "ports"
-        ]
+        "required": ["ports"]
       },
       "Task": {
         "$ref": "#/components/schemas/TaskItem"
