@@ -133,7 +133,10 @@ export class SandboxCommands {
           ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
               passedEnv
             )
-              .map(([key, value]) => `${key}=${value}`)
+              .map(([key, value]) => {
+                const escapedValue = String(value).replace(/'/g, "'\\''");
+                return `${key}='${escapedValue}'`;
+              })
               .join(" ")} bash -c '${escapedCommand}'`
           : `source $HOME/.private/.env 2>/dev/null || true && bash -c '${escapedCommand}'`;
 
