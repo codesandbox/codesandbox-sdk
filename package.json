@@ -42,16 +42,9 @@
     "build:esbuild": "node esbuild.cjs",
     "build:cjs:types": "tsc -p ./tsconfig.build-cjs.json --emitDeclarationOnly",
     "build:esm:types": "tsc -p ./tsconfig.build-esm.json --emitDeclarationOnly",
-    "build-openapi": "rimraf src/api-clients && curl -o openapi.json https://api.codesandbox.io/meta/openapi && npx prettier --write ./openapi.json && node_modules/.bin/openapi-ts -i ./openapi.json -o src/api-clients/client -c @hey-api/client-fetch && npm run build-openapi-rest",
+    "build-openapi": "rimraf src/api-clients && curl -o openapi.json https://api.codesandbox.io/meta/openapi && npx prettier --write ./openapi.json && node_modules/.bin/openapi-ts -i ./openapi.json -o src/api-clients/client -c @hey-api/client-fetch && npm run build-openapi-pint",
     "build-openapi:staging": "rimraf src/api-clients && curl -o openapi.json https://api.codesandbox.stream/meta/openapi && npx prettier --write ./openapi.json && node_modules/.bin/openapi-ts -i ./openapi.json -o src/api-clients/client -c @hey-api/client-fetch && npm run build-openapi-rest",
-    "build-openapi-rest": "npm run build-openapi-rest-fs && npm run build-openapi-rest-task && npm run build-openapi-rest-container && npm run build-openapi-rest-git && npm run build-openapi-rest-setup && npm run build-openapi-rest-shell && npm run build-openapi-rest-system",
-    "build-openapi-rest-container": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-container.json -o src/api-clients/client-rest-container -c @hey-api/client-fetch",
-    "build-openapi-rest-fs": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-fs.json -o src/api-clients/client-rest-fs -c @hey-api/client-fetch",
-    "build-openapi-rest-git": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-git.json -o src/api-clients/client-rest-git -c @hey-api/client-fetch",
-    "build-openapi-rest-setup": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-setup.json -o src/api-clients/client-rest-setup -c @hey-api/client-fetch",
-    "build-openapi-rest-shell": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-shell.json -o src/api-clients/client-rest-shell -c @hey-api/client-fetch",
-    "build-openapi-rest-system": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-system.json -o src/api-clients/client-rest-system -c @hey-api/client-fetch",
-    "build-openapi-rest-task": "node_modules/.bin/openapi-ts -i ./openapi-sandbox-task.json -o src/api-clients/client-rest-task -c @hey-api/client-fetch",
+    "build-openapi-pint": "node_modules/.bin/openapi-ts -i ./pint-openapi-bundled.json -o src/api-clients/pint -c @hey-api/client-fetch",
     "clean": "rimraf ./dist",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
@@ -70,7 +63,7 @@
     "README.md"
   ],
   "devDependencies": {
-    "@hey-api/openapi-ts": "^0.63.2",
+    "@hey-api/openapi-ts": "^0.84.4",
     "@msgpack/msgpack": "^2.7.1",
     "@parcel/watcher": "^2.5.1",
     "@tanstack/react-query": "^5.76.1",
@@ -98,7 +91,7 @@
     "why-is-node-running": "^2.3.0"
   },
   "dependencies": {
-    "@hey-api/client-fetch": "^0.7.3",
+    "@hey-api/client-fetch": "^0.13.1",
     "@inkjs/ui": "^2.0.0",
     "@opentelemetry/api": "^1.9.0",
     "@xterm/addon-serialize": "^0.13.0",
