@@ -306,23 +306,23 @@ export const buildCommand: yargs.CommandModule<
             updateSpinnerMessage(index, "Writing files to sandbox...")
           );
 
-          await Promise.all(
-            filePaths.map((filePath) =>
-              retryWithDelay(
-                async () => {
+          // Use batch write for more efficient file uploads
+          await retryWithDelay(
+            async () => {
+              const files = await Promise.all(
+                filePaths.map(async (filePath) => {
                   const fullPath = path.join(argv.directory, filePath);
                   const content = await fs.readFile(fullPath);
-                  const dirname = path.dirname(filePath);
-                  await session.fs.mkdir(dirname, true);
-                  await session.fs.writeFile(filePath, content, {
-                    create: true,
-                    overwrite: true,
-                  });
-                },
-                3,
-                200
-              )
-            )
+                  return {
+                    path: filePath,
+                    content,
+                  };
+                })
+              );
+              await session.fs.batchWrite(files);
+            },
+            3,
+            200
           ).catch((error) => {
             throw new Error(`Failed to write files to sandbox: ${error}`);
           });
