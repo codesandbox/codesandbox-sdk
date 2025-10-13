@@ -145,6 +145,7 @@ export class Sandbox {
         })
         .join("\n");
       const cmd = [
+        `mkdir -p "$HOME/.private"`,
         `cat << 'EOF' > "$HOME/.private/.env"`,
         envStrings,
         `EOF`,

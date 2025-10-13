@@ -103,12 +103,12 @@ export class SandboxCommands {
 
         // TODO: use a new shell API that natively supports cwd & env
         let commandWithEnv = Object.keys(passedEnv).length
-          ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
+          ? `bash -c 'source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
               passedEnv
             )
               .map(([key, value]) => `${key}=${value}`)
-              .join(" ")} bash -c '${escapedCommand}'`
-          : `source $HOME/.private/.env 2>/dev/null || true && bash -c '${escapedCommand}'`;
+              .join(" ")} ${escapedCommand}'`
+          : `bash -c 'source $HOME/.private/.env 2>/dev/null || true && ${escapedCommand}'`;
 
         if (opts?.cwd) {
           commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
