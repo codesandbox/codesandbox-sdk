@@ -111,11 +111,13 @@ export class PintShellsClient implements IAgentClientShells {
     type?: ShellProcessType,
     isSystemShell?: boolean
   ): Promise<OpenShellDTO> {
+    const [cmd, ...rgs] = command!.split(" ");
+
     const exec = await createExec({
       client: this.apiClient,
       body: {
-        args: [],
-        command: command || "bash",
+        args: rgs,
+        command: cmd,
         interactive: true,
       },
     });
