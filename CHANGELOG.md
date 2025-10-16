@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.4.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.3.0...v2.4.0) (2025-10-16)
+
+
+### Features
+
+* batch writes in template build ([#205](https://github.com/codesandbox/codesandbox-sdk/issues/205)) ([9b2f3f6](https://github.com/codesandbox/codesandbox-sdk/commit/9b2f3f66c4a0b3fa7c9b2f29c456875bea807ead))
+* command error with exit code ([#203](https://github.com/codesandbox/codesandbox-sdk/issues/203)) ([652c2ef](https://github.com/codesandbox/codesandbox-sdk/commit/652c2efb900ce36081f0a1dca6919b288508116b))
+
+
+### Bug Fixes
+
+* batch session initialization commands ([#207](https://github.com/codesandbox/codesandbox-sdk/issues/207)) ([363faca](https://github.com/codesandbox/codesandbox-sdk/commit/363faca904324d3daecbde8990555dfa3a5eb577))
+* handle spacing in env variables of commands ([#202](https://github.com/codesandbox/codesandbox-sdk/issues/202)) ([da5a772](https://github.com/codesandbox/codesandbox-sdk/commit/da5a7724d0d264c8088747c137a45f3cb6c534d6))
+
 ## [2.3.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.2.1...v2.3.0) (2025-09-29)
 
 
