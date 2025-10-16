@@ -104,21 +104,27 @@ export class PintShellsClient implements IAgentClientShells {
       status: exec.status as ShellProcessStatus,
     };
   }
-  async create(
-    projectPath: string,
-    size: ShellSize,
-    command?: string,
-    type?: ShellProcessType,
-    isSystemShell?: boolean
-  ): Promise<OpenShellDTO> {
-    const [cmd, ...rgs] = command!.split(" ");
-
+  async create({
+    command,
+    args,
+    projectPath,
+    size,
+    type,
+  }: {
+    command: string;
+    args: string[];
+    projectPath: string;
+    size: ShellSize;
+    type?: ShellProcessType;
+    isSystemShell?: boolean;
+  }): Promise<OpenShellDTO> {
+    console.log("creating shell", { args, command, type });
     const exec = await createExec({
       client: this.apiClient,
       body: {
-        args: rgs,
-        command: cmd,
-        interactive: true,
+        args,
+        command,
+        interactive: type === "COMMAND" ? false : true,
       },
     });
 
@@ -126,6 +132,8 @@ export class PintShellsClient implements IAgentClientShells {
       console.log(exec);
       throw new Error("Nooooooooo");
     }
+
+    console.log("Gotz shell", exec.data);
 
     return {
       ...this.convertExecToShellDTO(exec.data),
@@ -147,8 +155,8 @@ export class PintShellsClient implements IAgentClientShells {
   open(shellId: ShellId, size: ShellSize): Promise<OpenShellDTO> {
     throw new Error("Not implemented");
   }
-  rename(shellId: ShellId, name: string): Promise<null> {
-    throw new Error("Not implemented");
+  async rename(shellId: ShellId, name: string): Promise<null> {
+    return null;
   }
   restart(shellId: ShellId): Promise<null> {
     throw new Error("Not implemented");

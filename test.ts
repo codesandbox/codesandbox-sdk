@@ -13,10 +13,14 @@ sandbox["pitcherManagerResponse"].pitcherURL = "https://37zz6l-57468.csb.dev";
 sandbox["pitcherManagerResponse"].pitcherToken =
   "0085a669aaf703166263c038751432a5fcb5e56a7ededa131a953b253b5bee12";
 
+console.log("Connecting...");
+
 const client = await sandbox.connect({
   env: {
     FOO: "BAR",
   },
 });
 
-console.log(client.commands.run(""));
+console.log("Running command...");
+
+console.log(await client.commands.run("echo $FOO"));
