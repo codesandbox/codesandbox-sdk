@@ -18,13 +18,14 @@ export interface IAgentClientShells {
   }>;
   onShellTerminated: Event<shell.ShellTerminateNotification["params"]>;
   onShellOut: Event<shell.ShellOutNotification["params"]>;
-  create(
-    projectPath: string,
-    size: shell.ShellSize,
-    command?: string,
-    type?: shell.ShellProcessType,
-    isSystemShell?: boolean
-  ): Promise<shell.OpenShellDTO>;
+  create(options: {
+    command: string;
+    args: string[];
+    projectPath: string;
+    size: shell.ShellSize;
+    type?: shell.ShellProcessType;
+    isSystemShell?: boolean;
+  }): Promise<shell.OpenShellDTO>;
   rename(shellId: shell.ShellId, name: string): Promise<null>;
   getShells(): Promise<shell.ShellDTO[]>;
   open(

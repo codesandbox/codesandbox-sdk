@@ -99,28 +99,29 @@ export class SandboxCommands {
 
         const passedEnv = Object.assign(opts?.env ?? {});
 
-        const escapedCommand = command.replace(/'/g, "'\\''");
+        // Build bash args array
+        const args = ["-c", "source $HOME/.private/.env 2>/dev/null || true"];
 
-        // TODO: use a new shell API that natively supports cwd & env
-        let commandWithEnv = Object.keys(passedEnv).length
-          ? `bash -c 'source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
-              passedEnv
-            )
-              .map(([key, value]) => `${key}=${value}`)
-              .join(" ")} ${escapedCommand}'`
-          : `bash -c 'source $HOME/.private/.env 2>/dev/null || true && ${escapedCommand}'`;
-
-        if (opts?.cwd) {
-          commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
+        if (Object.keys(passedEnv).length) {
+          Object.entries(passedEnv).forEach(([key, value]) => {
+            args.push("&&", "env", `${key}=${value}`);
+          });
         }
 
-        const shell = await this.agentClient.shells.create(
-          this.agentClient.workspacePath,
-          opts?.dimensions ?? DEFAULT_SHELL_SIZE,
-          commandWithEnv,
-          opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
-          true
-        );
+        if (opts?.cwd) {
+          args.push("&&", "cd", opts.cwd);
+        }
+
+        args.push("&&", command);
+
+        const shell = await this.agentClient.shells.create({
+          command: "bash",
+          args,
+          projectPath: this.agentClient.workspacePath,
+          size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
+          type: opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
+          isSystemShell: true,
+        });
 
         if (shell.status === "ERROR" || shell.status === "KILLED") {
           throw new Error(`Failed to create shell: ${shell.buffer.join("\n")}`);
