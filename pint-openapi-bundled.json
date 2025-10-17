@@ -1,3 +1,4 @@
+
 {
   "openapi": "3.0.3",
   "info": {
@@ -714,12 +715,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ExecListResponse"
-                }
-              },
-              "text/event-stream": {
-                "schema": {
-                  "type": "string",
-                  "description": "Server-Sent Events stream of exec updates"
                 }
               }
             }
@@ -1638,14 +1633,62 @@
         }
       }
     },
-    "/api/v1/ports/stream": {
+    "/api/v1/stream/execs": {
+      "get": {
+        "summary": "List all execs",
+        "tags": [
+          "execs"
+        ],
+        "description": "Returns a list of all active execs using SSE.",
+        "operationId": "StreamExecsList",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execs retrieved successfully",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events stream of exec updates"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stream/ports": {
       "get": {
         "summary": "List open ports using Server-Sent Events (SSE)",
         "tags": [
           "ports"
         ],
         "description": "Lists all open TCP ports on the system AND LISTEN TO THE CHANGES, excluding ignored ports configured in the server.",
-        "operationId": "ListPortsSSE",
+        "operationId": "StreamPortsList",
         "security": [
           {
             "bearerAuth": []
@@ -1889,6 +1932,10 @@
           "pid": {
             "type": "integer",
             "description": "Process ID of the exec"
+          },
+          "interactive": {
+            "type": "boolean",
+            "description": "Whether the exec is interactive"
           }
         },
         "required": [
@@ -1896,7 +1943,8 @@
           "command",
           "args",
           "status",
-          "pid"
+          "pid",
+          "interactive"
         ]
       },
       "ExecListResponse": {
