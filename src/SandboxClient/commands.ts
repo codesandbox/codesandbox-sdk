@@ -137,8 +137,8 @@ export class SandboxCommands {
                 const escapedValue = String(value).replace(/'/g, "'\\''");
                 return `${key}='${escapedValue}'`;
               })
-              .join(" ")} bash -c '${escapedCommand}'`
-          : `source $HOME/.private/.env 2>/dev/null || true && bash -c '${escapedCommand}'`;
+              .join(" ")} bash -c '${escapedCommand}; exit $?'`
+          : `source $HOME/.private/.env 2>/dev/null || true && bash -c '${escapedCommand}; exit $?'`;
 
         if (opts?.cwd) {
           commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
