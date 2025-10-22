@@ -91,10 +91,6 @@ export class SandboxCommands {
         "command.name": opts?.name || "",
       },
       async () => {
-        const disposableStore = new DisposableStore();
-        const onOutput = new Emitter<string>();
-        disposableStore.add(onOutput);
-
         command = Array.isArray(command) ? command.join(" && ") : command;
 
         const passedEnv = Object.assign(opts?.env ?? {});
@@ -298,6 +294,8 @@ export class Command {
         if (shellId !== this.shell.shellId || out.startsWith("[CODESANDBOX]")) {
           return;
         }
+
+        console.log("GOTZ OUT");
 
         this.onOutputEmitter.fire(out);
 

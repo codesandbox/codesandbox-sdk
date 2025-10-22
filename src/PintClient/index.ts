@@ -8,9 +8,12 @@ import { Port } from "../pitcher-protocol/messages/port";
 import {
   createExec,
   ExecItem,
+  getExecOutput,
   listExecs,
   listPorts,
-  listPortsSse,
+  PortInfo,
+  streamExecsList,
+  streamPortsList,
 } from "../api-clients/pint";
 import { SandboxSession } from "../types";
 import { Emitter, EmitterSubscription, Event } from "../utils/event";
@@ -27,20 +30,31 @@ import {
   ShellProcessStatus,
 } from "../pitcher-protocol/messages/shell";
 
+function parseStreamEvent<T>(evt: string): T {
+  const evtWithoutDataPrefix = evt.substring(5);
+
+  return JSON.parse(evtWithoutDataPrefix);
+}
+
 class PintPortsClient implements IAgentClientPorts {
   private onPortsUpdatedEmitter = new EmitterSubscription<Port[]>((fire) => {
     const abortController = new AbortController();
 
-    listPortsSse({
+    streamPortsList({
       signal: abortController.signal,
       headers: {
         headers: { Accept: "text/event-stream" },
       },
     }).then(async ({ stream }) => {
       for await (const evt of stream) {
-        const evtWithoutDataPrefix = evt.substring(5);
+        const data = parseStreamEvent<PortInfo[]>(evt);
 
-        fire(JSON.parse(evtWithoutDataPrefix));
+        fire(
+          data.map((pintPort) => ({
+            port: pintPort.port,
+            url: pintPort.address,
+          }))
+        );
       }
     });
 
@@ -67,11 +81,55 @@ class PintPortsClient implements IAgentClientPorts {
 }
 
 export class PintShellsClient implements IAgentClientShells {
+  private openShells: Record<string, AbortController> = {};
   private onShellExitedEmitter = new EmitterSubscription<{
     shellId: string;
     exitCode: number;
-  }>(() => {
-    return Disposable.create(() => {});
+  }>((fire) => {
+    const abortController = new AbortController();
+
+    let prevExecs: ExecItem[] | undefined;
+
+    streamExecsList({
+      signal: abortController.signal,
+      headers: {
+        headers: { Accept: "text/event-stream" },
+      },
+    }).then(async ({ stream }) => {
+      for await (const evt of stream) {
+        const execs = parseStreamEvent<ExecItem[]>(evt);
+
+        if (prevExecs) {
+          execs.forEach((exec) => {
+            const prevExec = prevExecs?.find(
+              (execItem) => execItem.id === exec.id
+            );
+
+            if (!prevExec) {
+              return;
+            }
+
+            console.log("WTF", exec);
+
+            if (
+              prevExec.status === "RUNNING" &&
+              (exec.status === "STOPPED" || exec.status === "FINISHED")
+            ) {
+              fire({
+                shellId: exec.id,
+                exitCode: 0,
+              });
+            }
+          });
+        }
+
+        prevExecs = execs;
+      }
+    });
+
+    return Disposable.create(() => {
+      abortController.abort();
+    });
   });
   onShellExited = this.onShellExitedEmitter.event;
   private onShellOutEmitter = new EmitterSubscription<{
@@ -118,7 +176,6 @@ export class PintShellsClient implements IAgentClientShells {
     type?: ShellProcessType;
     isSystemShell?: boolean;
   }): Promise<OpenShellDTO> {
-    console.log("creating shell", { args, command, type });
     const exec = await createExec({
       client: this.apiClient,
       body: {
@@ -134,6 +191,8 @@ export class PintShellsClient implements IAgentClientShells {
     }
 
     console.log("Gotz shell", exec.data);
+
+    await this.open(exec.data.id, { cols: 200, rows: 80 });
 
     return {
       ...this.convertExecToShellDTO(exec.data),
@@ -152,8 +211,31 @@ export class PintShellsClient implements IAgentClientShells {
       execs.data?.execs.map((exec) => this.convertExecToShellDTO(exec)) ?? []
     );
   }
-  open(shellId: ShellId, size: ShellSize): Promise<OpenShellDTO> {
-    throw new Error("Not implemented");
+  async open(shellId: ShellId, size: ShellSize): Promise<OpenShellDTO> {
+    const abortController = new AbortController();
+
+    this.openShells[shellId] = abortController;
+
+    getExecOutput({
+      path: { id: shellId },
+      signal: abortController.signal,
+      headers: {
+        headers: { Accept: "text/event-stream" },
+      },
+    }).then(async ({ stream }) => {
+      for await (const evt of stream) {
+        const data = parseStreamEvent<PortInfo[]>(evt);
+
+        fire(
+          data.map((pintPort) => ({
+            port: pintPort.port,
+            url: pintPort.address,
+          }))
+        );
+      }
+    });
+
+    return {};
   }
   async rename(shellId: ShellId, name: string): Promise<null> {
     return null;

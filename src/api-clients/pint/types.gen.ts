@@ -119,6 +119,10 @@ export type ExecItem = {
      * Process ID of the exec
      */
     pid: number;
+    /**
+     * Whether the exec is interactive
+     */
+    interactive: boolean;
 };
 
 export type ExecListResponse = {
@@ -860,9 +864,9 @@ export type GetExecOutputError = GetExecOutputErrors[keyof GetExecOutputErrors];
 
 export type GetExecOutputResponses = {
     /**
-     * Exec output retrieved successfully
+     * Server-Sent Events stream of exec updates with same format as ExecStdout
      */
-    200: ExecStdout;
+    200: string;
 };
 
 export type GetExecOutputResponse = GetExecOutputResponses[keyof GetExecOutputResponses];
@@ -1150,14 +1154,43 @@ export type ListPortsResponses = {
 
 export type ListPortsResponse = ListPortsResponses[keyof ListPortsResponses];
 
-export type ListPortsSseData = {
+export type StreamExecsListData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/api/v1/ports/stream';
+    url: '/api/v1/stream/execs';
 };
 
-export type ListPortsSseErrors = {
+export type StreamExecsListErrors = {
+    /**
+     * Unauthorized
+     */
+    401: _Error;
+    /**
+     * Unexpected Error
+     */
+    default: _Error;
+};
+
+export type StreamExecsListError = StreamExecsListErrors[keyof StreamExecsListErrors];
+
+export type StreamExecsListResponses = {
+    /**
+     * Server-Sent Events stream of exec updates
+     */
+    200: string;
+};
+
+export type StreamExecsListResponse = StreamExecsListResponses[keyof StreamExecsListResponses];
+
+export type StreamPortsListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/stream/ports';
+};
+
+export type StreamPortsListErrors = {
     /**
      * Unauthorized
      */
@@ -1172,13 +1205,13 @@ export type ListPortsSseErrors = {
     default: _Error;
 };
 
-export type ListPortsSseError = ListPortsSseErrors[keyof ListPortsSseErrors];
+export type StreamPortsListError = StreamPortsListErrors[keyof StreamPortsListErrors];
 
-export type ListPortsSseResponses = {
+export type StreamPortsListResponses = {
     /**
      * Server-Sent Events stream of ports list updates
      */
     200: string;
 };
 
-export type ListPortsSseResponse = ListPortsSseResponses[keyof ListPortsSseResponses];
+export type StreamPortsListResponse = StreamPortsListResponses[keyof StreamPortsListResponses];

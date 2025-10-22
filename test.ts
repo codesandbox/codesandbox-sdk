@@ -1,5 +1,12 @@
 import { CodeSandbox } from "@codesandbox/sdk";
 
+const sdk = new CodeSandbox();
+
+const sandbox = await sdk.sandboxes.create();
+const client = await sandbox.connect();
+console.log(await client.commands.run('echo "Hello World"'));
+
+/*
 const sdk = new CodeSandbox(
   "csb_v1_uv6a0J6nM43YEMkqJ2RE3T8fuFGmPKsnkZEUkhCBbcU",
   {
@@ -7,20 +14,17 @@ const sdk = new CodeSandbox(
   }
 );
 console.log("Getting sandbox...");
-let sandbox = await sdk.sandboxes.resume("37zz6l");
+let sandbox = await sdk.sandboxes.resume("cyshxw");
 
-sandbox["pitcherManagerResponse"].pitcherURL = "https://37zz6l-57468.csb.dev";
+sandbox["pitcherManagerResponse"].pitcherURL = "https://cyshxw-57468.csb.dev";
 sandbox["pitcherManagerResponse"].pitcherToken =
-  "0085a669aaf703166263c038751432a5fcb5e56a7ededa131a953b253b5bee12";
+  "1ee18f9b607570eedfe4f809f2f66511fb4ba0a9c1008e60a769a3e9d81496d5";
 
 console.log("Connecting...");
 
-const client = await sandbox.connect({
-  env: {
-    FOO: "BAR",
-  },
-});
+const client = await sandbox.connect();
 
 console.log("Running command...");
 
-console.log(await client.commands.run("echo $FOO"));
+console.log(await client.commands.run("echo Hello World"));
+*/
