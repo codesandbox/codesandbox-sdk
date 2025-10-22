@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ConnectToExecWebSocketData, ConnectToExecWebSocketErrors, ConnectToExecWebSocketResponses, CreateDirectoryData, CreateDirectoryErrors, CreateDirectoryResponses, CreateExecData, CreateExecErrors, CreateExecResponses, CreateFileData, CreateFileErrors, CreateFileResponses, DeleteDirectoryData, DeleteDirectoryErrors, DeleteDirectoryResponses, DeleteExecData, DeleteExecErrors, DeleteExecResponses, DeleteFileData, DeleteFileErrors, DeleteFileResponses, ExecExecStdinData, ExecExecStdinErrors, ExecExecStdinResponses, ExecuteTaskActionData, ExecuteTaskActionErrors, ExecuteTaskActionResponses, GetExecData, GetExecErrors, GetExecOutputData, GetExecOutputErrors, GetExecOutputResponses, GetExecResponses, GetTaskData, GetTaskErrors, GetTaskResponses, ListDirectoryData, ListDirectoryErrors, ListDirectoryResponses, ListExecsData, ListExecsErrors, ListExecsResponses, ListPortsData, ListPortsErrors, ListPortsResponses, ListPortsSseData, ListPortsSseErrors, ListPortsSseResponses, ListSetupTasksData, ListSetupTasksErrors, ListSetupTasksResponses, ListTasksData, ListTasksErrors, ListTasksResponses, PerformFileActionData, PerformFileActionErrors, PerformFileActionResponses, ReadFileData, ReadFileErrors, ReadFileResponses, UpdateExecData, UpdateExecErrors, UpdateExecResponses } from './types.gen';
+import type { ConnectToExecWebSocketData, ConnectToExecWebSocketErrors, ConnectToExecWebSocketResponses, CreateDirectoryData, CreateDirectoryErrors, CreateDirectoryResponses, CreateExecData, CreateExecErrors, CreateExecResponses, CreateFileData, CreateFileErrors, CreateFileResponses, DeleteDirectoryData, DeleteDirectoryErrors, DeleteDirectoryResponses, DeleteExecData, DeleteExecErrors, DeleteExecResponses, DeleteFileData, DeleteFileErrors, DeleteFileResponses, ExecExecStdinData, ExecExecStdinErrors, ExecExecStdinResponses, ExecuteTaskActionData, ExecuteTaskActionErrors, ExecuteTaskActionResponses, GetExecData, GetExecErrors, GetExecOutputData, GetExecOutputErrors, GetExecOutputResponses, GetExecResponses, GetTaskData, GetTaskErrors, GetTaskResponses, ListDirectoryData, ListDirectoryErrors, ListDirectoryResponses, ListExecsData, ListExecsErrors, ListExecsResponses, ListPortsData, ListPortsErrors, ListPortsResponses, ListSetupTasksData, ListSetupTasksErrors, ListSetupTasksResponses, ListTasksData, ListTasksErrors, ListTasksResponses, PerformFileActionData, PerformFileActionErrors, PerformFileActionResponses, ReadFileData, ReadFileErrors, ReadFileResponses, StreamExecsListData, StreamExecsListErrors, StreamExecsListResponses, StreamPortsListData, StreamPortsListErrors, StreamPortsListResponses, UpdateExecData, UpdateExecErrors, UpdateExecResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -243,7 +243,7 @@ export const updateExec = <ThrowOnError extends boolean = false>(options: Option
  * Retrieves the plain text output from a exec's buffer.
  */
 export const getExecOutput = <ThrowOnError extends boolean = false>(options: Options<GetExecOutputData, ThrowOnError>) => {
-    return (options.client ?? client).get<GetExecOutputResponses, GetExecOutputErrors, ThrowOnError>({
+    return (options.client ?? client).sse.get<GetExecOutputResponses, GetExecOutputErrors, ThrowOnError>({
         security: [
             {
                 scheme: 'bearer',
@@ -393,18 +393,35 @@ export const listPorts = <ThrowOnError extends boolean = false>(options?: Option
 };
 
 /**
- * List open ports using Server-Sent Events (SSE)
- * Lists all open TCP ports on the system AND LISTEN TO THE CHANGES, excluding ignored ports configured in the server.
+ * List all execs
+ * Returns a list of all active execs using SSE.
  */
-export const listPortsSse = <ThrowOnError extends boolean = false>(options?: Options<ListPortsSseData, ThrowOnError>) => {
-    return (options?.client ?? client).sse.get<ListPortsSseResponses, ListPortsSseErrors, ThrowOnError>({
+export const streamExecsList = <ThrowOnError extends boolean = false>(options?: Options<StreamExecsListData, ThrowOnError>) => {
+    return (options?.client ?? client).sse.get<StreamExecsListResponses, StreamExecsListErrors, ThrowOnError>({
         security: [
             {
                 scheme: 'bearer',
                 type: 'http'
             }
         ],
-        url: '/api/v1/ports/stream',
+        url: '/api/v1/stream/execs',
+        ...options
+    });
+};
+
+/**
+ * List open ports using Server-Sent Events (SSE)
+ * Lists all open TCP ports on the system AND LISTEN TO THE CHANGES, excluding ignored ports configured in the server.
+ */
+export const streamPortsList = <ThrowOnError extends boolean = false>(options?: Options<StreamPortsListData, ThrowOnError>) => {
+    return (options?.client ?? client).sse.get<StreamPortsListResponses, StreamPortsListErrors, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
+        url: '/api/v1/stream/ports',
         ...options
     });
 };
