@@ -2,7 +2,7 @@ import * as protocol from "../pitcher-protocol";
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
 import { isCommandShell, ShellRunOpts } from "./commands";
-import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { IAgentClient } from "../agent-client-interface";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 
 export type ShellSize = { cols: number; rows: number };
@@ -86,13 +86,14 @@ export class Terminals {
           commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
         }
 
-        const shell = await this.agentClient.shells.create(
-          this.agentClient.workspacePath,
-          opts?.dimensions ?? DEFAULT_SHELL_SIZE,
-          commandWithEnv,
-          "TERMINAL",
-          true
-        );
+        const shell = await this.agentClient.shells.create({
+          projectPath: this.agentClient.workspacePath,
+          size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
+          command: "bash",
+          args: [commandWithEnv],
+          type: "TERMINAL",
+          isSystemShell: true,
+        });
 
         if (opts?.name) {
           this.agentClient.shells.rename(shell.shellId, opts.name);

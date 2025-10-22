@@ -1,4 +1,4 @@
-import { type IAgentClient } from "../AgentClient/agent-client-interface";
+import { type IAgentClient } from "../agent-client-interface";
 
 import { Disposable } from "../utils/disposable";
 import { Emitter, type Event } from "../utils/event";
@@ -184,13 +184,16 @@ export class FileSystem {
 
         try {
           // Extract the zip file using unzip command
-          const result = await this.agentClient.shells.create(
-            this.agentClient.workspacePath,
-            { cols: 128, rows: 24 },
-            `cd ${this.agentClient.workspacePath} && unzip -o ${tempZipPath}`,
-            "COMMAND",
-            true
-          );
+          const result = await this.agentClient.shells.create({
+            projectPath: this.agentClient.workspacePath,
+            size: { cols: 128, rows: 24 },
+            command: "bash",
+            args: [
+              `cd ${this.agentClient.workspacePath} && unzip -o ${tempZipPath}`,
+            ],
+            type: "COMMAND",
+            isSystemShell: true,
+          });
 
           if (result.status === "ERROR" || result.status === "KILLED") {
             throw new Error(

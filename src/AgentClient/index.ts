@@ -17,7 +17,7 @@ import {
   IAgentClientSystem,
   IAgentClientTasks,
   PickRawFsResult,
-} from "./agent-client-interface";
+} from "../agent-client-interface";
 import { AgentConnection } from "./AgentConnection";
 import { Emitter, Event } from "../utils/event";
 import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../types";
@@ -61,17 +61,25 @@ class AgentClientShells implements IAgentClientShells {
       this.onShellOutEmitter.fire(params);
     });
   }
-  create(
-    projectPath: string,
-    size: shell.ShellSize,
-    command?: string,
-    type?: shell.ShellProcessType,
-    isSystemShell?: boolean
-  ): Promise<shell.OpenShellDTO> {
+  create({
+    command,
+    args,
+    size,
+    type,
+    isSystemShell,
+    projectPath,
+  }: {
+    command: string;
+    args: string[];
+    projectPath: string;
+    size: shell.ShellSize;
+    type?: shell.ShellProcessType;
+    isSystemShell?: boolean;
+  }): Promise<shell.OpenShellDTO> {
     return this.agentConnection.request({
       method: "shell/create",
       params: {
-        command,
+        command: command + args.join(""),
         size,
         type,
         isSystemShell,

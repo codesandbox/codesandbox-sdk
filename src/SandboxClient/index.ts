@@ -10,12 +10,13 @@ import { Terminals } from "./terminals";
 import { SandboxCommands } from "./commands";
 import { HostToken } from "../HostTokens";
 import { Hosts } from "./hosts";
-import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { IAgentClient } from "../agent-client-interface";
 import { setup, system } from "../pitcher-protocol";
 import { Barrier } from "../utils/barrier";
 import { AgentClient } from "../AgentClient";
 import { SandboxSession } from "../types";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
+import { PintClient } from "../PintClient";
 
 export * from "./filesystem";
 export * from "./ports";
@@ -41,6 +42,20 @@ export class SandboxClient {
     initStatusCb?: (event: system.InitStatus) => void,
     tracer?: Tracer
   ) {
+    if (session.isPint) {
+      const agentClient = await PintClient.create(session);
+
+      return new SandboxClient(
+        agentClient,
+        { hostToken: session.hostToken, tracer },
+        {
+          currentStepIndex: 0,
+          state: "FINISHED",
+          steps: [],
+        }
+      );
+    }
+
     const { client: agentClient, joinResult } = await AgentClient.create({
       session,
       getSession,
