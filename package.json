@@ -58,7 +58,10 @@
     "format": "prettier '**/*.{md,js,jsx,json,ts,tsx}' --write",
     "postbuild": "rimraf {lib,es}/**/__tests__ {lib,es}/**/*.{spec,test}.{js,d.ts,js.map}",
     "postversion": "git push && git push --tags",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "demo:install": "cd demo && npm install",
+    "demo:dev": "cd demo && npm run dev",
+    "demo:build": "cd demo && npm run build"
   },
   "keywords": [
     "typescript",
