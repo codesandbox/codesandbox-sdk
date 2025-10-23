@@ -715,12 +715,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExecListResponse"
                 }
-              },
-              "text/event-stream": {
-                "schema": {
-                  "type": "string",
-                  "description": "Server-Sent Events stream of exec updates"
-                }
               }
             }
           },
@@ -1042,12 +1036,6 @@
           "200": {
             "description": "Exec output retrieved successfully",
             "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExecStdout",
-                  "description": "Plain text exec output"
-                }
-              },
               "text/event-stream": {
                 "schema": {
                   "type": "string",
@@ -1638,14 +1626,62 @@
         }
       }
     },
-    "/api/v1/ports/stream": {
+    "/api/v1/stream/execs": {
+      "get": {
+        "summary": "List all execs",
+        "tags": [
+          "execs"
+        ],
+        "description": "Returns a list of all active execs using SSE.",
+        "operationId": "StreamExecsList",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execs retrieved successfully",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events stream of exec updates"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/stream/ports": {
       "get": {
         "summary": "List open ports using Server-Sent Events (SSE)",
         "tags": [
           "ports"
         ],
         "description": "Lists all open TCP ports on the system AND LISTEN TO THE CHANGES, excluding ignored ports configured in the server.",
-        "operationId": "ListPortsSSE",
+        "operationId": "StreamPortsList",
         "security": [
           {
             "bearerAuth": []
@@ -1889,6 +1925,14 @@
           "pid": {
             "type": "integer",
             "description": "Process ID of the exec"
+          },
+          "interactive": {
+            "type": "boolean",
+            "description": "Whether the exec is interactive"
+          },
+          "exitCode": {
+            "type": "integer",
+            "description": "Exit code of the process (only present when process has exited)"
           }
         },
         "required": [
@@ -1896,7 +1940,9 @@
           "command",
           "args",
           "status",
-          "pid"
+          "pid",
+          "interactive",
+          "exitCode"
         ]
       },
       "ExecListResponse": {
@@ -1967,38 +2013,6 @@
         },
         "required": [
           "message"
-        ]
-      },
-      "ExecStdout": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "Type of the exec output",
-            "enum": [
-              "stdout",
-              "stderr"
-            ]
-          },
-          "output": {
-            "type": "string",
-            "description": "Data associated with the exec output"
-          },
-          "sequence": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Sequence number of the output message"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when the output was generated"
-          }
-        },
-        "required": [
-          "type",
-          "output",
-          "sequence"
         ]
       },
       "ExecStdin": {
@@ -2294,6 +2308,43 @@
         },
         "required": [
           "ports"
+        ]
+      },
+      "ExecStdout": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of the exec output",
+            "enum": [
+              "stdout",
+              "stderr"
+            ]
+          },
+          "output": {
+            "type": "string",
+            "description": "Data associated with the exec output"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Sequence number of the output message"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the output was generated"
+          },
+          "exitCode": {
+            "type": "integer",
+            "description": "Exit code of the process (only present when process has exited)"
+          }
+        },
+        "required": [
+          "type",
+          "output",
+          "sequence",
+          "exitCode"
         ]
       },
       "Task": {
