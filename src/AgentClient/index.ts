@@ -411,6 +411,9 @@ export class AgentClient implements IAgentClient {
       },
     });
 
+    // Connection is fully established after successful client/join
+    agentConnection.state = "CONNECTED";
+
     // Now that we have initialized we set an appropriate timeout to more efficiently detect disconnects
     agentConnection.connection.setPongDetectionTimeout(PONG_DETECTION_TIMEOUT);
 
@@ -462,11 +465,22 @@ export class AgentClient implements IAgentClient {
     await this.agentConnection.disconnect();
   }
   async reconnect(): Promise<void> {
-    await this.agentConnection.reconnect(this.reconnectToken, async () => {
-      const session = await this.getSession(this.params.sandboxId);
+    const newReconnectToken = await this.agentConnection.reconnect(
+      this.reconnectToken,
+      async () => {
+        const session = await this.getSession(this.params.sandboxId);
 
-      return session.pitcherToken;
-    });
+        return {
+          url: session.pitcherURL,
+          token: session.pitcherToken,
+        };
+      }
+    );
+
+    // Update the reconnect token if we got a new one
+    if (newReconnectToken) {
+      this.reconnectToken = newReconnectToken;
+    }
   }
   dispose() {
     this.agentConnection.dispose();
