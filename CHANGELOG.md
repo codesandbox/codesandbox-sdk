@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.1](https://github.com/codesandbox/codesandbox-sdk/compare/v2.4.0...v2.4.1) (2025-10-23)
+
+
+### Bug Fixes
+
+* reconnect issue ([#216](https://github.com/codesandbox/codesandbox-sdk/issues/216)) ([2dfa670](https://github.com/codesandbox/codesandbox-sdk/commit/2dfa670a62d320ffe9b50831e212ede5ae90732d))
+
 ## [2.4.0](https://github.com/codesandbox/codesandbox-sdk/compare/v2.3.0...v2.4.0) (2025-10-16)
 
 
