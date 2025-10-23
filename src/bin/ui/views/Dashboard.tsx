@@ -56,25 +56,27 @@ export const Dashboard = () => {
         if (!a.session_started_at && !b.session_started_at) return 0;
         if (!a.session_started_at) return 1;
         if (!b.session_started_at) return -1;
-        
+
         const dateA = new Date(a.session_started_at);
         const dateB = new Date(b.session_started_at);
-        
+
         // Check for invalid dates
         if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
         if (isNaN(dateA.getTime())) return 1;
         if (isNaN(dateB.getTime())) return -1;
-        
+
         return dateA.getTime() - dateB.getTime();
       })
     : [];
 
-
   // Calculate visible rows dynamically based on terminal size
-  // Account for UI elements: instructions (1), sandbox label (1), input field (1), 
+  // Account for UI elements: instructions (1), sandbox label (1), input field (1),
   // table title (1), table header (1), separator (1), bottom margin (2)
   const uiElementRows = 8;
-  const maxVisibleRows = Math.max(1, Math.floor((terminalHeight - uiElementRows) * 0.7) - 3);
+  const maxVisibleRows = Math.max(
+    1,
+    Math.floor((terminalHeight - uiElementRows) * 0.7) - 3
+  );
 
   const {
     sandboxId,
