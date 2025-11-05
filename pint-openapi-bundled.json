@@ -1030,6 +1030,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "lastSequence",
+            "in": "query",
+            "required": false,
+            "description": "Last sequence number received by the client. Used to fetch only new output since that sequence or before if it is negative.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         ],
         "responses": {
@@ -2343,8 +2353,7 @@
         "required": [
           "type",
           "output",
-          "sequence",
-          "exitCode"
+          "sequence"
         ]
       },
       "Task": {
