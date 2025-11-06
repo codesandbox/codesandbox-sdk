@@ -590,6 +590,8 @@ export type VmStartResponse = {
         cluster: string;
         id: string;
         latest_pitcher_version: string;
+        pint_token?: string;
+        pint_url?: string;
         pitcher_manager_version: string;
         pitcher_token: string;
         pitcher_url: string;
@@ -953,6 +955,8 @@ export type SandboxForkResponse = {
             cluster: string;
             id: string;
             latest_pitcher_version: string;
+            pint_token?: string;
+            pint_url?: string;
             pitcher_manager_version: string;
             pitcher_token: string;
             pitcher_url: string;

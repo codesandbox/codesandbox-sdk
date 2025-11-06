@@ -96,7 +96,7 @@ export class SandboxCommands {
         const passedEnv = Object.assign(opts?.env ?? {});
 
         // Build bash args array
-        const args = ["-c", "source $HOME/.private/.env 2>/dev/null || true"];
+        const args = ["source $HOME/.private/.env 2>/dev/null || true"];
 
         if (Object.keys(passedEnv).length) {
           Object.entries(passedEnv).forEach(([key, value]) => {
@@ -112,7 +112,7 @@ export class SandboxCommands {
 
         const shell = await this.agentClient.shells.create({
           command: "bash",
-          args,
+          args: ["-c", args.join(" ")],
           projectPath: this.agentClient.workspacePath,
           size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
           type: opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
