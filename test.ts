@@ -1,12 +1,5 @@
 import { CodeSandbox } from "@codesandbox/sdk";
 
-const sdk = new CodeSandbox();
-
-const sandbox = await sdk.sandboxes.create();
-const client = await sandbox.connect();
-console.log(await client.commands.run('echo "Hello World"'));
-
-/*
 const sdk = new CodeSandbox(
   "csb_v1_uv6a0J6nM43YEMkqJ2RE3T8fuFGmPKsnkZEUkhCBbcU",
   {
@@ -14,11 +7,11 @@ const sdk = new CodeSandbox(
   }
 );
 console.log("Getting sandbox...");
-let sandbox = await sdk.sandboxes.resume("cyshxw");
+let sandbox = await sdk.sandboxes.resume("kf55nx");
 
-sandbox["pitcherManagerResponse"].pitcherURL = "https://cyshxw-57468.csb.dev";
+sandbox["pitcherManagerResponse"].pitcherURL = "https://kf55nx-57468.csb.dev";
 sandbox["pitcherManagerResponse"].pitcherToken =
-  "1ee18f9b607570eedfe4f809f2f66511fb4ba0a9c1008e60a769a3e9d81496d5";
+  "4b1d4b53771541daf9280b085774bb8f401e881f999b9cb700ab40b0c6b6a55d";
 
 console.log("Connecting...");
 
@@ -26,5 +19,4 @@ const client = await sandbox.connect();
 
 console.log("Running command...");
 
-console.log(await client.commands.run("echo Hello World"));
-*/
+console.log(await client.commands.run("echo 'Hello World'"));

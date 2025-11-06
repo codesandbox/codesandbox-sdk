@@ -8,6 +8,8 @@ import { Port } from "../pitcher-protocol/messages/port";
 import {
   createExec,
   ExecItem,
+  ExecListResponse,
+  getExec,
   getExecOutput,
   listExecs,
   listPorts,
@@ -30,7 +32,11 @@ import {
   ShellProcessStatus,
 } from "../pitcher-protocol/messages/shell";
 
-function parseStreamEvent<T>(evt: string): T {
+function parseStreamEvent<T>(evt: unknown): T {
+  if (typeof evt !== "string") {
+    return evt as T;
+  }
+
   const evtWithoutDataPrefix = evt.substring(5);
 
   return JSON.parse(evtWithoutDataPrefix);
@@ -82,22 +88,25 @@ class PintPortsClient implements IAgentClientPorts {
 
 export class PintShellsClient implements IAgentClientShells {
   private openShells: Record<string, AbortController> = {};
-  private onShellExitedEmitter = new EmitterSubscription<{
-    shellId: string;
-    exitCode: number;
-  }>((fire) => {
+  private subscribeAndEvaluateExecsUpdates(
+    compare: (
+      nextExec: ExecItem,
+      prevExec: ExecItem | undefined,
+      prevExecs: ExecItem[]
+    ) => void
+  ) {
+    let prevExecs: ExecItem[] = [];
     const abortController = new AbortController();
 
-    let prevExecs: ExecItem[] | undefined;
-
     streamExecsList({
+      client: this.apiClient,
       signal: abortController.signal,
       headers: {
         headers: { Accept: "text/event-stream" },
       },
     }).then(async ({ stream }) => {
       for await (const evt of stream) {
-        const execs = parseStreamEvent<ExecItem[]>(evt);
+        const execs = (evt as unknown as ExecListResponse).execs; // parseStreamEvent<ExecItem[]>(evt);
 
         if (prevExecs) {
           execs.forEach((exec) => {
@@ -105,21 +114,7 @@ export class PintShellsClient implements IAgentClientShells {
               (execItem) => execItem.id === exec.id
             );
 
-            if (!prevExec) {
-              return;
-            }
-
-            console.log("WTF", exec);
-
-            if (
-              prevExec.status === "RUNNING" &&
-              (exec.status === "STOPPED" || exec.status === "FINISHED")
-            ) {
-              fire({
-                shellId: exec.id,
-                exitCode: 0,
-              });
-            }
+            compare(exec, prevExec, prevExecs);
           });
         }
 
@@ -130,21 +125,48 @@ export class PintShellsClient implements IAgentClientShells {
     return Disposable.create(() => {
       abortController.abort();
     });
-  });
+  }
+  private onShellExitedEmitter = new EmitterSubscription<{
+    shellId: string;
+    exitCode: number;
+  }>((fire) =>
+    this.subscribeAndEvaluateExecsUpdates((exec, prevExec) => {
+      if (!prevExec) {
+        return;
+      }
+
+      if (prevExec.status === "RUNNING" && exec.status === "EXITED") {
+        fire({
+          shellId: exec.id,
+          exitCode: exec.exitCode,
+        });
+      }
+    })
+  );
   onShellExited = this.onShellExitedEmitter.event;
-  private onShellOutEmitter = new EmitterSubscription<{
+
+  private onShellOutEmitter = new Emitter<{
     shellId: ShellId;
     out: string;
-  }>(() => {
-    return Disposable.create(() => {});
-  });
+  }>();
   onShellOut = this.onShellOutEmitter.event;
   private onShellTerminatedEmitter = new EmitterSubscription<{
-    shellId: ShellId;
+    shellId: string;
     author: string;
-  }>(() => {
-    return Disposable.create(() => {});
-  });
+  }>((fire) =>
+    this.subscribeAndEvaluateExecsUpdates((exec, prevExec) => {
+      if (!prevExec) {
+        return;
+      }
+
+      if (prevExec.status === "RUNNING" && exec.status === "STOPPED") {
+        fire({
+          shellId: exec.id,
+          author: "",
+        });
+      }
+    })
+  );
   onShellTerminated = this.onShellTerminatedEmitter.event;
   constructor(private apiClient: Client, private sandboxId: string) {}
   private convertExecToShellDTO(exec: ExecItem) {
@@ -187,7 +209,7 @@ export class PintShellsClient implements IAgentClientShells {
 
     if (!exec.data) {
       console.log(exec);
-      throw new Error("Nooooooooo");
+      throw new Error(exec.error.message);
     }
 
     console.log("Gotz shell", exec.data);
@@ -216,26 +238,52 @@ export class PintShellsClient implements IAgentClientShells {
 
     this.openShells[shellId] = abortController;
 
-    getExecOutput({
-      path: { id: shellId },
-      signal: abortController.signal,
-      headers: {
-        headers: { Accept: "text/event-stream" },
+    const exec = await getExec({
+      client: this.apiClient,
+      path: {
+        id: shellId,
       },
-    }).then(async ({ stream }) => {
-      for await (const evt of stream) {
-        const data = parseStreamEvent<PortInfo[]>(evt);
-
-        fire(
-          data.map((pintPort) => ({
-            port: pintPort.port,
-            url: pintPort.address,
-          }))
-        );
-      }
     });
 
-    return {};
+    if (!exec.data) {
+      throw new Error(exec.error.message);
+    }
+
+    const { stream } = await getExecOutput({
+      client: this.apiClient,
+      path: { id: shellId },
+      query: { lastSequence: 0 },
+      signal: abortController.signal,
+      headers: {
+        Accept: "text/event-stream",
+      },
+    });
+
+    const buffer: string[] = [];
+
+    console.log("Waiting for IO");
+    for await (const evt of stream) {
+      const data = parseStreamEvent<{
+        type: "stdout" | "stderr";
+        output: "";
+        sequence: number;
+        timestamp: string;
+      }>(evt);
+
+      console.log("GOTZ IO", data);
+
+      if (!buffer.length) {
+        buffer.push(data.output);
+        break;
+      }
+    }
+
+    console.log("No IO", buffer);
+
+    return {
+      buffer,
+      ...this.convertExecToShellDTO(exec.data),
+    };
   }
   async rename(shellId: ShellId, name: string): Promise<null> {
     return null;

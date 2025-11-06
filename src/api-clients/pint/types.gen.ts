@@ -123,6 +123,10 @@ export type ExecItem = {
      * Whether the exec is interactive
      */
     interactive: boolean;
+    /**
+     * Exit code of the process (only present when process has exited)
+     */
+    exitCode: number;
 };
 
 export type ExecListResponse = {
@@ -163,25 +167,6 @@ export type ExecDeleteResponse = {
      * Deletion confirmation message
      */
     message: string;
-};
-
-export type ExecStdout = {
-    /**
-     * Type of the exec output
-     */
-    type: 'stdout' | 'stderr';
-    /**
-     * Data associated with the exec output
-     */
-    output: string;
-    /**
-     * Sequence number of the output message
-     */
-    sequence: number;
-    /**
-     * Timestamp of when the output was generated
-     */
-    timestamp?: string;
 };
 
 export type ExecStdin = {
@@ -311,6 +296,29 @@ export type PortsListResponse = {
      * List of open ports
      */
     ports: Array<PortInfo>;
+};
+
+export type ExecStdout = {
+    /**
+     * Type of the exec output
+     */
+    type: 'stdout' | 'stderr';
+    /**
+     * Data associated with the exec output
+     */
+    output: string;
+    /**
+     * Sequence number of the output message
+     */
+    sequence: number;
+    /**
+     * Timestamp of when the output was generated
+     */
+    timestamp?: string;
+    /**
+     * Exit code of the process (only present when process has exited)
+     */
+    exitCode?: number;
 };
 
 export type Task = TaskItem;
@@ -837,7 +845,12 @@ export type GetExecOutputData = {
          */
         id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Last sequence number received by the client. Used to fetch only new output since that sequence or before if it is negative.
+         */
+        lastSequence?: number;
+    };
     url: '/api/v1/execs/{id}/io';
 };
 

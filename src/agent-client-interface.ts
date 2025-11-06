@@ -129,6 +129,7 @@ export type IAgentClientState =
   | "HIBERNATED";
 
 export interface IAgentClient {
+  type: "pitcher" | "pint";
   sandboxId: string;
   workspacePath: string;
   isUpToDate: boolean;

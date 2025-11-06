@@ -1004,6 +1004,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "lastSequence",
+            "in": "query",
+            "required": false,
+            "description": "Last sequence number received by the client. Used to fetch only new output since that sequence or before if it is negative.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         ],
         "responses": {
@@ -1858,9 +1868,21 @@
           "interactive": {
             "type": "boolean",
             "description": "Whether the exec is interactive"
+          },
+          "exitCode": {
+            "type": "integer",
+            "description": "Exit code of the process (only present when process has exited)"
           }
         },
-        "required": ["id", "command", "args", "status", "pid", "interactive"]
+        "required": [
+          "id",
+          "command",
+          "args",
+          "status",
+          "pid",
+          "interactive",
+          "exitCode"
+        ]
       },
       "ExecListResponse": {
         "type": "object",
@@ -1920,31 +1942,6 @@
           }
         },
         "required": ["message"]
-      },
-      "ExecStdout": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "Type of the exec output",
-            "enum": ["stdout", "stderr"]
-          },
-          "output": {
-            "type": "string",
-            "description": "Data associated with the exec output"
-          },
-          "sequence": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Sequence number of the output message"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when the output was generated"
-          }
-        },
-        "required": ["type", "output", "sequence"]
       },
       "ExecStdin": {
         "type": "object",
@@ -2182,6 +2179,35 @@
           }
         },
         "required": ["ports"]
+      },
+      "ExecStdout": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of the exec output",
+            "enum": ["stdout", "stderr"]
+          },
+          "output": {
+            "type": "string",
+            "description": "Data associated with the exec output"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Sequence number of the output message"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the output was generated"
+          },
+          "exitCode": {
+            "type": "integer",
+            "description": "Exit code of the process (only present when process has exited)"
+          }
+        },
+        "required": ["type", "output", "sequence"]
       },
       "Task": {
         "$ref": "#/components/schemas/TaskItem"
