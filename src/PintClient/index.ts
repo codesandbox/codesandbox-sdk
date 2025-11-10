@@ -1,10 +1,17 @@
+
+import { Port } from "../pitcher-protocol/messages/port";
+import { SandboxSession } from "../types";
+import { Emitter, EmitterSubscription, Event } from "../utils/event";
+import { Disposable } from "../utils/disposable";
+import { Client, createClient, createConfig } from "../api-clients/pint/client";
 import {
   IAgentClient,
   IAgentClientPorts,
   IAgentClientShells,
   IAgentClientState,
+  IAgentClientFS,
+  PickRawFsResult,
 } from "../agent-client-interface";
-import { Port } from "../pitcher-protocol/messages/port";
 import {
   createExec,
   ExecItem,
@@ -16,11 +23,16 @@ import {
   PortInfo,
   streamExecsList,
   streamPortsList,
+  createFile,
+  readFile,
+  deleteFile,
+  performFileAction,
+  listDirectory,
+  createDirectory,
+  deleteDirectory,
+
 } from "../api-clients/pint";
-import { SandboxSession } from "../types";
-import { Emitter, EmitterSubscription, Event } from "../utils/event";
-import { Disposable } from "../utils/disposable";
-import { Client, createClient, createConfig } from "../api-clients/pint/client";
+
 import {
   ShellSize,
   ShellProcessType,
@@ -31,6 +43,15 @@ import {
   ShellDTO,
   ShellProcessStatus,
 } from "../pitcher-protocol/messages/shell";
+import { 
+  FSReadFileParams, 
+  FSReadFileResult, 
+  FSReadDirParams, 
+  FSReadDirResult, 
+  FSReadDirMessage, 
+  FSWriteFileParams, 
+  FSWRiteFileResult,   
+} from "../pitcher-protocol/messages/fs";
 
 function parseStreamEvent<T>(evt: unknown): T {
   if (typeof evt !== "string") {
@@ -296,10 +317,118 @@ export class PintShellsClient implements IAgentClientShells {
   }
 }
 
+export class PintFsClient implements IAgentClientFS {
+  constructor(private apiClient: Client, private sandboxId: string) {}
+
+  async readFile(path: string): Promise<PickRawFsResult<"fs/readFile">> {
+    try {
+      const response = await readFile({
+        client: this.apiClient,
+        path: {
+          path: path,
+        },
+      });
+
+      if (response.data) {
+        // Convert string content to Uint8Array to match FSReadFileResult type
+        const encoder = new TextEncoder();
+        const content = encoder.encode(response.data.content);
+        
+        return {
+          type: "ok",
+          result: {
+            content: content,
+          },
+        };
+      } else {
+        return {
+          type: "error",
+          error: response.error?.message || "Failed to read file",
+          errno: null,
+        };
+      }
+    } catch (error) {
+      return {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        errno: null,
+      };
+    }
+  }
+
+  // TODO: Implement other IAgentClientFS methods
+  async readdir(path: string): Promise<PickRawFsResult<"fs/readdir">> {
+    throw new Error("Not implemented");
+  }
+
+  async writeFile(
+    path: string,
+    content: Uint8Array,
+    create?: boolean,
+    overwrite?: boolean
+  ): Promise<PickRawFsResult<"fs/writeFile">> {
+    throw new Error("Not implemented");
+  }
+
+  async stat(path: string): Promise<PickRawFsResult<"fs/stat">> {
+    throw new Error("Not implemented");
+  }
+
+  async copy(
+    from: string,
+    to: string,
+    recursive?: boolean,
+    overwrite?: boolean
+  ): Promise<PickRawFsResult<"fs/copy">> {
+    throw new Error("Not implemented");
+  }
+
+  async rename(
+    from: string,
+    to: string,
+    overwrite?: boolean
+  ): Promise<PickRawFsResult<"fs/rename">> {
+    throw new Error("Not implemented");
+  }
+
+  async remove(
+    path: string,
+    recursive?: boolean
+  ): Promise<PickRawFsResult<"fs/remove">> {
+    throw new Error("Not implemented");
+  }
+
+  async mkdir(
+    path: string,
+    recursive?: boolean
+  ): Promise<PickRawFsResult<"fs/mkdir">> {
+    throw new Error("Not implemented");
+  }
+
+  async watch(
+    path: string,
+    options: {
+      readonly recursive?: boolean;
+      readonly excludes?: readonly string[];
+    },
+    onEvent: (watchEvent: any) => void
+  ): Promise<
+    | (PickRawFsResult<"fs/watch"> & { type: "error" })
+    | { type: "success"; dispose(): void }
+  > {
+    throw new Error("Not implemented");
+  }
+
+  async download(path?: string): Promise<{ downloadUrl: string }> {
+    throw new Error("Not implemented");
+  }
+}
 export class PintClient implements IAgentClient {
   static async create(session: SandboxSession) {
     return new PintClient(session);
   }
+
+  readonly type = "pint" as const;
 
   // Since there is no websocket connection or internal hibernation, the state
   // will always be CONNECTED. No state change events will be triggered
@@ -313,7 +442,7 @@ export class PintClient implements IAgentClient {
 
   ports: IAgentClientPorts;
   shells: IAgentClientShells;
-  fs: any = null; // TODO: Implement
+  fs: IAgentClientFS;
   setup: any = null; // TODO: Implement
   tasks: any = null; // TODO: Implement
   system: any = null; // TODO: Implement
@@ -334,6 +463,7 @@ export class PintClient implements IAgentClient {
 
     this.ports = new PintPortsClient(apiClient, this.sandboxId);
     this.shells = new PintShellsClient(apiClient, this.sandboxId);
+    this.fs = new PintFsClient(apiClient, this.sandboxId);
   }
 
   ping(): void {}
