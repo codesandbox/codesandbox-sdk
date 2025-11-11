@@ -26,6 +26,7 @@ import {
   createFile,
   readFile,
   deleteFile,
+  deleteExec,
   performFileAction,
   listDirectory,
   createDirectory,
@@ -242,8 +243,46 @@ export class PintShellsClient implements IAgentClientShells {
       buffer: [],
     };
   }
-  delete(shellId: ShellId): Promise<CommandShellDTO | TerminalShellDTO | null> {
-    throw new Error("Not implemented");
+  async delete(shellId: ShellId): Promise<CommandShellDTO | TerminalShellDTO | null> {
+    try {
+      // First get the exec details before deleting it
+      const exec = await getExec({
+        client: this.apiClient,
+        path: {
+          id: shellId,
+        },
+      });
+
+      if (!exec.data) {
+        return null; // Exec doesn't exist
+      }
+
+      // Convert to shell DTO before deletion
+      const shellDTO = this.convertExecToShellDTO(exec.data);
+
+      // Delete the exec
+      const deleteResponse = await deleteExec({
+        client: this.apiClient,
+        path: {
+          id: shellId,
+        },
+      });
+
+      if (deleteResponse.data) {
+        // Clean up any open shells reference
+        if (this.openShells[shellId]) {
+          this.openShells[shellId].abort();
+          delete this.openShells[shellId];
+        }
+        
+        return shellDTO as CommandShellDTO | TerminalShellDTO;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Failed to delete shell:", error);
+      return null;
+    }
   }
   async getShells(): Promise<ShellDTO[]> {
     const execs = await listExecs({
