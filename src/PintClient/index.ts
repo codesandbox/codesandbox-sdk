@@ -356,9 +356,42 @@ export class PintFsClient implements IAgentClientFS {
     }
   }
 
-  // TODO: Implement other IAgentClientFS methods
   async readdir(path: string): Promise<PickRawFsResult<"fs/readdir">> {
-    throw new Error("Not implemented");
+    try {
+      const response = await listDirectory({
+        client: this.apiClient,
+        path: {
+          path: path,
+        },
+      });
+
+      if (response.data) {
+        const entries = response.data.files.map((fileInfo) => ({
+          name: fileInfo.name,
+          type: fileInfo.isDir ? (1 as const) : (0 as const), // 1 = directory, 0 = file
+          isSymlink: false, // API doesn't provide symlink info, defaulting to false
+        }));
+
+        return {
+          type: "ok",
+          result: {
+            entries: entries,
+          },
+        };
+      } else {
+        return {
+          type: "error",
+          error: response.error?.message || "Failed to read directory",
+          errno: null,
+        };
+      }
+    } catch (error) {
+      return {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        errno: null,
+      };
+    }
   }
 
   async writeFile(
@@ -367,7 +400,109 @@ export class PintFsClient implements IAgentClientFS {
     create?: boolean,
     overwrite?: boolean
   ): Promise<PickRawFsResult<"fs/writeFile">> {
-    throw new Error("Not implemented");
+     try {
+      // Convert Uint8Array content to string for the API
+      const decoder = new TextDecoder();
+      const contentString = decoder.decode(content);
+
+      const response = await createFile({
+        client: this.apiClient,
+        path: {
+          path: path,
+        },
+        body: {
+          content: contentString,
+        },
+      });
+
+      if (response.data) {
+        // FSWriteFileResult is an empty object (Record<string, never>)
+        return {
+          type: "ok",
+          result: {},
+        };
+      } else {
+        return {
+          type: "error",
+          error: response.error?.message || "Failed to write file",
+          errno: null,
+        };
+      }
+    } catch (error) {
+      return {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        errno: null,
+      };
+    }
+  }
+
+    async remove(
+    path: string,
+    recursive?: boolean
+  ): Promise<PickRawFsResult<"fs/remove">> {
+    try {
+      const response = await deleteDirectory({
+        client: this.apiClient,
+        path: {
+          path: path,
+        },
+      });
+
+      if (response.data) {
+        // FSRemoveResult is an empty object (Record<string, never>)
+        return {
+          type: "ok",
+          result: {},
+        };
+      } else {
+        return {
+          type: "error",
+          error: response.error?.message || "Failed to remove directory",
+          errno: null,
+        };
+      }
+    } catch (error) {
+      return {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        errno: null,
+      };
+    }
+  }
+
+  async mkdir(
+    path: string,
+    recursive?: boolean
+  ): Promise<PickRawFsResult<"fs/mkdir">> {
+    try {
+      const response = await createDirectory({
+        client: this.apiClient,
+        path: {
+          path: path,
+        },
+      });
+
+      if (response.data) {
+        // FSMkdirResult is an empty object (Record<string, never>)
+        return {
+          type: "ok",
+          result: {},
+        };
+      } else {
+        return {
+          type: "error",
+          error: response.error?.message || "Failed to create directory",
+          errno: null,
+        };
+      }
+    } catch (error) {
+      return {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        errno: null,
+      };
+    }
   }
 
   async stat(path: string): Promise<PickRawFsResult<"fs/stat">> {
@@ -388,20 +523,6 @@ export class PintFsClient implements IAgentClientFS {
     to: string,
     overwrite?: boolean
   ): Promise<PickRawFsResult<"fs/rename">> {
-    throw new Error("Not implemented");
-  }
-
-  async remove(
-    path: string,
-    recursive?: boolean
-  ): Promise<PickRawFsResult<"fs/remove">> {
-    throw new Error("Not implemented");
-  }
-
-  async mkdir(
-    path: string,
-    recursive?: boolean
-  ): Promise<PickRawFsResult<"fs/mkdir">> {
     throw new Error("Not implemented");
   }
 

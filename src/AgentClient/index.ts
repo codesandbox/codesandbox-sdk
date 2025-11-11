@@ -398,6 +398,7 @@ class AgentClientSystem implements IAgentClientSystem {
 }
 
 export class AgentClient implements IAgentClient {
+  readonly type = "pitcher" as const;
   static async create({
     session,
     getSession,

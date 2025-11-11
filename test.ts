@@ -17,6 +17,20 @@ console.log("Connecting...");
 
 const client = await sandbox.connect();
 
-console.log("Running command...");
+//console.log("Running command...");
+//console.log(await client.commands.run("echo 'Hello World'"));
 
-console.log(await client.commands.run("echo 'Hello World'"));
+
+console.log("creating directory...");
+console.log(await client.fs.mkdir("/workspace/newdir"));
+console.log("creating file in new dir...");
+console.log(await client.fs.writeFile("/workspace/newdir/text.txt", new TextEncoder().encode("Hello World")));
+console.log("read file...");
+console.log(await client.fs.readTextFile("/workspace/newdir/text.txt"));
+
+console.log("Reading directory after adding newdir and new file...");
+console.log(await client.fs.readdir("/workspace"));
+console.log("Removing directory...");
+console.log(await client.fs.remove("/workspace/newdir"));
+console.log("Reading directory after deleting newdir...");
+console.log(await client.fs.readdir("/workspace"));
