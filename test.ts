@@ -20,7 +20,6 @@ const client = await sandbox.connect();
 //console.log("Running command...");
 //console.log(await client.commands.run("echo 'Hello World'"));
 
-
 console.log("creating directory...");
 console.log(await client.fs.mkdir("/workspace/newdir"));
 console.log("creating file in new dir...");

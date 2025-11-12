@@ -27,6 +27,8 @@ import {
   readFile,
   deleteFile,
   deleteExec,
+  updateExec,
+  execExecStdin,
   performFileAction,
   listDirectory,
   createDirectory,
@@ -348,11 +350,42 @@ export class PintShellsClient implements IAgentClientShells {
   async rename(shellId: ShellId, name: string): Promise<null> {
     return null;
   }
-  restart(shellId: ShellId): Promise<null> {
-    throw new Error("Not implemented");
+  async restart(shellId: ShellId): Promise<null> {
+    try {
+      await updateExec({
+        client: this.apiClient,
+        path: {
+          id: shellId,
+        },
+        body: {
+          status: 'running',
+        },
+      });
+
+      return null;
+    } catch (error) {
+      console.error("Failed to restart shell:", error);
+      return null;
+    }
   }
-  send(shellId: ShellId, input: string, size: ShellSize): Promise<null> {
-    throw new Error("Not implemented");
+  async send(shellId: ShellId, input: string, size: ShellSize): Promise<null> {
+    try {
+      await execExecStdin({
+        client: this.apiClient,
+        path: {
+          id: shellId,
+        },
+        body: {
+          type: 'stdin',
+          input: input,
+        },
+      });
+
+      return null;
+    } catch (error) {
+      console.error("Failed to send input to shell:", error);
+      return null;
+    }
   }
 }
 
