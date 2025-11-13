@@ -595,7 +595,38 @@ export class PintFsClient implements IAgentClientFS {
     to: string,
     overwrite?: boolean
   ): Promise<PickRawFsResult<"fs/rename">> {
-    throw new Error("Not implemented");
+    try {
+      const response = await performFileAction({
+        client: this.apiClient,
+        path: {
+          path: from,
+        },
+        body: {
+          action: 'move',
+          destination: to,
+        },
+      });
+
+      if (response.data) {
+        // FSRenameResult is an empty object (Record<string, never>)
+        return {
+          type: "ok",
+          result: {},
+        };
+      } else {
+        return {
+          type: "error",
+          error: response.error?.message || "Failed to rename/move file",
+          errno: null,
+        };
+      }
+    } catch (error) {
+      return {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        errno: null,
+      };
+    }
   }
 
   async watch(
