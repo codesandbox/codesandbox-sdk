@@ -29,7 +29,12 @@ console.log(await client.fs.readTextFile("/workspace/newdir/text.txt"));
 
 console.log("Reading directory after adding newdir and new file...");
 console.log(await client.fs.readdir("/workspace"));
+console.log("rename file.....");
+console.log(await client.fs.rename("/workspace/newdir/text.txt", "/workspace/newdir2/renamed.txt"));
+
+console.log("Reading directory after adding newdir and new file...");
+console.log(await client.fs.readdir("/workspace"));
 console.log("Removing directory...");
-console.log(await client.fs.remove("/workspace/newdir"));
+console.log(await client.fs.remove("/workspace/newdir2"));
 console.log("Reading directory after deleting newdir...");
 console.log(await client.fs.readdir("/workspace"));
