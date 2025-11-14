@@ -26,6 +26,33 @@ export type CommandStatus =
   | "KILLED"
   | "RESTARTING";
 
+/**
+ * Error thrown when a command fails with a non-zero exit code.
+ */
+export class CommandError extends Error {
+  /**
+   * The exit code returned by the command.
+   */
+  exitCode: number;
+
+  /**
+   * The output produced by the command.
+   */
+  output: string;
+
+  constructor(message: string, exitCode: number, output: string) {
+    super(message);
+    this.name = "CommandError";
+    this.exitCode = exitCode;
+    this.output = output;
+
+    // Maintains proper stack trace for where our error was thrown (only available on V8)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, CommandError);
+    }
+  }
+}
+
 const DEFAULT_SHELL_SIZE = { cols: 128, rows: 24 };
 
 // This can not be called Commands due to React Native
@@ -240,6 +267,11 @@ export class Command {
    */
   #status: CommandStatus = "RUNNING";
 
+  /**
+   * The exit code of the command, available after it completes.
+   */
+  private exitCode?: number;
+
   get status(): CommandStatus {
     return this.#status;
   }
@@ -274,6 +306,7 @@ export class Command {
     this.disposable.addDisposable(
       agentClient.shells.onShellExited(({ shellId, exitCode }) => {
         if (shellId === this.shell.shellId) {
+          this.exitCode = exitCode;
           this.status = exitCode === 0 ? "FINISHED" : "ERROR";
           this.barrier.open();
         }
@@ -390,7 +423,11 @@ export class Command {
           return cleaned;
         }
 
-        throw new Error(`Command ERROR: ${cleaned}`);
+        throw new CommandError(
+          `Command failed with exit code ${this.exitCode ?? "unknown"}`,
+          this.exitCode ?? 1,
+          cleaned
+        );
       }
     );
   }

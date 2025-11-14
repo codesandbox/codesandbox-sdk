@@ -136,6 +136,13 @@ export class Sandbox {
       this.tracer
     );
 
+    const commands: string[] = [];
+
+    // Ensure .private directory exists if env or git is configured
+    if (customSession.env || customSession.git) {
+      commands.push(`mkdir -p "$HOME/.private"`);
+    }
+
     if (customSession.env) {
       const envStrings = Object.entries(customSession.env)
         .map(([key, value]) => {
@@ -154,22 +161,24 @@ export class Sandbox {
     }
 
     if (customSession.git) {
-      await Promise.all([
-        client.commands.run(
-          `echo "https://${customSession.git.username || "x-access-token"}:${
-            customSession.git.accessToken
-          }@${customSession.git.provider}" > $HOME/.private/.gitcredentials`
-        ),
-        client.commands.run(
-          `echo "[user]
+      commands.push(
+        `echo "https://${customSession.git.username || "x-access-token"}:${
+          customSession.git.accessToken
+        }@${customSession.git.provider}" > $HOME/.private/.gitcredentials`
+      );
+      commands.push(
+        `echo "[user]
     name  = ${customSession.git.name || customSession.id}
     email = ${customSession.git.email}
 [init]
     defaultBranch = main
 [credential]
     helper = store --file ~/.private/.gitcredentials" > $HOME/.gitconfig`
-        ),
-      ]);
+      );
+    }
+
+    if (commands.length > 0) {
+      await client.commands.run(commands.join("\n"));
     }
 
     return client;
