@@ -1,6 +1,6 @@
 import { Disposable, DisposableStore } from "../utils/disposable";
 import { Emitter } from "../utils/event";
-import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { IAgentClient } from "../agent-client-interface";
 import * as protocol from "../pitcher-protocol";
 import { Barrier } from "../utils/barrier";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
@@ -118,39 +118,33 @@ export class SandboxCommands {
         "command.name": opts?.name || "",
       },
       async () => {
-        const disposableStore = new DisposableStore();
-        const onOutput = new Emitter<string>();
-        disposableStore.add(onOutput);
-
         command = Array.isArray(command) ? command.join(" && ") : command;
 
         const passedEnv = Object.assign(opts?.env ?? {});
 
-        const escapedCommand = command.replace(/'/g, "'\\''");
+        // Build bash args array
+        const args = ["source $HOME/.private/.env 2>/dev/null || true"];
 
-        // TODO: use a new shell API that natively supports cwd & env
-        let commandWithEnv = Object.keys(passedEnv).length
-          ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
-              passedEnv
-            )
-              .map(([key, value]) => {
-                const escapedValue = String(value).replace(/'/g, "'\\''");
-                return `${key}='${escapedValue}'`;
-              })
-              .join(" ")} bash -c '${escapedCommand}'`
-          : `source $HOME/.private/.env 2>/dev/null || true && bash -c '${escapedCommand}'`;
-
-        if (opts?.cwd) {
-          commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
+        if (Object.keys(passedEnv).length) {
+          Object.entries(passedEnv).forEach(([key, value]) => {
+            args.push("&&", "env", `${key}=${value}`);
+          });
         }
 
-        const shell = await this.agentClient.shells.create(
-          this.agentClient.workspacePath,
-          opts?.dimensions ?? DEFAULT_SHELL_SIZE,
-          commandWithEnv,
-          opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
-          true
-        );
+        if (opts?.cwd) {
+          args.push("&&", "cd", opts.cwd);
+        }
+
+        args.push("&&", command);
+
+        const shell = await this.agentClient.shells.create({
+          command: "bash",
+          args: ["-c", args.join(" ")],
+          projectPath: this.agentClient.workspacePath,
+          size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
+          type: opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
+          isSystemShell: true,
+        });
 
         if (shell.status === "ERROR" || shell.status === "KILLED") {
           throw new Error(`Failed to create shell: ${shell.buffer.join("\n")}`);
@@ -216,7 +210,8 @@ export class SandboxCommands {
 
       return shells
         .filter(
-          (shell) => shell.shellType === "TERMINAL" && isCommandShell(shell)
+          (shell): shell is protocol.shell.CommandShellDTO =>
+            shell.shellType === "TERMINAL" && isCommandShell(shell)
         )
         .map(
           (shell) =>
@@ -332,6 +327,8 @@ export class Command {
         if (shellId !== this.shell.shellId || out.startsWith("[CODESANDBOX]")) {
           return;
         }
+
+        console.log("GOTZ OUT");
 
         this.onOutputEmitter.fire(out);
 
