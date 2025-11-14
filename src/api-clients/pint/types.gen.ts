@@ -42,7 +42,7 @@ export type FileActionRequest = {
     /**
      * Type of action to perform on the file
      */
-    action: 'move';
+    action: 'move' | 'copy';
     /**
      * Destination path for move operation
      */
@@ -500,6 +500,48 @@ export type CreateFileResponses = {
 };
 
 export type CreateFileResponse = CreateFileResponses[keyof CreateFileResponses];
+
+export type GetFileStatData = {
+    body?: never;
+    path: {
+        /**
+         * File path
+         */
+        path: string;
+    };
+    query?: never;
+    url: '/api/v1/file_stat/{path}';
+};
+
+export type GetFileStatErrors = {
+    /**
+     * Bad Request - Path is required or invalid path
+     */
+    400: _Error;
+    /**
+     * Unauthorized
+     */
+    401: _Error;
+    /**
+     * File not found
+     */
+    404: _Error;
+    /**
+     * Unexpected Error
+     */
+    default: _Error;
+};
+
+export type GetFileStatError = GetFileStatErrors[keyof GetFileStatErrors];
+
+export type GetFileStatResponses = {
+    /**
+     * File metadata retrieved successfully
+     */
+    200: FileInfo;
+};
+
+export type GetFileStatResponse = GetFileStatResponses[keyof GetFileStatResponses];
 
 export type DeleteDirectoryData = {
     body?: never;
