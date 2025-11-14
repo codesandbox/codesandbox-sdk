@@ -375,6 +375,85 @@
         }
       }
     },
+    "/api/v1/file_stat/{path}": {
+      "get": {
+        "summary": "Get file stat",
+        "tags": [
+          "files"
+        ],
+        "description": "Reads the file metadata.",
+        "operationId": "getFileStat",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "description": "File path",
+            "schema": {
+              "type": "string"
+            },
+            "example": "workspace/src/main.go"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File metadata retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Path is required or invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/directories/{path}": {
       "post": {
         "summary": "Create a directory",
@@ -1821,7 +1900,8 @@
           "action": {
             "type": "string",
             "enum": [
-              "move"
+              "move",
+              "copy"
             ],
             "description": "Type of action to perform on the file"
           },
