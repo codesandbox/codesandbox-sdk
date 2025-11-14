@@ -138,23 +138,24 @@ export const VmTable = ({
       {/* Header */}
       <Box>
         <Text bold color="blue">
-          {padString("VM ID", 14)}  {padString("Last Active", 14)}  {padString("Started At", 14)}  {padString("Runtime", 10)} Credits
+          {padString("VM ID", 14)} {padString("Last Active", 14)}{" "}
+          {padString("Started At", 14)} {padString("Runtime", 10)} Credits
         </Text>
       </Box>
-      
+
       {/* Separator */}
       <Box>
         <Text dimColor>{"─".repeat(Math.min(terminalWidth - 2, 60))}</Text>
       </Box>
-      
+
       {/* Data rows */}
       {visibleVms.map((vm, visibleIndex) => {
         const actualIndex = startIndex + visibleIndex;
         const isSelected = selectedIndex === actualIndex;
-        
+
         // Safely get VM ID and handle edge cases
-        const vmId = (vm?.id && typeof vm.id === 'string') ? vm.id : "N/A";
-        
+        const vmId = vm?.id && typeof vm.id === "string" ? vm.id : "N/A";
+
         // Skip rendering if VM is completely invalid
         if (!vm) {
           return (
@@ -163,26 +164,34 @@ export const VmTable = ({
             </Box>
           );
         }
-        
+
         return (
           <Box key={`${vmId}-${actualIndex}`}>
-            <Text 
+            <Text
               backgroundColor={isSelected ? "blue" : undefined}
               color={isSelected ? "white" : undefined}
             >
-              {padString(vmId, 14)}  {padString(formatDate(vm.last_active_at), 14)}  {padString(formatDate(vm.session_started_at), 14)}  {padString(calculateRuntime(vm.session_started_at, vm.last_active_at), 10)} {vm.credit_basis || "N/A"} cr/hr
+              {padString(vmId, 14)}{" "}
+              {padString(formatDate(vm.last_active_at), 14)}{" "}
+              {padString(formatDate(vm.session_started_at), 14)}{" "}
+              {padString(
+                calculateRuntime(vm.session_started_at, vm.last_active_at),
+                10
+              )}{" "}
+              {vm.credit_basis || "N/A"} cr/hr
             </Text>
           </Box>
         );
       })}
-      
+
       {/* VM count and range info */}
       <Box marginTop={1}>
         <Text dimColor>
           {vmsSorted.length <= maxVisibleRows
             ? `${vmsSorted.length} VMs total`
-            : `Showing ${startIndex + 1}-${endIndex} of ${vmsSorted.length} VMs`
-          }
+            : `Showing ${startIndex + 1}-${endIndex} of ${
+                vmsSorted.length
+              } VMs`}
         </Text>
       </Box>
     </Box>
