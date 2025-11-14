@@ -37,7 +37,7 @@ export class AgentConnection {
     return new AgentConnection(ws, url);
   }
 
-  private _state: IAgentClientState = "CONNECTED";
+  private _state: IAgentClientState = "CONNECTING";
   private _isDisposed = false;
 
   get state() {
@@ -183,8 +183,9 @@ export class AgentConnection {
     const { timeoutMs } = options;
     const request = this.createRequest(pitcherRequest, timeoutMs);
 
-    // If not connected, queue the message for later
-    if (this.state !== "CONNECTED") {
+    // If not connected or connecting, queue the message for later
+    // CONNECTING is allowed because we need to send client/join to complete the connection
+    if (this.state !== "CONNECTED" && this.state !== "CONNECTING") {
       this.messageQueue.push(request);
       return request.unwrap();
     }
@@ -248,39 +249,63 @@ export class AgentConnection {
     this.state = "DISCONNECTED";
   }
 
-  async reconnect(reconnectToken: string, startVm: () => Promise<string>) {
+  async reconnect(
+    reconnectToken: string,
+    startVm: () => Promise<{ url: string; token: string }>
+  ): Promise<string | undefined> {
     if (!(this.state === "DISCONNECTED" || this.state === "HIBERNATED")) {
-      return;
+      return undefined;
     }
 
-    this.state = "CONNECTING";
-    this.connection.dispose();
-    const url = new URL(this.url);
-
-    const token = await startVm();
-
-    url.searchParams.set("token", token);
-    url.searchParams.set("reconnectToken", reconnectToken);
-
-    this.connection = await createWebSocketClient(url.toString());
-    this.subscribeConnection(this.connection);
-
-    await this.request({
-      method: "client/join",
-      params: {
-        clientInfo: {
-          protocolVersion: version,
-          appId: "sdk",
-        },
-        asyncProgress: false,
-        subscriptions: DEFAULT_SUBSCRIPTIONS,
-      },
+    // Move pending messages to the queue so they'll be retried after reconnection
+    // These messages were sent but may not have been processed before disconnection
+    this.pendingMessages.forEach((msg) => {
+      if (!msg.isDisposed) {
+        this.messageQueue.unshift(msg);
+      }
     });
+    this.pendingMessages.clear();
 
-    this.state = "CONNECTED";
+    // Set state to CONNECTING - we'll set it to CONNECTED after client/join succeeds
+    this.state = "CONNECTING";
 
-    // Flush the message queue after successful reconnection
-    await this.flushMessageQueue();
+    this.connection.dispose();
+
+    try {
+      const { url: newBaseUrl, token } = await startVm();
+
+      // Update the stored URL with the new one from the resumed session
+      this.url = newBaseUrl;
+
+      const url = new URL(newBaseUrl);
+      url.searchParams.set("token", token);
+
+      this.connection = await createWebSocketClient(url.toString());
+      this.subscribeConnection(this.connection);
+
+      const joinResult = await this.request({
+        method: "client/join",
+        params: {
+          clientInfo: {
+            protocolVersion: version,
+            appId: "sdk",
+          },
+          asyncProgress: false,
+          subscriptions: DEFAULT_SUBSCRIPTIONS,
+        },
+      });
+
+      // Connection is fully established after successful client/join
+      this.state = "CONNECTED";
+
+      // Flush the message queue after successful reconnection
+      await this.flushMessageQueue();
+
+      // Return the new reconnect token so it can be updated in AgentClient
+      return joinResult.reconnectToken;
+    } catch (error) {
+      throw error;
+    }
   }
 
   private async flushMessageQueue() {
