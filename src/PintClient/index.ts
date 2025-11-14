@@ -33,7 +33,7 @@ import {
   listDirectory,
   createDirectory,
   deleteDirectory,
-
+  getFileStat,
 } from "../api-clients/pint";
 
 import {
@@ -578,7 +578,43 @@ export class PintFsClient implements IAgentClientFS {
   }
 
   async stat(path: string): Promise<PickRawFsResult<"fs/stat">> {
-    throw new Error("Not implemented");
+    try {
+      const response = await getFileStat({
+        client: this.apiClient,
+        path: {
+          path: path,
+        },
+      });
+
+      if (response.data) {
+        // Parse modTime string to timestamp (assuming ISO string format)
+        const modTimeMs = new Date(response.data.modTime).getTime();
+        
+        return {
+          type: "ok",
+          result: {
+            type: response.data.isDir ? 1 : 0, // 1 = directory, 0 = file
+            isSymlink: false, // API doesn't provide symlink info, defaulting to false
+            size: response.data.size,
+            mtime: modTimeMs,
+            ctime: modTimeMs, // Using modTime as fallback since API doesn't provide ctime
+            atime: modTimeMs, // Using modTime as fallback since API doesn't provide atime
+          },
+        };
+      } else {
+        return {
+          type: "error",
+          error: response.error?.message || "Failed to get file stat",
+          errno: null,
+        };
+      }
+    } catch (error) {
+      return {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        errno: null,
+      };
+    }
   }
 
   async copy(
