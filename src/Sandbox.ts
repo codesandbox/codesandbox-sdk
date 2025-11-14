@@ -180,9 +180,7 @@ export class Sandbox {
     customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
     // HACK: we currently do not get a flag for pint, but this is a check we can use for now
-    const isPint =
-      pitcherManagerResponse.userWorkspacePath ===
-      pitcherManagerResponse.workspacePath;
+    const isPint = pitcherManagerResponse.pitcherManagerVersion.endsWith('bartender');
 
     if (!customSession || !customSession.id) {
       return {
