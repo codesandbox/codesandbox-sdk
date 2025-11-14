@@ -623,7 +623,38 @@ export class PintFsClient implements IAgentClientFS {
     recursive?: boolean,
     overwrite?: boolean
   ): Promise<PickRawFsResult<"fs/copy">> {
-    throw new Error("Not implemented");
+    try {
+      const response = await performFileAction({
+        client: this.apiClient,
+        path: {
+          path: from,
+        },
+        body: {
+          action: 'copy',
+          destination: to,
+        },
+      });
+
+      if (response.data) {
+        // FSCopyResult is an empty object (Record<string, never>)
+        return {
+          type: "ok",
+          result: {},
+        };
+      } else {
+        return {
+          type: "error",
+          error: response.error?.message || "Failed to copy file",
+          errno: null,
+        };
+      }
+    } catch (error) {
+      return {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        errno: null,
+      };
+    }
   }
 
   async rename(
