@@ -20,7 +20,8 @@ const client = await sandbox.connect();
 //console.log("Running command...");
 //console.log(await client.commands.run("echo 'Hello World'"));
 
-console.log("creating directory...");
+// fs testing
+/*console.log("creating directory...");
 console.log(await client.fs.mkdir("/workspace/newdir"));
 console.log("creating file in new dir...");
 console.log(await client.fs.writeFile("/workspace/newdir/text.txt", new TextEncoder().encode("Hello World")));
@@ -40,4 +41,12 @@ console.log(await client.fs.readdir("/workspace"));
 console.log("Removing directory...");
 console.log(await client.fs.remove("/workspace/newdir"));
 console.log("Reading directory after deleting newdir...");
-console.log(await client.fs.readdir("/workspace"));
+console.log(await client.fs.readdir("/workspace"));*/
+
+// tasks testing
+console.log("Getting tasks...");
+console.log(await client.tasks.getAll());
+console.log("Getting task by id...");
+console.log(await client.tasks.get("install"));
+console.log("Getting setup tasks...");
+console.log(await client.setup.getSteps());
