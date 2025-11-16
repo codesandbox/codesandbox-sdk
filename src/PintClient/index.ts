@@ -4,6 +4,7 @@ import { SandboxSession } from "../types";
 import { Emitter, EmitterSubscription, Event } from "../utils/event";
 import { Disposable } from "../utils/disposable";
 import { Client, createClient, createConfig } from "../api-clients/pint/client";
+import { PintClientTasks } from "./tasks";
 import {
   IAgentClient,
   IAgentClientPorts,
@@ -46,15 +47,6 @@ import {
   ShellDTO,
   ShellProcessStatus,
 } from "../pitcher-protocol/messages/shell";
-import { 
-  FSReadFileParams, 
-  FSReadFileResult, 
-  FSReadDirParams, 
-  FSReadDirResult, 
-  FSReadDirMessage, 
-  FSWriteFileParams, 
-  FSWRiteFileResult,   
-} from "../pitcher-protocol/messages/fs";
 
 function parseStreamEvent<T>(evt: unknown): T {
   if (typeof evt !== "string") {
@@ -390,7 +382,7 @@ export class PintShellsClient implements IAgentClientShells {
 }
 
 export class PintFsClient implements IAgentClientFS {
-  constructor(private apiClient: Client, private sandboxId: string) {}
+  constructor(private apiClient: Client) {}
 
   async readFile(path: string): Promise<PickRawFsResult<"fs/readFile">> {
     try {
@@ -754,7 +746,8 @@ export class PintClient implements IAgentClient {
 
     this.ports = new PintPortsClient(apiClient, this.sandboxId);
     this.shells = new PintShellsClient(apiClient, this.sandboxId);
-    this.fs = new PintFsClient(apiClient, this.sandboxId);
+    this.fs = new PintFsClient(apiClient);
+    this.tasks = new PintClientTasks(apiClient);
   }
 
   ping(): void {}
