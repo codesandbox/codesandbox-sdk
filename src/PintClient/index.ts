@@ -5,12 +5,16 @@ import { Emitter, EmitterSubscription, Event } from "../utils/event";
 import { Disposable } from "../utils/disposable";
 import { Client, createClient, createConfig } from "../api-clients/pint/client";
 import { PintClientTasks, PintClientSetup } from "./tasks";
+import { PintClientSystem } from "./system";
 import {
   IAgentClient,
   IAgentClientPorts,
   IAgentClientShells,
   IAgentClientState,
   IAgentClientFS,
+  IAgentClientSetup,
+  IAgentClientTasks,
+  IAgentClientSystem,
   PickRawFsResult,
 } from "../agent-client-interface";
 import {
@@ -726,9 +730,9 @@ export class PintClient implements IAgentClient {
   ports: IAgentClientPorts;
   shells: IAgentClientShells;
   fs: IAgentClientFS;
-  setup: any = null; // TODO: Implement
-  tasks: any = null; // TODO: Implement
-  system: any = null; // TODO: Implement
+  setup: IAgentClientSetup;
+  tasks: IAgentClientTasks;
+  system: IAgentClientSystem;
 
   constructor(session: SandboxSession) {
     this.sandboxId = session.sandboxId;
@@ -749,6 +753,7 @@ export class PintClient implements IAgentClient {
     this.fs = new PintFsClient(apiClient);
     this.tasks = new PintClientTasks(apiClient);
     this.setup = new PintClientSetup(apiClient);
+    this.system = new PintClientSystem(apiClient);
   }
 
   ping(): void {}
