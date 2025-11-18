@@ -8,6 +8,7 @@ import { API } from "./API";
 import { SandboxClient } from "./SandboxClient";
 import { retryWithDelay } from "./utils/api";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
+import { sleep } from "./utils/sleep";
 
 export class Sandbox {
   private tracer?: Tracer;
@@ -313,5 +314,43 @@ export class Sandbox {
         return this.getSession(this.pitcherManagerResponse, customSession);
       }
     );
+  }
+
+  async getPintSandboxPorts(): Promise<number[]> {
+    const pintPortAPIUrl = `${this.pitcherManagerResponse.pitcherURL}/api/v1/ports`;
+    const response = await fetch(pintPortAPIUrl, {
+      headers: {
+        Authorization: `Bearer ${this.pitcherManagerResponse.pitcherToken}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ports from Pint API: ${response.statusText}`);
+    }
+
+    const portData = await response.json();
+    const ports: number[] = portData.ports.map((portInfo: any) => portInfo.port);
+    return ports;
+  }
+
+  async waitForPortOpen(port: number, timeoutMs: number): Promise<void> {
+    const startTime = Date.now();
+
+    while (true) {
+      try {
+        const ports = await this.getPintSandboxPorts()
+        if (ports.includes(port)) {
+          return;
+        }
+      } catch (e){
+        // Ignore errors and retry
+        console.log(`Error checking port ${port}, retrying...`, e);
+      }
+
+      if (Date.now() - startTime > timeoutMs) {
+        throw new Error(`Timeout waiting for port ${port} to open`);
+      }
+
+      await sleep(1000);
+    }
   }
 }
