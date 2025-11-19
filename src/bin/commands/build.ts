@@ -735,8 +735,13 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
       templateBuildSpinner.text = "Preparing template snapshot: Starting sandbox to create snapshot...";
       const sandbox = await sdk.sandboxes.resume(sandboxId);
 
-      templateBuildSpinner.text = "Preparing template snapshot: Waiting for sandbox to be ready...";
-      await sandbox.waitForPortOpen(8080, 30000);
+      if (argv.ports && argv.ports.length > 0) {
+        templateBuildSpinner.text = `Preparing template snapshot: Waiting for ports ${argv.ports.join(', ')} to be ready...`;
+        await sandbox.waitForPortsToOpen(argv.ports, 30000);
+      } else {
+        templateBuildSpinner.text = `Preparing template snapshot: No ports specified, waiting 10 seconds for tasks to run...`;
+        await sleep(10000);
+      }
 
       templateBuildSpinner.text = "Preparing template snapshot: Sandbox is ready. Creating snapshot...";
       await sdk.sandboxes.hibernate(sandboxId);
@@ -782,7 +787,7 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
   CLI:
 
     csb sandboxes fork ${id}\n`
-    
+
     );
 
     process.exit(0);

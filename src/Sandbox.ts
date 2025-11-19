@@ -332,22 +332,22 @@ export class Sandbox {
     return ports;
   }
 
-  async waitForPortOpen(port: number, timeoutMs: number): Promise<void> {
+  async waitForPortsToOpen(ports: number[], timeoutMs: number): Promise<void> {
     const startTime = Date.now();
 
     while (true) {
       try {
-        const ports = await this.getPintSandboxPorts()
-        if (ports.includes(port)) {
+        const openPorts = await this.getPintSandboxPorts()
+        if (ports.every(port => openPorts.includes(port))) {
           return;
         }
       } catch (e){
         // Ignore errors and retry
-        console.log(`Error checking port ${port}, retrying...`, e);
+        console.log(`Error checking port ${ports.join(',')}, retrying...`, e);
       }
 
       if (Date.now() - startTime > timeoutMs) {
-        throw new Error(`Timeout waiting for port ${port} to open`);
+        throw new Error(`Timeout waiting for port ${ports.join(',')} to open`);
       }
 
       await sleep(1000);
