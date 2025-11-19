@@ -17,9 +17,6 @@ console.log("Connecting...");
 
 const client = await sandbox.connect();
 
-//console.log("Running command...");
-//console.log(await client.commands.run("echo 'Hello World'"));
-
 // ports testing
 console.log("Getting ports...");
 console.log(await client.ports.getAll());
