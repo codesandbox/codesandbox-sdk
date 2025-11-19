@@ -219,6 +219,10 @@
           "id": { "type": "string" },
           "is_frozen": { "type": "boolean" },
           "privacy": { "type": "integer" },
+          "settings": {
+            "properties": { "use_pint": { "type": "boolean" } },
+            "type": "object"
+          },
           "tags": { "items": { "type": "string" }, "type": "array" },
           "title": { "nullable": true, "type": "string" },
           "updated_at": { "format": "date-time", "type": "string" }
@@ -229,7 +233,8 @@
           "is_frozen",
           "created_at",
           "updated_at",
-          "tags"
+          "tags",
+          "settings"
         ],
         "title": "Sandbox",
         "type": "object"
@@ -927,11 +932,14 @@
                   "cluster": { "type": "string" },
                   "id": { "type": "string" },
                   "latest_pitcher_version": { "type": "string" },
+                  "pint_token": { "type": "string" },
+                  "pint_url": { "type": "string" },
                   "pitcher_manager_version": { "type": "string" },
                   "pitcher_token": { "type": "string" },
                   "pitcher_url": { "type": "string" },
                   "pitcher_version": { "type": "string" },
                   "reconnect_token": { "type": "string" },
+                  "use_pint": { "type": "boolean" },
                   "user_workspace_path": { "type": "string" },
                   "workspace_path": { "type": "string" }
                 },
@@ -945,6 +953,7 @@
                   "pitcher_url",
                   "pitcher_version",
                   "reconnect_token",
+                  "use_pint",
                   "user_workspace_path",
                   "workspace_path"
                 ],
@@ -1537,11 +1546,14 @@
                       "cluster": { "type": "string" },
                       "id": { "type": "string" },
                       "latest_pitcher_version": { "type": "string" },
+                      "pint_token": { "type": "string" },
+                      "pint_url": { "type": "string" },
                       "pitcher_manager_version": { "type": "string" },
                       "pitcher_token": { "type": "string" },
                       "pitcher_url": { "type": "string" },
                       "pitcher_version": { "type": "string" },
                       "reconnect_token": { "type": "string" },
+                      "use_pint": { "type": "boolean" },
                       "user_workspace_path": { "type": "string" },
                       "workspace_path": { "type": "string" }
                     },
@@ -1555,6 +1567,7 @@
                       "pitcher_url",
                       "pitcher_version",
                       "reconnect_token",
+                      "use_pint",
                       "user_workspace_path",
                       "workspace_path"
                     ],
@@ -2671,6 +2684,6 @@
     }
   },
   "security": [],
-  "servers": [{ "url": "https://api.codesandbox.stream", "variables": {} }],
+  "servers": [{ "url": "https://api.codesandbox.io", "variables": {} }],
   "tags": []
 }
