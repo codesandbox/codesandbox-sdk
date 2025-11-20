@@ -27,6 +27,7 @@ describe('Sandbox Filesystem', () => {
 
     try {
       if (client) {
+        await client.disconnect();
         client.dispose();
         client = undefined;
       }

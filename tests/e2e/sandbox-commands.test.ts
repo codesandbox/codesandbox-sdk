@@ -26,6 +26,7 @@ describe('Sandbox Commands', () => {
 
     try {
       if (client) {
+        await client.disconnect();
         client.dispose();
         client = undefined;
       }
