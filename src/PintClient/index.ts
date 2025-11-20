@@ -3,6 +3,7 @@ import { Emitter, EmitterSubscription, Event } from "../utils/event";
 import { SandboxSession } from "../types";
 import { Disposable } from "../utils/disposable";
 import { Client, createClient, createConfig } from "../api-clients/pint/client";
+import {PintFsClient} from "./fs";
 import {
   IAgentClient,
   IAgentClientPorts,
@@ -19,8 +20,6 @@ import {
   PortInfo,
   streamPortsList,
 } from "../api-clients/pint";
-
-
 
 function parseStreamEvent<T>(evt: unknown): T {
   if (typeof evt !== "string") {
@@ -117,7 +116,7 @@ export class PintClient implements IAgentClient {
 
     this.ports = new PintPortsClient(apiClient, this.sandboxId);
     this.shells = {} as IAgentClientShells; // Not implemented for Pint
-    this.fs = {} as IAgentClientFS; // Not implemented for Pint  
+    this.fs = new PintFsClient(apiClient);
     this.tasks = {} as IAgentClientTasks; // Not implemented for Pint
     this.setup = {} as IAgentClientSetup; // Not implemented for Pint
     this.system = {} as IAgentClientSystem; // Not implemented for Pint
