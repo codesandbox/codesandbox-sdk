@@ -1,6 +1,4 @@
-import type { Client, Config } from "@hey-api/client-fetch";
 import { handleResponse, retryWithDelay, createApiClient } from "./utils/api";
-import { getInferredBaseUrl } from "./utils/constants";
 import {
   metaInfo,
   workspaceCreate,
@@ -56,7 +54,8 @@ import type {
   PreviewHostUpdateData,
 } from "./api-clients/client";
 import { PitcherManagerResponse } from "./types";
-
+import { Config } from "./api-clients/client/client";
+import { Client } from "./api-clients/pint/client";
 
 export interface APIOptions {
   apiKey: string;
