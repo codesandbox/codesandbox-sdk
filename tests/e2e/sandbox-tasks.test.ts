@@ -93,7 +93,7 @@ describe('Sandbox Tasks', () => {
     });
   });
 
-  describe.skip('Task operations', () => {
+  describe('Task operations', () => {
     // These tests are skipped as they require specific task configurations
     // and may interfere with running tasks
     it('should run a task', async () => {
