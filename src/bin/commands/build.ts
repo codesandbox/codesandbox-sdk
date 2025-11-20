@@ -727,10 +727,9 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
     // Create a memory snapshot from the template sandboxes
     const templateBuildSpinner = ora({ stream: process.stdout });
     templateBuildSpinner.start("Preparing template snapshot...");
+
+    const sandboxId = templateData.sandboxes[0].id;
     try {
-
-      const sandboxId = templateData.sandboxes[0].id;
-
       templateBuildSpinner.text = "Preparing template snapshot: Starting sandbox to create snapshot...";
       const sandbox = await sdk.sandboxes.resume(sandboxId);
 
@@ -748,6 +747,8 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
       templateBuildSpinner.succeed("Template snapshot created.");
 
     } catch (error) {
+      templateBuildSpinner.text = "Preparing template snapshot: Failed to create snapshot. Cleaning up...";
+      await sdk.sandboxes.shutdown(sandboxId);
       templateBuildSpinner.fail(`Failed to create template reference and example: ${(error as Error).message}`);
       throw error;
     }
