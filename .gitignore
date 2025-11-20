@@ -4,7 +4,6 @@
 dist
 test.ts
 test-template
-pint-test.ts
 
 ### macOS ###
 *.DS_Store
