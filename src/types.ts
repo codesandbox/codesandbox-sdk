@@ -1,7 +1,7 @@
 import { VMTier } from "./VMTier";
 import { HostToken } from "./HostTokens";
-import { Tracer } from "@opentelemetry/api";
 import { Config } from "./api-clients/client/client";
+import { Tracer } from "@opentelemetry/api";
 
 export interface PitcherManagerResponse {
   bootupType: "RUNNING" | "CLEAN" | "RESUME" | "FORK";

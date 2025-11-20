@@ -1,4 +1,3 @@
-
 import { Port } from "../pitcher-protocol/messages/port";
 import { Emitter, EmitterSubscription, Event } from "../utils/event";
 import { SandboxSession } from "../types";
