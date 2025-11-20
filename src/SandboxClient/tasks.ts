@@ -1,7 +1,7 @@
 import * as protocol from "../pitcher-protocol";
 import { Disposable, IDisposable } from "../utils/disposable";
 import { DEFAULT_SHELL_SIZE } from "./terminals";
-import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { type IAgentClient } from "../agent-client-interface";
 import { Emitter } from "../utils/event";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 

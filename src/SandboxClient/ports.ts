@@ -1,6 +1,6 @@
 import { Disposable } from "../utils/disposable";
 import { Emitter } from "../utils/event";
-import { IAgentClient } from "../AgentClient/agent-client-interface";
+import { type IAgentClient } from "../agent-client-interface";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
 
 export type Port = {

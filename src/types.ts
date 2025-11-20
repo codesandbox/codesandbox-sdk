@@ -1,6 +1,6 @@
 import { VMTier } from "./VMTier";
 import { HostToken } from "./HostTokens";
-import { Config } from "@hey-api/client-fetch";
+import { Config } from "./api-clients/client/client";
 import { Tracer } from "@opentelemetry/api";
 
 export interface PitcherManagerResponse {
@@ -235,6 +235,7 @@ export type SandboxOpts = {
 };
 
 export type SandboxSession = PitcherManagerResponse & {
+  isPint: boolean;
   sandboxId: string;
   sessionId?: string;
   hostToken?: HostToken;
