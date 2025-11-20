@@ -19,7 +19,6 @@ import { mkdir, writeFile } from "fs/promises";
 import { sleep } from "../../utils/sleep";
 import { buildDockerImage, prepareDockerBuild, pushDockerImage } from "../utils/docker";
 import { randomUUID } from "crypto";
-import { error } from "console";
 
 export type BuildCommandArgs = {
   directory: string;
