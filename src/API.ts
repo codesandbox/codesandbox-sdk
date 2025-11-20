@@ -1,6 +1,6 @@
-import type { Client, Config } from "@hey-api/client-fetch";
 import { handleResponse, retryWithDelay, createApiClient } from "./utils/api";
-import { getInferredBaseUrl } from "./utils/constants";
+import { Config } from "./api-clients/client/client";
+import { Client } from "./api-clients/pint/client";
 import {
   metaInfo,
   workspaceCreate,

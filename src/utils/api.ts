@@ -5,15 +5,17 @@ import {
   Config,
   createClient,
   createConfig,
-} from "@hey-api/client-fetch";
+} from "../api-clients/client/client";
 import { getInferredBaseUrl } from "./constants";
 
 async function enhanceFetch(
-  request: Request,
+  request: RequestInfo | URL,
   instrumentation?: (request: Request) => Promise<Response>
 ) {
   // Clone the request to modify headers
-  const headers = new Headers(request.headers);
+  const headers = new Headers(
+    request instanceof Request ? request.headers : undefined
+  );
   const existingUserAgent = headers.get("User-Agent") || "";
 
   // Extend User-Agent with SDK version

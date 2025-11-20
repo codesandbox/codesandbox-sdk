@@ -188,8 +188,12 @@ export class Sandbox {
     pitcherManagerResponse: PitcherManagerResponse,
     customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
+    // HACK: we currently do not get a flag for pint, but this is a check we can use for now
+    const isPint = false;
+
     if (!customSession || !customSession.id) {
       return {
+        isPint: isPint,
         sandboxId: this.id,
         bootupType: this.bootupType,
         hostToken: customSession?.hostToken,
@@ -214,6 +218,7 @@ export class Sandbox {
     });
 
     return {
+      isPint: isPint,
       sandboxId: this.id,
       sessionId: customSession?.id,
       hostToken: customSession?.hostToken,
