@@ -55,6 +55,7 @@
     "build-openapi-pint": "node_modules/.bin/openapi-ts -i ./pint-openapi-bundled.json -o src/api-clients/pint -c @hey-api/client-fetch",
     "clean": "rimraf ./dist",
     "test": "vitest",
+    "test:e2e": "vitest run tests/e2e",
     "typecheck": "tsc --noEmit",
     "format": "prettier '**/*.{md,js,jsx,json,ts,tsx}' --write",
     "postbuild": "rimraf {lib,es}/**/__tests__ {lib,es}/**/*.{spec,test}.{js,d.ts,js.map}",
