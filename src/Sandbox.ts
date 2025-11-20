@@ -151,13 +151,13 @@ export class Sandbox {
           return `export ${key}='${safe}'`;
         })
         .join("\n");
-      const cmd = [
-        `mkdir -p "$HOME/.private"`,
-        `cat << 'EOF' > "$HOME/.private/.env"`,
-        envStrings,
-        `EOF`,
-      ].join("\n");
-      await client.commands.run(cmd);
+      commands.push(
+        [
+          `cat << 'EOF' > "$HOME/.private/.env"`,
+          envStrings,
+          `EOF`,
+        ].join("\n")
+      );
     }
 
     if (customSession.git) {
