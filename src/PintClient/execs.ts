@@ -48,9 +48,10 @@ export class PintShellsClient implements IAgentClientShells {
       },
     }).then(async ({ stream }) => {
       for await (const evt of stream) {
-        const execs = (evt as unknown as ExecListResponse).execs; // parseStreamEvent<ExecItem[]>(evt);
+        const execListResponse = parseStreamEvent<ExecListResponse>(evt);
+        const execs = execListResponse.execs;
 
-        if (prevExecs) {
+        if (prevExecs && execs) {
           execs.forEach((exec) => {
             const prevExec = prevExecs?.find(
               (execItem) => execItem.id === exec.id
@@ -60,7 +61,7 @@ export class PintShellsClient implements IAgentClientShells {
           });
         }
 
-        prevExecs = execs;
+        prevExecs = execs || [];
       }
     });
 
