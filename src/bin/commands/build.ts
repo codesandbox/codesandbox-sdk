@@ -627,6 +627,7 @@ function createAlias(directory: string, alias: string) {
  */
 export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildCommandArgs>): Promise<void> {
   let dockerFileCleanupFn: (() => Promise<void>) | undefined;
+  let client: SandboxClient | undefined;
 
   try {
     const apiKey = getInferredApiKey();
@@ -733,9 +734,20 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
       templateBuildSpinner.text = "Preparing template snapshot: Starting sandbox to create snapshot...";
       const sandbox = await sdk.sandboxes.resume(sandboxId);
 
+      templateBuildSpinner.text = "Preparing template snapshot: Connecting to sandbox...";
+      client = await sandbox.connect()
+
       if (argv.ports && argv.ports.length > 0) {
         templateBuildSpinner.text = `Preparing template snapshot: Waiting for ports ${argv.ports.join(', ')} to be ready...`;
-        await sandbox.waitForPortsToOpen(argv.ports, 30000);
+        await Promise.all(
+          argv.ports.map(async (port) => {
+            if (!client) throw new Error('Failed to connect to sandbox to wait for ports');
+            const portInfo = await client.ports.waitForPort(port, {
+              timeoutMs: 1200000,
+            });
+            console.log("Port info", portInfo);
+          })
+        );
       } else {
         templateBuildSpinner.text = `Preparing template snapshot: No ports specified, waiting 10 seconds for tasks to run...`;
         await sleep(10000);
@@ -798,6 +810,11 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
     // Cleanup temporary Dockerfile if created
     if (dockerFileCleanupFn) {
       await dockerFileCleanupFn();
+      if (client) {
+        await client.disconnect();
+        client.dispose();
+        client = undefined;
+      }
     }
   }
 }

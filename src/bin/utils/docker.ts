@@ -90,7 +90,6 @@ export async function buildDockerImage(options: DockerBuildOptions): Promise<voi
         "build",
         "--platform",
         `linux/${architecture}`,
-        "--no-cache",
         "--progress=plain",
         "-f",
         dockerfilePath,
