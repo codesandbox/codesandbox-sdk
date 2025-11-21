@@ -147,11 +147,8 @@ export class PintShellsClient implements IAgentClientShells {
     });
 
     if (!exec.data) {
-      console.log(exec);
       throw new Error(exec.error.message);
     }
-
-    console.log("Gotz shell", exec.data);
 
     await this.open(exec.data.id, { cols: 200, rows: 80 });
 
@@ -197,7 +194,6 @@ export class PintShellsClient implements IAgentClientShells {
         return null;
       }
     } catch (error) {
-      console.error("Failed to delete shell:", error);
       return null;
     }
   }
@@ -238,7 +234,6 @@ export class PintShellsClient implements IAgentClientShells {
 
     const buffer: string[] = [];
 
-    console.log("Waiting for IO");
     for await (const evt of stream) {
       const data = parseStreamEvent<{
         type: "stdout" | "stderr";
@@ -246,7 +241,7 @@ export class PintShellsClient implements IAgentClientShells {
         sequence: number;
         timestamp: string;
       }>(evt);
-      
+
       if (!buffer.length) {
         buffer.push(data.output);
         break;
@@ -275,7 +270,6 @@ export class PintShellsClient implements IAgentClientShells {
 
       return null;
     } catch (error) {
-      console.error("Failed to restart shell:", error);
       return null;
     }
   }
@@ -294,7 +288,6 @@ export class PintShellsClient implements IAgentClientShells {
 
       return null;
     } catch (error) {
-      console.error("Failed to send input to shell:", error);
       return null;
     }
   }
