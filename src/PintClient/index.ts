@@ -4,6 +4,7 @@ import { SandboxSession } from "../types";
 import { Disposable } from "../utils/disposable";
 import { Client, createClient, createConfig } from "../api-clients/pint/client";
 import {PintFsClient} from "./fs";
+import { PintClientTasks, PintClientSetup, PintClientSystem } from "./tasks";
 import {
   IAgentClient,
   IAgentClientPorts,
@@ -117,9 +118,9 @@ export class PintClient implements IAgentClient {
     this.ports = new PintPortsClient(apiClient, this.sandboxId);
     this.shells = {} as IAgentClientShells; // Not implemented for Pint
     this.fs = new PintFsClient(apiClient);
-    this.tasks = {} as IAgentClientTasks; // Not implemented for Pint
-    this.setup = {} as IAgentClientSetup; // Not implemented for Pint
-    this.system = {} as IAgentClientSystem; // Not implemented for Pint
+    this.tasks = new PintClientTasks(apiClient);
+    this.setup = new PintClientSetup(apiClient);
+    this.system = new PintClientSystem(apiClient);
   }
 
   ping(): void {}
