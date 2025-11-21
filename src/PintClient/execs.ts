@@ -246,16 +246,12 @@ export class PintShellsClient implements IAgentClientShells {
         sequence: number;
         timestamp: string;
       }>(evt);
-
-      console.log("GOTZ IO", data);
-
+      
       if (!buffer.length) {
         buffer.push(data.output);
         break;
       }
     }
-
-    console.log("No IO", buffer);
 
     return {
       buffer,
