@@ -1,5 +1,5 @@
 import { Port } from "../pitcher-protocol/messages/port";
-import { Emitter, EmitterSubscription, Event } from "../utils/event";
+import { Emitter, EmitterSubscription } from "../utils/event";
 import { SandboxSession } from "../types";
 import { Disposable } from "../utils/disposable";
 import { Client, createClient, createConfig } from "../api-clients/pint/client";
@@ -21,7 +21,7 @@ import {
   streamPortsList,
 } from "../api-clients/pint";
 
-function parseStreamEvent<T>(evt: unknown): T {
+export function parseStreamEvent<T>(evt: unknown): T {
   if (typeof evt !== "string") {
     return evt as T;
   }
