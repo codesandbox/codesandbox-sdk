@@ -3,7 +3,7 @@ import { CodeSandbox } from '../../src/index.js';
 /**
  * Test template ID used across e2e tests
  */
-export const TEST_TEMPLATE_ID = process.env.CSB_TEST_TEMPLATE_ID ?? 'pt_6FknW3VwS874LKWUQ83jir';
+export const TEST_TEMPLATE_ID = process.env.CSB_TEST_TEMPLATE_ID ?? '';
 
 /**
  * Initialize SDK with API key from environment
