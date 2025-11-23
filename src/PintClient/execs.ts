@@ -127,28 +127,35 @@ export class PintShellsClient implements IAgentClientShells {
       status: exec.status as ShellProcessStatus,
     };
   }
-  async create(
-    projectPath: string,
-    size: ShellSize,
-    command?: string,
-    type?: ShellProcessType,
-    isSystemShell?: boolean
-  ): Promise<OpenShellDTO> {
-    // For Pint, we need to construct args from command
-    const args = command ? command.split(' ').slice(1) : [];
-    const baseCommand = command ? command.split(' ')[0] : 'bash';
+  async create({
+    command,
+    args,
+    projectPath,
+    size,
+    type,
+  }: {
+    command: string;
+    args: string[];
+    projectPath: string;
+    size: ShellSize;
+    type?: ShellProcessType;
+    isSystemShell?: boolean;
+  }): Promise<OpenShellDTO> {
     const exec = await createExec({
       client: this.apiClient,
       body: {
         args,
-        command: baseCommand,
+        command,
         interactive: type === "COMMAND" ? false : true,
       },
     });
 
     if (!exec.data) {
+      console.log(exec);
       throw new Error(exec.error.message);
     }
+
+    console.log("Gotz shell", exec.data);
 
     await this.open(exec.data.id, { cols: 200, rows: 80 });
 
