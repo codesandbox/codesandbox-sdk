@@ -749,7 +749,6 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
             const portInfo = await client.ports.waitForPort(port, {
               timeoutMs: 10_000,
             });
-            console.log("Port info", portInfo);
           })
         );
       } else {
