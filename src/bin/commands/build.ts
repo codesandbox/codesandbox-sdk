@@ -13,7 +13,7 @@ import {
 } from "@codesandbox/sdk";
 import { VmUpdateSpecsRequest } from "../../api-clients/client";
 import { getDefaultTemplateId, retryWithDelay } from "../../utils/api";
-import { getInferredApiKey } from "../../utils/constants";
+import { getInferredApiKey, getInferredRegistryUrl, isBetaAllowed } from "../../utils/constants";
 import { hashDirectory as getFilePaths } from "../utils/files";
 import { mkdir, writeFile } from "fs/promises";
 import { sleep } from "../../utils/sleep";
@@ -185,8 +185,11 @@ export const buildCommand: yargs.CommandModule<
 
     // Beta build process using Docker
     // This uses the new architecture using bartender and gvisor
-    if (argv.beta) {
+    if (argv.beta && isBetaAllowed()) {
       return betaCodeSandboxBuild(argv);
+    } else if (argv.beta && !isBetaAllowed()) {
+      console.error("The beta flag is not yet available for your account.");
+      process.exit(1);
     }
 
     // Existing build process
@@ -639,14 +642,16 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
 
     const resolvedDirectory = path.resolve(argv.directory);
 
-    const registry = "registry.codesandbox.dev";
+    const registry = getInferredRegistryUrl();
     const repository = "templates";
     const imageName = `image-${randomUUID().toLowerCase()}`;
     const tag = "latest";
     const fullImageName = `${registry}/${repository}/${imageName}:${tag}`;
+    console.log(`Full image name: ${fullImageName}`);
 
     let architecture = "amd64";
-    if (process.arch === "arm64" && process.env.CSB_BASE_URL === "https://api.codesandbox.dev") {
+    // For dev environments with arm64 (Apple Silicon), use arm64 architecture
+    if (process.arch === "arm64" && registry === "registry.codesandbox.dev") {
       console.log("Using arm64 architecture for Docker build");
       architecture = "arm64";
     }
@@ -743,7 +748,7 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
           argv.ports.map(async (port) => {
             if (!client) throw new Error('Failed to connect to sandbox to wait for ports');
             const portInfo = await client.ports.waitForPort(port, {
-              timeoutMs: 1200000,
+              timeoutMs: 10_000,
             });
             console.log("Port info", portInfo);
           })

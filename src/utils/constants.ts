@@ -28,3 +28,24 @@ export function getInferredApiKey() {
     "CSB_API_KEY is not set"
   );
 }
+
+export function getInferredApiHost(): string {
+  const apiUrl = getInferredBaseUrl(getInferredApiKey());
+  const url = new URL(apiUrl);
+  return url.hostname;
+}
+
+export function getInferredRegistryUrl() {
+  const apiHostName = getInferredApiHost();
+  const registryHostname = apiHostName.replace("api.", "registry.");
+  return registryHostname;
+}
+
+const BETA_ALLOWED_HOSTS = [
+  "api.codesandbox.dev",
+  "api.codesandbox.stream",
+];
+export function isBetaAllowed(): boolean {
+  const apiHostName = getInferredApiHost();
+  return BETA_ALLOWED_HOSTS.includes(apiHostName);
+}
