@@ -44,7 +44,7 @@ export class SandboxClient {
   ) {
     if (session.isPint) {
       const pintClient = await PintClient.create(session);
-      const progress = await pintClient.setup.getProgress(); // Initialize setup progress in background
+      const progress = await pintClient.setup.getProgress();
       return new SandboxClient(pintClient, {
         hostToken: session.hostToken,
         tracer,
