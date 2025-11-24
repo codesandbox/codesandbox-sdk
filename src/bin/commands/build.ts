@@ -13,7 +13,7 @@ import {
 } from "@codesandbox/sdk";
 import { VmUpdateSpecsRequest } from "../../api-clients/client";
 import { getDefaultTemplateId, retryWithDelay } from "../../utils/api";
-import { getInferredApiKey, getInferredRegistryUrl, isBetaAllowed } from "../../utils/constants";
+import { getInferredApiKey, getInferredRegistryUrl, isBetaAllowed, isLocalEnvironment } from "../../utils/constants";
 import { hashDirectory as getFilePaths } from "../utils/files";
 import { mkdir, writeFile } from "fs/promises";
 import { sleep } from "../../utils/sleep";
@@ -647,11 +647,10 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
     const imageName = `image-${randomUUID().toLowerCase()}`;
     const tag = "latest";
     const fullImageName = `${registry}/${repository}/${imageName}:${tag}`;
-    console.log(`Full image name: ${fullImageName}`);
 
     let architecture = "amd64";
     // For dev environments with arm64 (Apple Silicon), use arm64 architecture
-    if (process.arch === "arm64" && registry === "registry.codesandbox.dev") {
+    if (process.arch === "arm64" && isLocalEnvironment()) {
       console.log("Using arm64 architecture for Docker build");
       architecture = "arm64";
     }
@@ -722,11 +721,11 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
       tags: ["sdk-template"],
       // @ts-ignore
       image: {
-        "registry": "registry.codesandbox.dev",
-        "repository": "templates",
-        "name": imageName,
-        "tag": "latest",
-        "architecture": architecture
+        registry: registry,
+        repository: "templates",
+        name: imageName,
+        tag: "latest",
+        architecture: architecture
       },
     });
 
