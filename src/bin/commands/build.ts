@@ -814,11 +814,11 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
     // Cleanup temporary Dockerfile if created
     if (dockerFileCleanupFn) {
       await dockerFileCleanupFn();
-      if (client) {
-        await client.disconnect();
-        client.dispose();
-        client = undefined;
-      }
+    }
+    if (client) {
+      await client.disconnect();
+      client.dispose();
+      client = undefined;
     }
   }
 }
