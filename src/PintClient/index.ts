@@ -1,8 +1,12 @@
 import { Port } from "../pitcher-protocol/messages/port";
-import { Emitter, EmitterSubscription, Event } from "../utils/event";
+import { Emitter, EmitterSubscription } from "../utils/event";
 import { SandboxSession } from "../types";
 import { Disposable } from "../utils/disposable";
 import { Client, createClient, createConfig } from "../api-clients/pint/client";
+import { PintClientTasks, PintClientSetup, PintClientSystem} from "./tasks";
+import {PintFsClient} from "./fs";
+import {PintShellsClient} from "./execs";
+import { parseStreamEvent } from "./utils";
 import {
   IAgentClient,
   IAgentClientPorts,
@@ -12,7 +16,6 @@ import {
   IAgentClientSetup,
   IAgentClientTasks,
   IAgentClientSystem,
-  PickRawFsResult,
 } from "../agent-client-interface";
 import {
   listPorts,
@@ -20,18 +23,6 @@ import {
   PortsListResponse,
   streamPortsList,
 } from "../api-clients/pint";
-
-
-
-function parseStreamEvent<T>(evt: unknown): T {
-  if (typeof evt !== "string") {
-    return evt as T;
-  }
-
-  const evtWithoutDataPrefix = evt.substring(5);
-
-  return JSON.parse(evtWithoutDataPrefix);
-}
 
 class PintPortsClient implements IAgentClientPorts {
   private onPortsUpdatedEmitter = new EmitterSubscription<Port[]>((fire) => {
@@ -118,11 +109,11 @@ export class PintClient implements IAgentClient {
     );
 
     this.ports = new PintPortsClient(apiClient, this.sandboxId);
-    this.shells = {} as IAgentClientShells; // Not implemented for Pint
-    this.fs = {} as IAgentClientFS; // Not implemented for Pint  
-    this.tasks = {} as IAgentClientTasks; // Not implemented for Pint
-    this.setup = {} as IAgentClientSetup; // Not implemented for Pint
-    this.system = {} as IAgentClientSystem; // Not implemented for Pint
+    this.shells = new PintShellsClient(apiClient, this.sandboxId);
+    this.fs = new PintFsClient(apiClient);
+    this.tasks = new PintClientTasks(apiClient);
+    this.setup = new PintClientSetup(apiClient);
+    this.system = new PintClientSystem(apiClient);
   }
 
   ping(): void {}
