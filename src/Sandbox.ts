@@ -188,8 +188,7 @@ export class Sandbox {
     pitcherManagerResponse: PitcherManagerResponse,
     customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
-    // HACK: we currently do not get a flag for pint, but this is a check we can use for now
-    const isPint = false;
+    const isPint = pitcherManagerResponse.vmAgentType === "pint";
 
     if (!customSession || !customSession.id) {
       return {
