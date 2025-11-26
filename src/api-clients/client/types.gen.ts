@@ -600,6 +600,7 @@ export type VmStartResponse = {
         use_pint: boolean;
         user_workspace_path: string;
         workspace_path: string;
+        vm_agent_type: string;
     };
 };
 
@@ -965,6 +966,7 @@ export type SandboxForkResponse = {
             use_pint: boolean;
             user_workspace_path: string;
             workspace_path: string;
+            vm_agent_type: string;
         } | null;
         title: string | null;
     };
