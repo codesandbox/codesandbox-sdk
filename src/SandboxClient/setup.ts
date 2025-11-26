@@ -4,6 +4,7 @@ import { Emitter } from "../utils/event";
 import { DEFAULT_SHELL_SIZE } from "./terminals";
 import { type IAgentClient } from "../agent-client-interface";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
+import { Barrier } from "../utils/barrier";
 
 export class Setup {
   private disposable = new Disposable();
@@ -164,18 +165,6 @@ export class Step {
         }
       })
     );
-    this.disposable.addDisposable(
-      this.agentClient.shells.onShellOut(({ shellId, out }) => {
-        if (shellId === this.step.shellId) {
-          this.onOutputEmitter.fire(out);
-
-          this.output.push(out);
-          if (this.output.length > 1000) {
-            this.output.shift();
-          }
-        }
-      })
-    );
   }
 
   private withSpan<T>(
@@ -224,11 +213,31 @@ export class Step {
       },
       async () => {
         const open = async (shellId: protocol.shell.ShellId) => {
-          const shell = await this.agentClient.shells.open(shellId, dimensions);
+          const barrier = new Barrier<string>();
+          this.agentClient.shells.subscribeOutput(
+            shellId,
+            dimensions,
+            ({ out }) => {
+              if (barrier.isOpen()) {
+                this.onOutputEmitter.fire(out);
 
-          this.output = shell.buffer;
+                this.output.push(out);
+                if (this.output.length > 1000) {
+                  this.output.shift();
+                }
+              } else {
+                this.output.push(out);
+                barrier.open(out);
+              }
+            }
+          );
+          const result = await barrier.wait();
 
-          return this.output.join("\n");
+          if (result.status === "disposed") {
+            return "";
+          }
+
+          return result.value;
         };
 
         if (this.step.shellId) {

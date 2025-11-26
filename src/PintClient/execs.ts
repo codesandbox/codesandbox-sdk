@@ -3,7 +3,8 @@ import { Emitter, EmitterSubscription } from "../utils/event";
 import { Disposable } from "../utils/disposable";
 import { parseStreamEvent } from "./utils";
 import {
-    IAgentClientShells,
+  IAgentClientShells,
+  SubscribeShellEvent,
 } from "../agent-client-interface";
 import {
   createExec,
@@ -27,17 +28,18 @@ import {
   ShellDTO,
   ShellProcessStatus,
 } from "../pitcher-protocol/messages/shell";
+import { IDisposable } from "@xterm/headless";
 
 export class PintShellsClient implements IAgentClientShells {
-  private openShells: Record<string, AbortController> = {};
+  private execs: ExecItem[] = [];
   private subscribeAndEvaluateExecsUpdates(
+    execId: string,
     compare: (
       nextExec: ExecItem,
       prevExec: ExecItem | undefined,
       prevExecs: ExecItem[]
     ) => void
   ) {
-    let prevExecs: ExecItem[] = [];
     const abortController = new AbortController();
 
     streamExecsList({
@@ -51,17 +53,19 @@ export class PintShellsClient implements IAgentClientShells {
         const execListResponse = parseStreamEvent<ExecListResponse>(evt);
         const execs = execListResponse.execs;
 
-        if (prevExecs && execs) {
-          execs.forEach((exec) => {
-            const prevExec = prevExecs?.find(
-              (execItem) => execItem.id === exec.id
-            );
+        execs.forEach((exec) => {
+          if (exec.id !== execId) {
+            return;
+          }
 
-            compare(exec, prevExec, prevExecs);
-          });
-        }
+          const prevExec = this.execs.find(
+            (execItem) => execItem.id === exec.id
+          );
 
-        prevExecs = execs || [];
+          compare(exec, prevExec, this.execs);
+        });
+
+        this.execs = execs;
       }
     });
 
@@ -69,48 +73,6 @@ export class PintShellsClient implements IAgentClientShells {
       abortController.abort();
     });
   }
-  private onShellExitedEmitter = new EmitterSubscription<{
-    shellId: string;
-    exitCode: number;
-  }>((fire) =>
-    this.subscribeAndEvaluateExecsUpdates((exec, prevExec) => {
-      if (!prevExec) {
-        return;
-      }
-
-      if (prevExec.status === "RUNNING" && exec.status === "EXITED") {
-        fire({
-          shellId: exec.id,
-          exitCode: exec.exitCode,
-        });
-      }
-    })
-  );
-  onShellExited = this.onShellExitedEmitter.event;
-
-  private onShellOutEmitter = new Emitter<{
-    shellId: ShellId;
-    out: string;
-  }>();
-  onShellOut = this.onShellOutEmitter.event;
-  private onShellTerminatedEmitter = new EmitterSubscription<{
-    shellId: string;
-    author: string;
-  }>((fire) =>
-    this.subscribeAndEvaluateExecsUpdates((exec, prevExec) => {
-      if (!prevExec) {
-        return;
-      }
-
-      if (prevExec.status === "RUNNING" && exec.status === "STOPPED") {
-        fire({
-          shellId: exec.id,
-          author: "",
-        });
-      }
-    })
-  );
-  onShellTerminated = this.onShellTerminatedEmitter.event;
   constructor(private apiClient: Client, private sandboxId: string) {}
   private convertExecToShellDTO(exec: ExecItem) {
     return {
@@ -151,20 +113,72 @@ export class PintShellsClient implements IAgentClientShells {
     });
 
     if (!exec.data) {
-      console.log(exec);
       throw new Error(exec.error.message);
     }
 
-    console.log("Gotz shell", exec.data);
-
-    await this.open(exec.data.id, { cols: 200, rows: 80 });
+    this.execs.push(exec.data);
 
     return {
       ...this.convertExecToShellDTO(exec.data),
       buffer: [],
     };
   }
-  async delete(shellId: ShellId): Promise<CommandShellDTO | TerminalShellDTO | null> {
+  subscribe(
+    shellId: ShellId,
+    listener: (event: SubscribeShellEvent) => void
+  ): IDisposable {
+    return this.subscribeAndEvaluateExecsUpdates(shellId, (exec, prevExec) => {
+      if (!prevExec) {
+        return;
+      }
+
+      if (prevExec.status === "RUNNING" && exec.status === "EXITED") {
+        listener({
+          type: "exit",
+          exitCode: exec.exitCode,
+        });
+      }
+    });
+  }
+  subscribeOutput(
+    shellId: ShellId,
+    size: ShellSize,
+    listener: (event: { out: string; exitCode?: number }) => void
+  ): IDisposable {
+    const disposable = new Disposable();
+    const abortController = new AbortController();
+
+    getExecOutput({
+      client: this.apiClient,
+      path: { id: shellId },
+      query: { lastSequence: 0 },
+      signal: abortController.signal,
+      headers: {
+        Accept: "text/event-stream",
+      },
+    }).then(async ({ stream }) => {
+      for await (const evt of stream) {
+        const data = parseStreamEvent<{
+          type: "stdout" | "stderr";
+          output: "";
+          sequence: number;
+          timestamp: string;
+          exitCode?: number;
+        }>(evt);
+
+        listener({ out: data.output, exitCode: data.exitCode });
+      }
+    });
+
+    disposable.onDidDispose(() => {
+      abortController.abort();
+    });
+
+    return disposable;
+  }
+  async delete(
+    shellId: ShellId
+  ): Promise<CommandShellDTO | TerminalShellDTO | null> {
     try {
       // First get the exec details before deleting it
       const exec = await getExec({
@@ -190,12 +204,6 @@ export class PintShellsClient implements IAgentClientShells {
       });
 
       if (deleteResponse.data) {
-        // Clean up any open shells reference
-        if (this.openShells[shellId]) {
-          this.openShells[shellId].abort();
-          delete this.openShells[shellId];
-        }
-
         return shellDTO as CommandShellDTO | TerminalShellDTO;
       } else {
         return null;
@@ -213,53 +221,6 @@ export class PintShellsClient implements IAgentClientShells {
       execs.data?.execs.map((exec) => this.convertExecToShellDTO(exec)) ?? []
     );
   }
-  async open(shellId: ShellId, size: ShellSize): Promise<OpenShellDTO> {
-    const abortController = new AbortController();
-
-    this.openShells[shellId] = abortController;
-
-    const exec = await getExec({
-      client: this.apiClient,
-      path: {
-        id: shellId,
-      },
-    });
-
-    if (!exec.data) {
-      throw new Error(exec.error.message);
-    }
-
-    const { stream } = await getExecOutput({
-      client: this.apiClient,
-      path: { id: shellId },
-      query: { lastSequence: 0 },
-      signal: abortController.signal,
-      headers: {
-        Accept: "text/event-stream",
-      },
-    });
-
-    const buffer: string[] = [];
-
-    for await (const evt of stream) {
-      const data = parseStreamEvent<{
-        type: "stdout" | "stderr";
-        output: "";
-        sequence: number;
-        timestamp: string;
-      }>(evt);
-
-      if (!buffer.length) {
-        buffer.push(data.output);
-        break;
-      }
-    }
-
-    return {
-      buffer,
-      ...this.convertExecToShellDTO(exec.data),
-    };
-  }
   async rename(shellId: ShellId, name: string): Promise<null> {
     return null;
   }
@@ -271,7 +232,7 @@ export class PintShellsClient implements IAgentClientShells {
           id: shellId,
         },
         body: {
-          status: 'running',
+          status: "running",
         },
       });
 
@@ -288,7 +249,7 @@ export class PintShellsClient implements IAgentClientShells {
           id: shellId,
         },
         body: {
-          type: 'stdin',
+          type: "stdin",
           input: input,
         },
       });

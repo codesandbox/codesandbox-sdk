@@ -132,7 +132,7 @@ export class SandboxCommands {
         }
 
         if (opts?.cwd) {
-           args.push("&&", "cd", opts.cwd);
+          args.push("&&", "cd", opts.cwd);
         }
 
         args.push("&&", command);
@@ -261,6 +261,7 @@ export class Command {
   private barrier = new Barrier<void>();
 
   private output: string[] = [];
+  private isSubscribingOutput = false;
 
   /**
    * The status of the command.
@@ -303,39 +304,33 @@ export class Command {
     this.name = details.name;
     this.tracer = tracer;
 
-    this.disposable.addDisposable(
-      agentClient.shells.onShellExited(({ shellId, exitCode }) => {
-        if (shellId === this.shell.shellId) {
-          this.exitCode = exitCode;
-          this.status = exitCode === 0 ? "FINISHED" : "ERROR";
-          this.barrier.open();
-        }
-      })
-    );
-
-    this.disposable.addDisposable(
-      agentClient.shells.onShellTerminated(({ shellId }) => {
-        if (shellId === this.shell.shellId) {
-          this.status = "KILLED";
-          this.barrier.open();
-        }
-      })
-    );
-
-    this.disposable.addDisposable(
-      this.agentClient.shells.onShellOut(({ shellId, out }) => {
-        if (shellId !== this.shell.shellId || out.startsWith("[CODESANDBOX]")) {
-          return;
-        }
-
-        this.onOutputEmitter.fire(out);
-
-        this.output.push(out);
-        if (this.output.length > 1000) {
-          this.output.shift();
-        }
-      })
-    );
+    if (shell.status === "RUNNING") {
+      this.disposable.addDisposable(
+        agentClient.shells.subscribe(shell.shellId, async (event) => {
+          if (event.type === "terminate") {
+            this.status = "KILLED";
+            this.barrier.open();
+          } else {
+            console.log("Got exit");
+            const barrier = new Barrier<void>();
+            this.agentClient.shells.subscribeOutput(
+              this.shell.shellId,
+              DEFAULT_SHELL_SIZE,
+              (event) => {
+                this.output.push(event.out);
+                if (event.exitCode !== undefined) {
+                  barrier.open();
+                }
+              }
+            );
+            await barrier.wait();
+            this.exitCode = event.exitCode;
+            this.status = event.exitCode === 0 ? "FINISHED" : "ERROR";
+            this.barrier.open();
+          }
+        })
+      );
+    }
   }
 
   private async withSpan<T>(
@@ -384,14 +379,45 @@ export class Command {
         "command.dimensions.rows": dimensions.rows,
       },
       async () => {
-        const shell = await this.agentClient.shells.open(
-          this.shell.shellId,
-          dimensions
+        if (this.isSubscribingOutput) {
+          return this.output.join("\n");
+        }
+
+        this.isSubscribingOutput = true;
+        const barrier = new Barrier<string>();
+
+        this.disposable.addDisposable(
+          this.agentClient.shells.subscribeOutput(
+            this.shell.shellId,
+            dimensions,
+            ({ out }) => {
+              if (barrier.isOpen()) {
+                this.onOutputEmitter.fire(out);
+
+                this.output.push(out);
+                if (this.output.length > 1000) {
+                  this.output.shift();
+                }
+              } else {
+                this.output.push(out);
+                barrier.open(out);
+              }
+            }
+          )
         );
 
-        this.output = shell.buffer;
+        this.disposable.onDidDispose(() => {
+          barrier.dispose();
+        });
 
-        return this.output.join("\n");
+        const result = await barrier.wait();
+
+        // This will never really happen
+        if (result.status === "disposed") {
+          return "";
+        }
+
+        return result.value;
       }
     );
   }
