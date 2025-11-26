@@ -13,10 +13,12 @@ import {
 } from "@codesandbox/sdk";
 import { VmUpdateSpecsRequest } from "../../api-clients/client";
 import { getDefaultTemplateId, retryWithDelay } from "../../utils/api";
-import { getInferredApiKey } from "../../utils/constants";
+import { getInferredApiKey, getInferredRegistryUrl, isBetaAllowed, isLocalEnvironment } from "../../utils/constants";
 import { hashDirectory as getFilePaths } from "../utils/files";
 import { mkdir, writeFile } from "fs/promises";
 import { sleep } from "../../utils/sleep";
+import { buildDockerImage, prepareDockerBuild, pushDockerImage } from "../utils/docker";
+import { randomUUID } from "crypto";
 
 export type BuildCommandArgs = {
   directory: string;
@@ -125,6 +127,12 @@ export const buildCommand: yargs.CommandModule<
         describe: "Relative path to log file, if any",
         type: "string",
       })
+      .option("beta", {
+        describe: "Use the beta Docker build process",
+        type: "boolean",
+        // TOOD: Remove after releasing to customers as beta feature
+        hidden: true, // Do not show this flag in help
+      })
       .positional("directory", {
         describe: "Path to the project that we'll create a snapshot from",
         type: "string",
@@ -174,6 +182,17 @@ export const buildCommand: yargs.CommandModule<
       }),
 
   handler: async (argv) => {
+
+    // Beta build process using Docker
+    // This uses the new architecture using bartender and gvisor
+    if (argv.beta && isBetaAllowed()) {
+      return betaCodeSandboxBuild(argv);
+    } else if (argv.beta && !isBetaAllowed()) {
+      console.error("The beta flag is not yet available for your account.");
+      process.exit(1);
+    }
+
+    // Existing build process
     const apiKey = getInferredApiKey();
     const api = new API({ apiKey, instrumentation: instrumentedFetch });
     const sdk = new CodeSandbox(apiKey);
@@ -234,8 +253,7 @@ export const buildCommand: yargs.CommandModule<
               spinner.start(
                 updateSpinnerMessage(
                   index,
-                  `Running setup ${steps.indexOf(step) + 1} / ${
-                    steps.length
+                  `Running setup ${steps.indexOf(step) + 1} / ${steps.length
                   } - ${step.name}...`
                 )
               );
@@ -448,9 +466,9 @@ export const buildCommand: yargs.CommandModule<
               argv.ci
                 ? String(error)
                 : "Failed, please manually verify at https://codesandbox.io/s/" +
-                    id +
-                    " - " +
-                    String(error)
+                id +
+                " - " +
+                String(error)
             )
           );
 
@@ -604,4 +622,202 @@ function createAlias(directory: string, alias: string) {
     namespace,
     alias,
   };
+}
+
+/**
+ * Build a CodeSandbox Template using Docker for use in gvisor-based sandboxes.
+ * @param argv arguments to csb build command
+ */
+export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildCommandArgs>): Promise<void> {
+  let dockerFileCleanupFn: (() => Promise<void>) | undefined;
+  let client: SandboxClient | undefined;
+
+  try {
+    const apiKey = getInferredApiKey();
+    const api = new API({ apiKey, instrumentation: instrumentedFetch });
+    const sdk = new CodeSandbox(apiKey);
+    const sandboxTier = argv.vmTier
+      ? VMTier.fromName(argv.vmTier)
+      : VMTier.Micro;
+
+    const resolvedDirectory = path.resolve(argv.directory);
+
+    const registry = getInferredRegistryUrl();
+    const repository = "templates";
+    const imageName = `image-${randomUUID().toLowerCase()}`;
+    const tag = "latest";
+    const fullImageName = `${registry}/${repository}/${imageName}:${tag}`;
+
+    let architecture = "amd64";
+    // For dev environments with arm64 (Apple Silicon), use arm64 architecture
+    if (process.arch === "arm64" && isLocalEnvironment()) {
+      console.log("Using arm64 architecture for Docker build");
+      architecture = "arm64";
+    }
+
+    // Prepare Docker Build
+    const dockerBuildPrepareSpinner = ora({ stream: process.stdout });
+    dockerBuildPrepareSpinner.start("Preparing build environment...");
+
+    let dockerfilePath: string;
+
+    try {
+      const result = await prepareDockerBuild(resolvedDirectory, (output: string) => {
+        dockerBuildPrepareSpinner.text = `Preparing build environment: (${output})`;
+      });
+      dockerFileCleanupFn = result.cleanupFn;
+      dockerfilePath = result.dockerfilePath;
+
+      dockerBuildPrepareSpinner.succeed("Build environment ready.");
+    } catch (error) {
+      dockerBuildPrepareSpinner.fail(`Failed to prepare build environment: ${(error as Error).message}`);
+      throw error;
+    }
+
+
+    // Docker Build
+    const dockerBuildSpinner = ora({ stream: process.stdout });
+    dockerBuildSpinner.start("Building template docker image...");
+    try {
+      await buildDockerImage({
+        dockerfilePath,
+        imageName: fullImageName,
+        context: resolvedDirectory,
+        architecture,
+        onOutput: (output: string) => {
+          const cleanOutput = stripAnsiCodes(output);
+          dockerBuildSpinner.text = `Building template Docker image: (${cleanOutput})`;
+        },
+      });
+    } catch (error) {
+      dockerBuildSpinner.fail(`Failed to build template Docker image: ${(error as Error).message}`);
+      throw error;
+    }
+    dockerBuildSpinner.succeed("Template Docker image built successfully.");
+
+    // Push Docker Image
+    const imagePushSpinner = ora({ stream: process.stdout });
+    imagePushSpinner.start("Pushing template Docker image to CodeSandbox...");
+    try {
+      await pushDockerImage(
+        fullImageName,
+        (output: string) => {
+          const cleanOutput = stripAnsiCodes(output);
+          imagePushSpinner.text = `Pushing template Docker image to CodeSandbox: (${cleanOutput})`;
+        },
+      );
+    } catch (error) {
+      imagePushSpinner.fail(`Failed to push template Docker image: ${(error as Error).message}`);
+      throw error;
+    }
+    imagePushSpinner.succeed("Template Docker image pushed to CodeSandbox.");
+
+
+    // Create Template with Docker Image
+    const templateData = await api.createTemplate({
+      forkOf: argv.fromSandbox || getDefaultTemplateId(api.getClient()),
+      title: argv.name,
+      // We filter out sdk-templates on the dashboard
+      tags: ["sdk-template"],
+      // @ts-ignore
+      image: {
+        registry: registry,
+        repository: "templates",
+        name: imageName,
+        tag: "latest",
+        architecture: architecture
+      },
+    });
+
+    // Create a memory snapshot from the template sandboxes
+    const templateBuildSpinner = ora({ stream: process.stdout });
+    templateBuildSpinner.start("Preparing template snapshot...");
+
+    const sandboxId = templateData.sandboxes[0].id;
+    try {
+      templateBuildSpinner.text = "Preparing template snapshot: Starting sandbox to create snapshot...";
+      const sandbox = await sdk.sandboxes.resume(sandboxId);
+
+      templateBuildSpinner.text = "Preparing template snapshot: Connecting to sandbox...";
+      client = await sandbox.connect()
+
+      if (argv.ports && argv.ports.length > 0) {
+        templateBuildSpinner.text = `Preparing template snapshot: Waiting for ports ${argv.ports.join(', ')} to be ready...`;
+        await Promise.all(
+          argv.ports.map(async (port) => {
+            if (!client) throw new Error('Failed to connect to sandbox to wait for ports');
+            const portInfo = await client.ports.waitForPort(port, {
+              timeoutMs: 10_000,
+            });
+          })
+        );
+      } else {
+        templateBuildSpinner.text = `Preparing template snapshot: No ports specified, waiting 10 seconds for tasks to run...`;
+        await sleep(10000);
+      }
+
+      templateBuildSpinner.text = "Preparing template snapshot: Sandbox is ready. Creating snapshot...";
+      await sdk.sandboxes.hibernate(sandboxId);
+
+      templateBuildSpinner.succeed("Template snapshot created.");
+
+    } catch (error) {
+      templateBuildSpinner.text = "Preparing template snapshot: Failed to create snapshot. Cleaning up...";
+      await sdk.sandboxes.shutdown(sandboxId);
+      templateBuildSpinner.fail(`Failed to create template reference and example: ${(error as Error).message}`);
+      throw error;
+    }
+
+    // Create alias if needed and output final instructions
+    const templateFinaliseSpinner = ora({ stream: process.stdout });
+    templateFinaliseSpinner.start(
+      `\n\nCreating template reference and example...`
+    );
+    let referenceString;
+    let id;
+
+    // Create alias if needed
+    if (argv.alias) {
+      const alias = createAlias(resolvedDirectory, argv.alias);
+      await api.assignVmTagAlias(alias.namespace, alias.alias, {
+        tag_id: templateData.tag,
+      });
+
+      id = `${alias.namespace}@${alias.alias}`;
+      referenceString = `Alias ${id} now referencing: ${templateData.tag}`;
+    } else {
+      id = templateData.tag;
+      referenceString = `Template created with tag: ${templateData.tag}`;
+    }
+
+    templateFinaliseSpinner.succeed(`${referenceString}\n\n
+  Create sandbox from template using
+
+  SDK:
+
+    sdk.sandboxes.create({
+      id: "${id}"
+    })
+
+  CLI:
+
+    csb sandboxes fork ${id}\n`
+
+    );
+
+    process.exit(0);
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  } finally {
+    // Cleanup temporary Dockerfile if created
+    if (dockerFileCleanupFn) {
+      await dockerFileCleanupFn();
+    }
+    if (client) {
+      await client.disconnect();
+      client.dispose();
+      client = undefined;
+    }
+  }
 }

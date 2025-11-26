@@ -16,6 +16,7 @@ import { Barrier } from "../utils/barrier";
 import { AgentClient } from "../AgentClient";
 import { SandboxSession } from "../types";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
+import { PintClient } from "../PintClient";
 
 export * from "./filesystem";
 export * from "./ports";
@@ -41,6 +42,15 @@ export class SandboxClient {
     initStatusCb?: (event: system.InitStatus) => void,
     tracer?: Tracer
   ) {
+    if (session.isPint) {
+      const pintClient = await PintClient.create(session);
+      const progress = await pintClient.setup.getProgress();
+      return new SandboxClient(pintClient, {
+        hostToken: session.hostToken,
+        tracer,
+      }, progress);
+    }
+
     const { client: agentClient, joinResult } = await AgentClient.create({
       session,
       getSession,
