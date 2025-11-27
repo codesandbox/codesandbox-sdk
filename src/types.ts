@@ -13,7 +13,7 @@ export interface PitcherManagerResponse {
   latestPitcherVersion: string;
   pitcherToken: string;
   cluster: string;
-  vmAgentType?: string;
+  vmAgentType: string;
   pintURL?: string;
   pintToken?: string;
 }
