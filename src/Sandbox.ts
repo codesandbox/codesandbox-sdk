@@ -204,6 +204,9 @@ export class Sandbox {
         userWorkspacePath: pitcherManagerResponse.userWorkspacePath,
         workspacePath: pitcherManagerResponse.workspacePath,
         pitcherVersion: pitcherManagerResponse.pitcherVersion,
+        vmAgentType: pitcherManagerResponse.vmAgentType,
+        pintURL: pitcherManagerResponse.pintURL,
+        pintToken: pitcherManagerResponse.pintToken,
       };
     }
 
@@ -230,6 +233,9 @@ export class Sandbox {
       userWorkspacePath: handledResponse.user_workspace_path,
       workspacePath: pitcherManagerResponse.workspacePath,
       pitcherVersion: pitcherManagerResponse.pitcherVersion,
+      vmAgentType: pitcherManagerResponse.vmAgentType,
+      pintURL: pitcherManagerResponse.pintURL,
+      pintToken: pitcherManagerResponse.pintToken,
     };
   }
 
