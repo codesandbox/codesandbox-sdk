@@ -118,39 +118,33 @@ export class SandboxCommands {
         "command.name": opts?.name || "",
       },
       async () => {
-        const disposableStore = new DisposableStore();
-        const onOutput = new Emitter<string>();
-        disposableStore.add(onOutput);
-
         command = Array.isArray(command) ? command.join(" && ") : command;
 
         const passedEnv = Object.assign(opts?.env ?? {});
 
-        const escapedCommand = command.replace(/'/g, "'\\''");
+        // Build bash args array
+        const args = ["source $HOME/.private/.env 2>/dev/null || true"];
 
-        // TODO: use a new shell API that natively supports cwd & env
-        let commandWithEnv = Object.keys(passedEnv).length
-          ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
-              passedEnv
-            )
-              .map(([key, value]) => {
-                const escapedValue = String(value).replace(/'/g, "'\\''");
-                return `${key}='${escapedValue}'`;
-              })
-              .join(" ")} bash -c '${escapedCommand}'`
-          : `source $HOME/.private/.env 2>/dev/null || true && bash -c '${escapedCommand}'`;
-
-        if (opts?.cwd) {
-          commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
+        if (Object.keys(passedEnv).length) {
+          Object.entries(passedEnv).forEach(([key, value]) => {
+            args.push("&&", "env", `${key}=${value}`);
+          });
         }
 
-        const shell = await this.agentClient.shells.create(
-          this.agentClient.workspacePath,
-          opts?.dimensions ?? DEFAULT_SHELL_SIZE,
-          commandWithEnv,
-          opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
-          true
-        );
+        if (opts?.cwd) {
+          args.push("&&", "cd", opts.cwd);
+        }
+
+        args.push("&&", command);
+
+        const shell = await this.agentClient.shells.create({
+          command: "bash",
+          args: ["-c", args.join(" ")],
+          projectPath: this.agentClient.workspacePath,
+          size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
+          type: opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
+          isSystemShell: true,
+        });
 
         if (shell.status === "ERROR" || shell.status === "KILLED") {
           throw new Error(`Failed to create shell: ${shell.buffer.join("\n")}`);
@@ -216,7 +210,8 @@ export class SandboxCommands {
 
       return shells
         .filter(
-          (shell) => shell.shellType === "TERMINAL" && isCommandShell(shell)
+          (shell): shell is protocol.shell.CommandShellDTO =>
+            shell.shellType === "TERMINAL" && isCommandShell(shell)
         )
         .map(
           (shell) =>
@@ -266,6 +261,7 @@ export class Command {
   private barrier = new Barrier<void>();
 
   private output: string[] = [];
+  private isSubscribingOutput = false;
 
   /**
    * The status of the command.
@@ -308,39 +304,33 @@ export class Command {
     this.name = details.name;
     this.tracer = tracer;
 
-    this.disposable.addDisposable(
-      agentClient.shells.onShellExited(({ shellId, exitCode }) => {
-        if (shellId === this.shell.shellId) {
-          this.exitCode = exitCode;
-          this.status = exitCode === 0 ? "FINISHED" : "ERROR";
-          this.barrier.open();
-        }
-      })
-    );
-
-    this.disposable.addDisposable(
-      agentClient.shells.onShellTerminated(({ shellId }) => {
-        if (shellId === this.shell.shellId) {
-          this.status = "KILLED";
-          this.barrier.open();
-        }
-      })
-    );
-
-    this.disposable.addDisposable(
-      this.agentClient.shells.onShellOut(({ shellId, out }) => {
-        if (shellId !== this.shell.shellId || out.startsWith("[CODESANDBOX]")) {
-          return;
-        }
-
-        this.onOutputEmitter.fire(out);
-
-        this.output.push(out);
-        if (this.output.length > 1000) {
-          this.output.shift();
-        }
-      })
-    );
+    if (shell.status === "RUNNING") {
+      this.disposable.addDisposable(
+        agentClient.shells.subscribe(shell.shellId, async (event) => {
+          if (event.type === "terminate") {
+            this.status = "KILLED";
+            this.barrier.open();
+          } else {
+            console.log("Got exit");
+            const barrier = new Barrier<void>();
+            this.agentClient.shells.subscribeOutput(
+              this.shell.shellId,
+              DEFAULT_SHELL_SIZE,
+              (event) => {
+                this.output.push(event.out);
+                if (event.exitCode !== undefined) {
+                  barrier.open();
+                }
+              }
+            );
+            await barrier.wait();
+            this.exitCode = event.exitCode;
+            this.status = event.exitCode === 0 ? "FINISHED" : "ERROR";
+            this.barrier.open();
+          }
+        })
+      );
+    }
   }
 
   private async withSpan<T>(
@@ -389,14 +379,45 @@ export class Command {
         "command.dimensions.rows": dimensions.rows,
       },
       async () => {
-        const shell = await this.agentClient.shells.open(
-          this.shell.shellId,
-          dimensions
+        if (this.isSubscribingOutput) {
+          return this.output.join("\n");
+        }
+
+        this.isSubscribingOutput = true;
+        const barrier = new Barrier<string>();
+
+        this.disposable.addDisposable(
+          this.agentClient.shells.subscribeOutput(
+            this.shell.shellId,
+            dimensions,
+            ({ out }) => {
+              if (barrier.isOpen()) {
+                this.onOutputEmitter.fire(out);
+
+                this.output.push(out);
+                if (this.output.length > 1000) {
+                  this.output.shift();
+                }
+              } else {
+                this.output.push(out);
+                barrier.open(out);
+              }
+            }
+          )
         );
 
-        this.output = shell.buffer;
+        this.disposable.onDidDispose(() => {
+          barrier.dispose();
+        });
 
-        return this.output.join("\n");
+        const result = await barrier.wait();
+
+        // This will never really happen
+        if (result.status === "disposed") {
+          return "";
+        }
+
+        return result.value;
       }
     );
   }
