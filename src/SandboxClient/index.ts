@@ -42,19 +42,15 @@ export class SandboxClient {
     initStatusCb?: (event: system.InitStatus) => void,
     tracer?: Tracer
   ) {
-     if (session.isPint) {
-      const agentClient = await PintClient.create(session);
-
-      return new SandboxClient(
-        agentClient,
-        { hostToken: session.hostToken, tracer },
-        {
-          currentStepIndex: 0,
-          state: "FINISHED",
-          steps: [],
-        }
-      );
+    if (session.isPint) {
+      const pintClient = await PintClient.create(session);
+      const progress = await pintClient.setup.getProgress();
+      return new SandboxClient(pintClient, {
+        hostToken: session.hostToken,
+        tracer,
+      }, progress);
     }
+
     const { client: agentClient, joinResult } = await AgentClient.create({
       session,
       getSession,

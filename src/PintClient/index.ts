@@ -20,6 +20,7 @@ import {
 import {
   listPorts,
   PortInfo,
+  PortsListResponse,
   streamPortsList,
 } from "../api-clients/pint";
 
@@ -28,16 +29,17 @@ class PintPortsClient implements IAgentClientPorts {
     const abortController = new AbortController();
 
     streamPortsList({
+      client: this.apiClient,
       signal: abortController.signal,
       headers: {
         headers: { Accept: "text/event-stream" },
       },
     }).then(async ({ stream }) => {
       for await (const evt of stream) {
-        const data = parseStreamEvent<PortInfo[]>(evt);
+        const data = parseStreamEvent<PortsListResponse>(evt);
 
         fire(
-          data.map((pintPort) => ({
+          data.ports.map((pintPort) => ({
             port: pintPort.port,
             url: pintPort.address,
           }))
