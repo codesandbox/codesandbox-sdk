@@ -130,6 +130,36 @@
             "example": "pt_1234567890",
             "type": "string"
           },
+          "image": {
+            "description": "Container image to use as template",
+            "properties": {
+              "architecture": {
+                "description": "The architecture of the image. Required for multi-platform images",
+                "type": "string"
+              },
+              "name": {
+                "description": "The image name (for example 'nginx').",
+                "type": "string"
+              },
+              "registry": {
+                "default": "docker.io",
+                "description": "The container registry where the image is stored.",
+                "type": "string"
+              },
+              "repository": {
+                "default": "library",
+                "description": "The repository or namespace where the image is stored.",
+                "type": "string"
+              },
+              "tag": {
+                "default": "latest",
+                "description": "The image tag.",
+                "type": "string"
+              }
+            },
+            "required": ["name"],
+            "type": "object"
+          },
           "tags": {
             "default": [],
             "description": "Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.",
@@ -143,7 +173,6 @@
             "type": "string"
           }
         },
-        "required": ["forkOf"],
         "title": "TemplateCreateRequest",
         "type": "object"
       },
@@ -941,8 +970,8 @@
                   "reconnect_token": { "type": "string" },
                   "use_pint": { "type": "boolean" },
                   "user_workspace_path": { "type": "string" },
-                  "workspace_path": { "type": "string" },
-                  "vm_agent_type": { "type": "string" }
+                  "vm_agent_type": { "type": "string" },
+                  "workspace_path": { "type": "string" }
                 },
                 "required": [
                   "bootup_type",
@@ -1557,8 +1586,8 @@
                       "reconnect_token": { "type": "string" },
                       "use_pint": { "type": "boolean" },
                       "user_workspace_path": { "type": "string" },
-                      "workspace_path": { "type": "string" },
-                      "vm_agent_type": { "type": "string" }
+                      "vm_agent_type": { "type": "string" },
+                      "workspace_path": { "type": "string" }
                     },
                     "required": [
                       "bootup_type",
