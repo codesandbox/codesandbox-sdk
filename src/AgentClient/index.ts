@@ -133,7 +133,8 @@ class AgentClientShells implements IAgentClientShells {
           out: openShell.buffer.join("\n"),
           exitCode: openShell.exitCode,
         });
-        if ("exitCode" in openShell) {
+
+        if (typeof openShell.exitCode === "number") {
           return;
         }
 
