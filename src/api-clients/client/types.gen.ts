@@ -626,7 +626,6 @@ export type VmStartResponse = {
         user_workspace_path: string;
         vm_agent_type: string;
         workspace_path: string;
-        vm_agent_type: string;
     };
 };
 
@@ -993,7 +992,6 @@ export type SandboxForkResponse = {
             user_workspace_path: string;
             vm_agent_type: string;
             workspace_path: string;
-            vm_agent_type: string;
         } | null;
         title: string | null;
     };
