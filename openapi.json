@@ -941,7 +941,8 @@
                   "reconnect_token": { "type": "string" },
                   "use_pint": { "type": "boolean" },
                   "user_workspace_path": { "type": "string" },
-                  "workspace_path": { "type": "string" }
+                  "workspace_path": { "type": "string" },
+                  "vm_agent_type": { "type": "string" }
                 },
                 "required": [
                   "bootup_type",
@@ -955,7 +956,8 @@
                   "reconnect_token",
                   "use_pint",
                   "user_workspace_path",
-                  "workspace_path"
+                  "workspace_path",
+                  "vm_agent_type"
                 ],
                 "type": "object"
               }
@@ -1555,7 +1557,8 @@
                       "reconnect_token": { "type": "string" },
                       "use_pint": { "type": "boolean" },
                       "user_workspace_path": { "type": "string" },
-                      "workspace_path": { "type": "string" }
+                      "workspace_path": { "type": "string" },
+                      "vm_agent_type": { "type": "string" }
                     },
                     "required": [
                       "bootup_type",
@@ -1569,7 +1572,8 @@
                       "reconnect_token",
                       "use_pint",
                       "user_workspace_path",
-                      "workspace_path"
+                      "workspace_path",
+                      "vm_agent_type"
                     ],
                     "type": "object"
                   },
