@@ -58,6 +58,41 @@ export class Terminals {
     );
   }
 
+  private async createPitcherTerminal(
+    command: "bash" | "zsh" | "fish" | "ksh" | "dash" = "bash",
+    opts?: ShellRunOpts
+  ) {
+    const allEnv = Object.assign(opts?.env ?? {});
+
+    // TODO: use a new shell API that natively supports cwd & env
+    let commandWithEnv = Object.keys(allEnv).length
+      ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
+          allEnv
+        )
+          .map(([key, value]) => `${key}=${value}`)
+          .join(" ")} ${command}`
+      : `source $HOME/.private/.env 2>/dev/null || true && ${command}`;
+
+    if (opts?.cwd) {
+      commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
+    }
+
+    const shell = await this.agentClient.shells.create({
+      projectPath: this.agentClient.workspacePath,
+      size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
+      command: commandWithEnv,
+      args: [],
+      type: "TERMINAL",
+      isSystemShell: true,
+    });
+
+    if (opts?.name) {
+      this.agentClient.shells.rename(shell.shellId, opts.name);
+    }
+
+    return new Terminal(shell, this.agentClient, this.tracer);
+  }
+
   async create(
     command: "bash" | "zsh" | "fish" | "ksh" | "dash" = "bash",
     opts?: ShellRunOpts
@@ -72,6 +107,10 @@ export class Terminals {
         hasDimensions: !!opts?.dimensions,
       },
       async () => {
+        if (this.agentClient.type === "pitcher") {
+          return this.createPitcherTerminal(command, opts);
+        }
+
         const passedEnv = Object.assign(opts?.env ?? {});
 
         // Build bash args array
@@ -91,18 +130,16 @@ export class Terminals {
           projectPath: this.agentClient.workspacePath,
           size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
           command,
-          args: [],
+          args: this.agentClient.type === "pint" ? [] : args,
           type: "TERMINAL",
           isSystemShell: true,
         });
 
-        if (opts?.name) {
-          this.agentClient.shells.rename(shell.shellId, opts.name);
-        }
-
         const terminal = new Terminal(shell, this.agentClient, this.tracer);
 
-        await terminal.write(args.join(" ") + "\n");
+        if (this.agentClient.type === "pint") {
+          await terminal.write(args.join(" ") + "\n");
+        }
 
         return terminal;
       }

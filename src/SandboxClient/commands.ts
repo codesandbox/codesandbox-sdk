@@ -104,6 +104,79 @@ export class SandboxCommands {
     );
   }
 
+  private async runBackgroundPitcher(
+    command: string | string[],
+    opts?: ShellRunOpts
+  ) {
+    const disposableStore = new DisposableStore();
+    const onOutput = new Emitter<string>();
+    disposableStore.add(onOutput);
+
+    command = Array.isArray(command) ? command.join(" && ") : command;
+
+    const passedEnv = Object.assign(opts?.env ?? {});
+
+    const escapedCommand = command.replace(/'/g, "'\\''");
+
+    // TODO: use a new shell API that natively supports cwd & env
+    let commandWithEnv = Object.keys(passedEnv).length
+      ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
+          passedEnv
+        )
+          .map(([key, value]) => {
+            const escapedValue = String(value).replace(/'/g, "'\\''");
+            return `${key}='${escapedValue}'`;
+          })
+          .join(" ")} bash -c '${escapedCommand}'`
+      : `source $HOME/.private/.env 2>/dev/null || true && bash -c '${escapedCommand}'`;
+
+    if (opts?.cwd) {
+      commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
+    }
+
+    const shell = await this.agentClient.shells.create({
+      projectPath: this.agentClient.workspacePath,
+      size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
+      command: commandWithEnv,
+      args: [],
+      type: opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
+      isSystemShell: true,
+    });
+
+    if (shell.status === "ERROR" || shell.status === "KILLED") {
+      throw new Error(`Failed to create shell: ${shell.buffer.join("\n")}`);
+    }
+
+    const details = {
+      type: "command",
+      command,
+      name: opts?.name,
+    };
+
+    if (shell.status !== "FINISHED") {
+      // Only way for us to differentiate between a command and a terminal
+      this.agentClient.shells
+        .rename(
+          shell.shellId,
+          // We embed some details in the name to properly show the command that was run
+          // , the name and that it is an actual command
+          JSON.stringify(details)
+        )
+        .catch(() => {
+          // It is already done
+        });
+    }
+
+    const cmd = new Command(
+      this.agentClient,
+      shell as protocol.shell.CommandShellDTO,
+      details,
+      this.tracer
+    );
+
+    return cmd;
+  }
+
   /**
    * Create and run command in a new shell. Allows you to listen to the output and kill the command.
    */
@@ -118,6 +191,10 @@ export class SandboxCommands {
         "command.name": opts?.name || "",
       },
       async () => {
+        if (this.agentClient.type === "pitcher") {
+          return this.runBackgroundPitcher(command, opts);
+        }
+
         command = Array.isArray(command) ? command.join(" && ") : command;
 
         const passedEnv = Object.assign(opts?.env ?? {});
@@ -311,7 +388,6 @@ export class Command {
             this.status = "KILLED";
             this.barrier.open();
           } else {
-            console.log("Got exit");
             const barrier = new Barrier<void>();
             this.agentClient.shells.subscribeOutput(
               this.shell.shellId,
