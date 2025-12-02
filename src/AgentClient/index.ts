@@ -35,7 +35,23 @@ let PONG_DETECTION_TIMEOUT = 30_000;
 const FOCUS_PONG_DETECTION_TIMEOUT = 5_000;
 
 class AgentClientShells implements IAgentClientShells {
-  constructor(private agentConnection: AgentConnection) {}
+  disposeOutputListener: () => void;
+  private shellOutputs: Record<string, string[]> = {};
+  constructor(private agentConnection: AgentConnection) {
+    // We use a common listener to keep track of all shell output to avoid race conditions. These
+    // are then flushed. This does not work with multiple listeners, but you would not use multiple
+    // listeners for command/terminal output anyways. NOTE! These notifications only appear for created/opened shells
+    this.disposeOutputListener = agentConnection.onNotification(
+      "shell/out",
+      (event) => {
+        if (!this.shellOutputs[event.shellId]) {
+          this.shellOutputs[event.shellId] = [];
+        }
+
+        this.shellOutputs[event.shellId].push(event.out);
+      }
+    );
+  }
   create({
     command,
     args,
@@ -156,7 +172,17 @@ class AgentClientShells implements IAgentClientShells {
         );
       })
       .catch(() => {
-        // We do not care
+        // Pitcher requires a global shell listener for output to avoid race conditions. When running commands the shell can close
+        // before we get the output, so this just flushes the output gotten in between creating and subscribing
+        listener({
+          out: this.shellOutputs[shellId]
+            ? this.shellOutputs[shellId].join("")
+            : "",
+          // We give a fake exit code, because pint gives an exit code on last event... but we do not know the exit code as the
+          // shell is already gone
+          exitCode: -1,
+        });
+        this.shellOutputs[shellId].length = 0;
       });
 
     disposable.onDidDispose(() => {
@@ -553,6 +579,7 @@ export class AgentClient implements IAgentClient {
     }
   }
   dispose() {
+    this.shells.disposeOutputListener();
     this.agentConnection.dispose();
   }
 }

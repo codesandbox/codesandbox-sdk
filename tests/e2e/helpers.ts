@@ -1,19 +1,17 @@
-import { CodeSandbox } from '../../src/index.js';
+import { CodeSandbox } from "../../src/index.js";
 
 /**
  * Test template ID used across e2e tests
  */
-export const TEST_TEMPLATE_ID = process.env.CSB_TEST_TEMPLATE_ID ?? '';
+export const TEST_TEMPLATE_ID = process.env.CSB_TEST_TEMPLATE_ID ?? "";
 
 /**
  * Initialize SDK with API key from environment
  */
 export function initializeSDK(): CodeSandbox {
-  const apiKey = process.env.CSB_API_KEY;
-  if (!apiKey) {
-    throw new Error('CSB_API_KEY environment variable is required for e2e tests');
-  }
-  return new CodeSandbox(apiKey);
+  return new CodeSandbox("csb_v1_devbox", {
+    baseUrl: "http://codesandbox.dev",
+  });
 }
 
 /**
