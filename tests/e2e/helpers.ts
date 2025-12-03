@@ -3,14 +3,15 @@ import { CodeSandbox } from "../../src/index.js";
 /**
  * Test template ID used across e2e tests
  */
-export const TEST_TEMPLATE_ID = process.env.CSB_TEST_TEMPLATE_ID ?? "";
+export const TEST_TEMPLATE_ID =
+  process.env.CSB_TEST_TEMPLATE_ID ?? "pt_FXCz5KGvDQsafzZz7awrSe";
 
 /**
  * Initialize SDK with API key from environment
  */
 export function initializeSDK(): CodeSandbox {
-  return new CodeSandbox("csb_v1_devbox", {
-    baseUrl: "http://codesandbox.dev",
+  return new CodeSandbox(process.env.CSB_API_KEY, {
+    baseUrl: process.env.CSB_BASE_URL,
   });
 }
 
