@@ -10,9 +10,13 @@ export const TEST_TEMPLATE_ID =
  * Initialize SDK with API key from environment
  */
 export function initializeSDK(): CodeSandbox {
-  return new CodeSandbox(process.env.CSB_API_KEY, {
-    baseUrl: process.env.CSB_BASE_URL,
-  });
+  if (process.env.CSB_BASE_URL) {
+    return new CodeSandbox(process.env.CSB_API_KEY, {
+      baseUrl: process.env.CSB_BASE_URL,
+    });
+  }
+
+  return new CodeSandbox(process.env.CSB_API_KEY);
 }
 
 /**
