@@ -145,8 +145,11 @@ export class Sandboxes {
 
         try {
           const startResponse = await this.api.startVm(sandboxId, {
-            ...opts,
             retryDelay: 1000,
+            automatic_wakeup_config: opts?.automaticWakeupConfig,
+            hibernation_timeout_seconds: opts?.hibernationTimeoutSeconds,
+            ipcountry: opts?.ipcountry,
+            tier: opts?.vmTier?.name,
           }); // Use 1000ms delay for restart
 
           return new Sandbox(sandboxId, this.api, startResponse, this.tracer);
