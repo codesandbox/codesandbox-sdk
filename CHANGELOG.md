@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.2](https://github.com/codesandbox/codesandbox-sdk/compare/v2.4.1...v2.4.2) (2025-12-04)
+
+
+### Bug Fixes
+
+* send params to restart correctly ([#232](https://github.com/codesandbox/codesandbox-sdk/issues/232)) ([c9775c4](https://github.com/codesandbox/codesandbox-sdk/commit/c9775c43eecdda38b3c7ea309e03610edeb73b0f))
+
 ## [2.4.1](https://github.com/codesandbox/codesandbox-sdk/compare/v2.4.0...v2.4.1) (2025-10-23)
 
 
