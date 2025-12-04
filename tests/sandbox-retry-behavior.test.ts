@@ -20,10 +20,15 @@ describe('Create operation retry behavior', () => {
 
   it('should fail immediately on fork API error (no retry for fork)', async () => {
     let forkRequestCount = 0
-    
+
     // Mock fork to fail once - should fail immediately since fork doesn't retry
     const forkScope = nock('https://api.codesandbox.io')
-      .post('/sandbox/pcz35m/fork')
+      .post('/sandbox/pcz35m/fork', {
+        privacy: 2,
+        tags: ['sdk'],
+        path: '/SDK',
+        private_preview: false
+      })
       .reply(500, () => {
         forkRequestCount++
         return { error: { errors: ['Fork failed'] } }
@@ -44,9 +49,12 @@ describe('Create operation retry behavior', () => {
 
   it('should retry start VM failures and eventually succeed', async () => {
     let startVMRequestCount = 0
-    
-    // Mock successful fork
-    const forkScope = mockForkSandboxSuccess('test-sandbox-start-retry')
+
+    // Mock successful fork with default privacy settings
+    const forkScope = mockForkSandboxSuccess('test-sandbox-start-retry', {
+      privacy: 2,
+      private_preview: false,
+    })
 
     // Mock start VM to fail twice
     const failureScope = nock('https://api.codesandbox.io')
@@ -92,9 +100,12 @@ describe('Create operation retry behavior', () => {
 
   it('should fail create after start VM exhausts all retries', async () => {
     let startVMRequestCount = 0
-    
-    // Mock successful fork
-    const forkScope = mockForkSandboxSuccess('test-sandbox-start-fail')
+
+    // Mock successful fork with default privacy settings
+    const forkScope = mockForkSandboxSuccess('test-sandbox-start-fail', {
+      privacy: 2,
+      private_preview: false,
+    })
 
     // Mock start VM to fail all 3 retry attempts
     const failureScope = nock('https://api.codesandbox.io')
@@ -117,9 +128,12 @@ describe('Create operation retry behavior', () => {
 
   it('should validate retry timing for start VM failures', async () => {
     let startVMRequestCount = 0
-    
-    // Mock successful fork
-    const forkScope = mockForkSandboxSuccess('test-sandbox-timing')
+
+    // Mock successful fork with default privacy settings
+    const forkScope = mockForkSandboxSuccess('test-sandbox-timing', {
+      privacy: 2,
+      private_preview: false,
+    })
 
     // Mock start VM to fail twice
     const failureScope = nock('https://api.codesandbox.io')

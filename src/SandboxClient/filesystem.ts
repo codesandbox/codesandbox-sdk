@@ -184,13 +184,16 @@ export class FileSystem {
 
         try {
           // Extract the zip file using unzip command
-          const result = await this.agentClient.shells.create(
-            this.agentClient.workspacePath,
-            { cols: 128, rows: 24 },
-            `cd ${this.agentClient.workspacePath} && unzip -o ${tempZipPath}`,
-            "COMMAND",
-            true
-          );
+          const result = await this.agentClient.shells.create({
+            projectPath: this.agentClient.workspacePath,
+            size: { cols: 128, rows: 24 },
+            command: "bash",
+            args: [
+              `cd ${this.agentClient.workspacePath} && unzip -o ${tempZipPath}`,
+            ],
+            type: "COMMAND",
+            isSystemShell: true,
+          });
 
           if (result.status === "ERROR" || result.status === "KILLED") {
             throw new Error(
@@ -204,16 +207,17 @@ export class FileSystem {
           if (result.status === "RUNNING") {
             // Wait for shell exit event
             await new Promise<void>((resolve, reject) => {
-              const disposable = this.agentClient.shells.onShellExited(
-                ({ shellId, exitCode }) => {
-                  if (shellId === result.shellId) {
+              const disposable = this.agentClient.shells.subscribe(
+                result.shellId,
+                (event) => {
+                  if (event.type === "exit") {
                     disposable.dispose();
-                    if (exitCode === 0) {
+                    if (event.exitCode === 0) {
                       resolve();
                     } else {
                       reject(
                         new Error(
-                          `Unzip command failed with exit code ${exitCode}`
+                          `Unzip command failed with exit code ${event.exitCode}`
                         )
                       );
                     }
