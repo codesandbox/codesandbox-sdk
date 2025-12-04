@@ -57,7 +57,6 @@ import type {
 } from "./api-clients/client";
 import { PitcherManagerResponse } from "./types";
 
-
 export interface APIOptions {
   apiKey: string;
   config?: Config;
@@ -322,6 +321,7 @@ export class API {
 
   async startVm(id: string, options?: StartVmOptions) {
     const { retryDelay = 200, ...data } = options || {};
+
     const handledResponse = await retryWithDelay(
       async () => {
         const response = await vmStart({
