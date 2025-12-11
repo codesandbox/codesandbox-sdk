@@ -45,10 +45,14 @@ export class SandboxClient {
     if (session.isPint) {
       const pintClient = await PintClient.create(session);
       const progress = await pintClient.setup.getProgress();
-      return new SandboxClient(pintClient, {
-        hostToken: session.hostToken,
-        tracer,
-      }, progress);
+      return new SandboxClient(
+        pintClient,
+        {
+          hostToken: session.hostToken,
+          tracer,
+        },
+        progress
+      );
     }
 
     const { client: agentClient, joinResult } = await AgentClient.create({
@@ -151,13 +155,6 @@ export class SandboxClient {
     initialSetupProgress: setup.SetupProgress
   ) {
     this.tracer = tracer;
-    // TODO: Bring this back once metrics polling does not reset inactivity
-    // const metricsDisposable = {
-    //   dispose:
-    //     this.pitcherClient.clients.system.startMetricsPollingAtInterval(5000),
-    // };
-
-    // this.addDisposable(metricsDisposable);
     this.setup = new Setup(
       this.disposable,
       this.agentClient,
@@ -216,6 +213,10 @@ export class SandboxClient {
         }
       }
     });
+
+    if (this.shouldKeepAlive) {
+      this.keepActiveWhileConnected(true);
+    }
   }
 
   private async withSpan<T>(
@@ -287,54 +288,6 @@ export class SandboxClient {
   get editorUrl(): string {
     return `https://codesandbox.io/p/devbox/${this.id}`;
   }
-
-  // TODO: Bring this back once metrics polling does not reset inactivity
-  // /**
-  //  * Get the current system metrics. This return type may change in the future.
-  //  */
-  // public async getMetrics(): Promise<SystemMetricsStatus> {
-  //   await this.pitcherClient.clients.system.update();
-
-  //   const barrier = new Barrier<_protocol.system.SystemMetricsStatus>();
-  //   const initialMetrics = this.pitcherClient.clients.system.getMetrics();
-  //   if (!initialMetrics) {
-  //     const disposable = this.pitcherClient.clients.system.onMetricsUpdated(
-  //       (metrics) => {
-  //         if (metrics) {
-  //           barrier.open(metrics);
-  //         }
-  //       }
-  //     );
-  //     disposable.dispose();
-  //   } else {
-  //     barrier.open(initialMetrics);
-  //   }
-
-  //   const barrierResult = await barrier.wait();
-  //   if (barrierResult.status === "disposed") {
-  //     throw new Error("Metrics not available");
-  //   }
-
-  //   const metrics = barrierResult.value;
-
-  //   return {
-  //     cpu: {
-  //       cores: metrics.cpu.cores,
-  //       used: metrics.cpu.used / 100,
-  //       configured: metrics.cpu.configured,
-  //     },
-  //     memory: {
-  //       usedKiB: metrics.memory.used * 1024 * 1024,
-  //       totalKiB: metrics.memory.total * 1024 * 1024,
-  //       configuredKiB: metrics.memory.total * 1024 * 1024,
-  //     },
-  //     storage: {
-  //       usedKB: metrics.storage.used * 1000 * 1000,
-  //       totalKB: metrics.storage.total * 1000 * 1000,
-  //       configuredKB: metrics.storage.configured * 1000 * 1000,
-  //     },
-  //   };
-  // }
 
   /**
    * Disconnect from the sandbox, this does not hibernate the sandbox (it will
@@ -414,7 +367,7 @@ export class SandboxClient {
   }
 
   private keepAliveInterval: NodeJS.Timeout | null = null;
-  private shouldKeepAlive = false;
+  private shouldKeepAlive = true;
   private isExplicitlyDisconnected = false;
   private keepAliveFailures = 0;
   private maxKeepAliveFailures = 3;

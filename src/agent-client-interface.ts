@@ -139,7 +139,6 @@ export interface IAgentClient {
   setup: IAgentClientSetup;
   tasks: IAgentClientTasks;
   system: IAgentClientSystem;
-  ping(): void;
   disconnect(): Promise<void>;
   reconnect(): Promise<void>;
   dispose(): void;
