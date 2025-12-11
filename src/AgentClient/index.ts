@@ -19,9 +19,8 @@ import {
   PickRawFsResult,
 } from "../agent-client-interface";
 import { AgentConnection } from "./AgentConnection";
-import { Emitter, Event } from "../utils/event";
+import { Emitter } from "../utils/event";
 import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../types";
-import { SandboxClient } from "../SandboxClient";
 import { InitStatus } from "../pitcher-protocol/messages/system";
 
 // Timeout for detecting a pong response, leading to a forced disconnect
@@ -414,9 +413,6 @@ export class AgentClient implements IAgentClient {
     // Connection is fully established after successful client/join
     agentConnection.state = "CONNECTED";
 
-    // Now that we have initialized we set an appropriate timeout to more efficiently detect disconnects
-    agentConnection.connection.setPongDetectionTimeout(PONG_DETECTION_TIMEOUT);
-
     return {
       client: new AgentClient(getSession, agentConnection, {
         sandboxId: session.sandboxId,
@@ -457,9 +453,6 @@ export class AgentClient implements IAgentClient {
     this.workspacePath = params.workspacePath;
     this.isUpToDate = params.isUpToDate;
     this.reconnectToken = params.reconnectToken;
-  }
-  ping() {
-    this.agentConnection.connection.ping(FOCUS_PONG_DETECTION_TIMEOUT);
   }
   async disconnect(): Promise<void> {
     await this.agentConnection.disconnect();

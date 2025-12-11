@@ -43,11 +43,7 @@ export async function connectToSandbox({
   onFocusChange((isFocused) => {
     // We immediately ping the connection when focusing, so that
     // we detect a disconnect as early as possible
-    if (isFocused && client.state === "CONNECTED") {
-      client["agentClient"].ping();
-      // If we happen to be disconnected when focusing we try to reconnect, but only if we are currently
-      // hibernated and we did not do a manual disconnect
-    } else if (
+    if (
       isFocused &&
       (client.state === "DISCONNECTED" || client.state === "HIBERNATED")
     ) {

@@ -100,16 +100,16 @@ export const DEFAULT_SUBSCRIPTIONS = {
     status: true,
   },
   file: {
-    status: true,
-    selection: true,
-    ot: true,
+    status: false,
+    selection: false,
+    ot: false,
   },
   fs: {
-    operations: true,
+    operations: false,
   },
   git: {
-    status: true,
-    operations: true,
+    status: false,
+    operations: false,
   },
   port: {
     status: true,
@@ -121,7 +121,7 @@ export const DEFAULT_SUBSCRIPTIONS = {
     status: true,
   },
   system: {
-    metrics: true,
+    metrics: false,
   },
 };
 
