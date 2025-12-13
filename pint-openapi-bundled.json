@@ -1820,6 +1820,116 @@
           }
         }
       }
+    },
+    "/api/v1/stream/directories/watcher/{path}": {
+      "get": {
+        "summary": "Watch directory changes using Server-Sent Events (SSE)",
+        "tags": [
+          "streams",
+          "files"
+        ],
+        "description": "Watch a directory for file system changes and stream events via SSE.",
+        "operationId": "CreateWatcher",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "description": "Directory path to watch",
+            "schema": {
+              "type": "string"
+            },
+            "example": "workspace/src/main.go"
+          },
+          {
+            "name": "recursive",
+            "in": "query",
+            "required": false,
+            "description": "Whether to watch directories recursively",
+            "schema": {
+              "type": "boolean"
+            },
+            "example": true
+          },
+          {
+            "name": "ignorePatterns",
+            "in": "query",
+            "required": false,
+            "description": "Glob patterns to ignore certain files or directories (can be specified multiple times)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true,
+            "example": [
+              "*.log",
+              "temp/*",
+              "node_modules/*"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Directory watcher stream started successfully",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events stream of directory files updates"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Path is required or invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Failed to create file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2020,6 +2130,10 @@
             "type": "boolean",
             "description": "Whether the exec is interactive"
           },
+          "pty": {
+            "type": "boolean",
+            "description": "Whether the exec is using a pty"
+          },
           "exitCode": {
             "type": "integer",
             "description": "Exit code of the process (only present when process has exited)"
@@ -2032,6 +2146,7 @@
           "status",
           "pid",
           "interactive",
+          "pty",
           "exitCode"
         ]
       },
@@ -2071,6 +2186,10 @@
           "interactive": {
             "type": "boolean",
             "description": "Whether to start interactive shell session or not (defaults to false)"
+          },
+          "pty": {
+            "type": "boolean",
+            "description": "Whether to start pty shell session or not (defaults to false)"
           }
         },
         "required": [
@@ -2103,6 +2222,42 @@
         },
         "required": [
           "message"
+        ]
+      },
+      "ExecStdout": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of the exec output",
+            "enum": [
+              "stdout",
+              "stderr"
+            ]
+          },
+          "output": {
+            "type": "string",
+            "description": "Data associated with the exec output"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Sequence number of the output message"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the output was generated"
+          },
+          "exitCode": {
+            "type": "integer",
+            "description": "Exit code of the process (only present when process has exited)"
+          }
+        },
+        "required": [
+          "type",
+          "output",
+          "sequence"
         ]
       },
       "ExecStdin": {
@@ -2398,42 +2553,6 @@
         },
         "required": [
           "ports"
-        ]
-      },
-      "ExecStdout": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "Type of the exec output",
-            "enum": [
-              "stdout",
-              "stderr"
-            ]
-          },
-          "output": {
-            "type": "string",
-            "description": "Data associated with the exec output"
-          },
-          "sequence": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Sequence number of the output message"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when the output was generated"
-          },
-          "exitCode": {
-            "type": "integer",
-            "description": "Exit code of the process (only present when process has exited)"
-          }
-        },
-        "required": [
-          "type",
-          "output",
-          "sequence"
         ]
       },
       "Task": {
