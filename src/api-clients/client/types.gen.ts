@@ -80,32 +80,7 @@ export type TemplateCreateRequest = {
     /**
      * Short ID of the sandbox to fork.
      */
-    forkOf?: string;
-    /**
-     * Container image to use as template
-     */
-    image?: {
-        /**
-         * The architecture of the image. Required for multi-platform images
-         */
-        architecture?: string;
-        /**
-         * The image name (for example 'nginx').
-         */
-        name: string;
-        /**
-         * The container registry where the image is stored.
-         */
-        registry?: string;
-        /**
-         * The repository or namespace where the image is stored.
-         */
-        repository?: string;
-        /**
-         * The image tag.
-         */
-        tag?: string;
-    };
+    forkOf: string;
     /**
      * Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.
      */
