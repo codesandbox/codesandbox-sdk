@@ -1,3 +1,4 @@
+import { IDisposable } from "@xterm/headless";
 import {
   fs,
   port,
@@ -11,26 +12,35 @@ import {
 } from "./pitcher-protocol";
 import { Event } from "./utils/event";
 
+export type SubscribeShellEvent =
+  | {
+      type: "exit";
+      exitCode: number;
+    }
+  | {
+      type: "terminate";
+    };
+
 export interface IAgentClientShells {
-  onShellExited: Event<{
-    shellId: string;
-    exitCode: number;
-  }>;
-  onShellTerminated: Event<shell.ShellTerminateNotification["params"]>;
-  onShellOut: Event<shell.ShellOutNotification["params"]>;
-  create(
-    projectPath: string,
-    size: shell.ShellSize,
-    command?: string,
-    type?: shell.ShellProcessType,
-    isSystemShell?: boolean
-  ): Promise<shell.OpenShellDTO>;
+  create(options: {
+    command: string;
+    args: string[];
+    projectPath: string;
+    size: shell.ShellSize;
+    type?: shell.ShellProcessType;
+    isSystemShell?: boolean;
+  }): Promise<shell.OpenShellDTO>;
   rename(shellId: shell.ShellId, name: string): Promise<null>;
   getShells(): Promise<shell.ShellDTO[]>;
-  open(
+  subscribe(
     shellId: shell.ShellId,
-    size: shell.ShellSize
-  ): Promise<shell.OpenShellDTO>;
+    listener: (event: SubscribeShellEvent) => void
+  ): IDisposable;
+  subscribeOutput(
+    shellId: shell.ShellId,
+    size: shell.ShellSize,
+    listener: (event: { out: string; exitCode?: number }) => void
+  ): IDisposable;
   delete(
     shellId: shell.ShellId
   ): Promise<shell.CommandShellDTO | shell.TerminalShellDTO | null>;
@@ -128,6 +138,7 @@ export type IAgentClientState =
   | "HIBERNATED";
 
 export interface IAgentClient {
+  type: "pitcher" | "pint";
   sandboxId: string;
   workspacePath: string;
   isUpToDate: boolean;

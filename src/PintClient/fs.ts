@@ -3,6 +3,9 @@ import {
   IAgentClientFS,
   PickRawFsResult,
 } from "../agent-client-interface";
+import { fs } from "../pitcher-protocol";
+import { Disposable } from "../utils/disposable";
+import { parseStreamEvent } from "./utils";
 import {
   createFile,
   readFile,
@@ -11,6 +14,7 @@ import {
   createDirectory,
   deleteDirectory,
   getFileStat,
+  createWatcher,
 } from "../api-clients/pint";
 export class PintFsClient implements IAgentClientFS {
   constructor(private apiClient: Client) {}
@@ -325,12 +329,57 @@ export class PintFsClient implements IAgentClientFS {
       readonly recursive?: boolean;
       readonly excludes?: readonly string[];
     },
-    onEvent: (watchEvent: any) => void
+    onEvent: (watchEvent: fs.FSWatchEvent) => void
   ): Promise<
     | (PickRawFsResult<"fs/watch"> & { type: "error" })
     | { type: "success"; dispose(): void }
   > {
-    throw new Error("Not implemented");
+    try {
+      const abortController = new AbortController();
+
+      const response = createWatcher({
+        client: this.apiClient,
+        path: {
+          path: path,
+        },
+        query: {
+          recursive: options.recursive,
+          ignorePatterns: options.excludes ? [...options.excludes] : undefined,
+        },
+        signal: abortController.signal,
+      });
+
+      // Start listening to the stream in the background
+      response.then(async ({ stream }) => {
+        try {
+          for await (const evt of stream) {
+            try {
+              const watchEvent = parseStreamEvent<fs.FSWatchEvent>(evt);
+              onEvent(watchEvent);
+            } catch (error) {
+              console.warn('Failed to parse filesystem watch event:', error);
+            }
+          }
+        } catch (error) {
+          console.error('Filesystem watch stream error:', error);
+        }
+      }).catch((error) => {
+        console.error('Failed to start filesystem watcher:', error);
+      });
+
+      return {
+        type: "success",
+        dispose(): void {
+          abortController.abort();
+        },
+      };
+    } catch (error) {
+      return {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        errno: null,
+      };
+    }
   }
 
   async download(path?: string): Promise<{ downloadUrl: string }> {

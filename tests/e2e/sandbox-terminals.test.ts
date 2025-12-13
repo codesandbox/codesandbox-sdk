@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { CodeSandbox } from '../../src/index.js';
-import { Sandbox } from '../../src/Sandbox.js';
-import { SandboxClient } from '../../src/SandboxClient/index.js';
-import { initializeSDK, TEST_TEMPLATE_ID } from './helpers.js';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { CodeSandbox } from "../../src/index.js";
+import { Sandbox } from "../../src/Sandbox.js";
+import { SandboxClient } from "../../src/SandboxClient/index.js";
+import { initializeSDK, TEST_TEMPLATE_ID } from "./helpers.js";
 
-describe('Sandbox Terminals', () => {
+describe("Sandbox Terminals", () => {
   let sdk: CodeSandbox;
   let sandbox: Sandbox | undefined;
   let client: SandboxClient | undefined;
@@ -31,7 +31,7 @@ describe('Sandbox Terminals', () => {
         client = undefined;
       }
     } catch (error) {
-      console.error('Failed to dispose client:', error);
+      console.error("Failed to dispose client:", error);
     }
 
     if (sandboxId) {
@@ -39,19 +39,24 @@ describe('Sandbox Terminals', () => {
         await sdk.sandboxes.shutdown(sandboxId);
         await sdk.sandboxes.delete(sandboxId);
       } catch (error) {
-        console.error('Failed to cleanup test sandbox:', sandboxId, error);
+        console.error("Failed to cleanup test sandbox:", sandboxId, error);
         try {
           await sdk.sandboxes.delete(sandboxId);
         } catch (deleteError) {
-          console.error('Failed to force delete sandbox:', sandboxId, deleteError);
+          console.error(
+            "Failed to force delete sandbox:",
+            sandboxId,
+            deleteError
+          );
         }
       }
     }
   });
 
-  describe('Terminal creation', () => {
-    it('should create a terminal', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+  describe("Terminal creation", () => {
+    it("should create a terminal", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const terminal = await client.terminals.create();
       expect(terminal).toBeDefined();
@@ -61,10 +66,11 @@ describe('Sandbox Terminals', () => {
       await terminal.kill();
     });
 
-    it('should create terminal with custom dimensions', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should create terminal with custom dimensions", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
-      const terminal = await client.terminals.create('bash', {
+      const terminal = await client.terminals.create("bash", {
         dimensions: { cols: 120, rows: 40 },
       });
       expect(terminal).toBeDefined();
@@ -75,9 +81,10 @@ describe('Sandbox Terminals', () => {
     });
   });
 
-  describe('Terminal listing', () => {
-    it('should get all terminals', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+  describe("Terminal listing", () => {
+    it("should get all terminals", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const terminal1 = await client.terminals.create();
       const terminal2 = await client.terminals.create();
@@ -91,8 +98,9 @@ describe('Sandbox Terminals', () => {
       await terminal2.kill();
     }, 15000);
 
-    it('should get terminal by ID', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should get terminal by ID", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const terminal = await client.terminals.create();
       const retrieved = await client.terminals.get(terminal.id);
@@ -107,9 +115,10 @@ describe('Sandbox Terminals', () => {
     });
   });
 
-  describe('Terminal operations', () => {
-    it('should write to terminal', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+  describe("Terminal operations", () => {
+    it("should write to terminal", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const terminal = await client.terminals.create();
 
@@ -123,8 +132,9 @@ describe('Sandbox Terminals', () => {
       await terminal.kill();
     });
 
-    it('should run command in terminal', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should run command in terminal", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const terminal = await client.terminals.create();
 
@@ -138,18 +148,22 @@ describe('Sandbox Terminals', () => {
       await terminal.kill();
     });
 
-    it('should receive output from terminal', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should receive output from terminal", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const terminal = await client.terminals.create();
       let receivedOutput = false;
 
       // Listen for output
       const disposable = terminal.onOutput((data) => {
-        if (data.includes('unique_test_string')) {
+        if (data.includes("unique_test_string")) {
           receivedOutput = true;
         }
       });
+
+      // Users have to open first to get current output
+      await terminal.open();
 
       // Write a command
       await terminal.write('echo "unique_test_string"\n');
@@ -165,9 +179,10 @@ describe('Sandbox Terminals', () => {
     }, 10000);
   });
 
-  describe('Terminal lifecycle', () => {
-    it('should kill terminal', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+  describe("Terminal lifecycle", () => {
+    it("should kill terminal", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const terminal = await client.terminals.create();
       expect(terminal).toBeDefined();
@@ -179,8 +194,9 @@ describe('Sandbox Terminals', () => {
       expect(terminal.id).toBeTruthy();
     });
 
-    it('should handle multiple terminals', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should handle multiple terminals", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const terminals = await Promise.all([
         client.terminals.create(),

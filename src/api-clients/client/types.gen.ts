@@ -599,6 +599,7 @@ export type VmStartResponse = {
         reconnect_token: string;
         use_pint: boolean;
         user_workspace_path: string;
+        vm_agent_type: string;
         workspace_path: string;
     };
 };
@@ -964,6 +965,7 @@ export type SandboxForkResponse = {
             reconnect_token: string;
             use_pint: boolean;
             user_workspace_path: string;
+            vm_agent_type: string;
             workspace_path: string;
         } | null;
         title: string | null;
