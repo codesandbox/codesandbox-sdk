@@ -32,6 +32,7 @@ import { IDisposable } from "@xterm/headless";
 
 export class PintShellsClient implements IAgentClientShells {
   private execs: ExecItem[] = [];
+  constructor(private apiClient: Client, private sandboxId: string) {}
   private subscribeAndEvaluateExecsUpdates(
     execId: string,
     compare: (
@@ -73,7 +74,6 @@ export class PintShellsClient implements IAgentClientShells {
       abortController.abort();
     });
   }
-  constructor(private apiClient: Client, private sandboxId: string) {}
   private convertExecToShellDTO(exec: ExecItem) {
     return {
       isSystemShell: true,

@@ -337,7 +337,7 @@ export class PintFsClient implements IAgentClientFS {
     try {
       const abortController = new AbortController();
 
-      const response = createWatcher({
+      const response = await createWatcher({
         client: this.apiClient,
         path: {
           path: path,
@@ -350,9 +350,9 @@ export class PintFsClient implements IAgentClientFS {
       });
 
       // Start listening to the stream in the background
-      response.then(async ({ stream }) => {
+      (async () => {
         try {
-          for await (const evt of stream) {
+          for await (const evt of response.stream) {
             try {
               const watchEvent = parseStreamEvent<fs.FSWatchEvent>(evt);
               onEvent(watchEvent);
@@ -363,9 +363,7 @@ export class PintFsClient implements IAgentClientFS {
         } catch (error) {
           console.error('Filesystem watch stream error:', error);
         }
-      }).catch((error) => {
-        console.error('Failed to start filesystem watcher:', error);
-      });
+      })();
 
       return {
         type: "success",
