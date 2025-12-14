@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ConnectToExecWebSocketData, ConnectToExecWebSocketErrors, ConnectToExecWebSocketResponses, CreateDirectoryData, CreateDirectoryErrors, CreateDirectoryResponses, CreateExecData, CreateExecErrors, CreateExecResponses, CreateFileData, CreateFileErrors, CreateFileResponses, DeleteDirectoryData, DeleteDirectoryErrors, DeleteDirectoryResponses, DeleteExecData, DeleteExecErrors, DeleteExecResponses, DeleteFileData, DeleteFileErrors, DeleteFileResponses, ExecExecStdinData, ExecExecStdinErrors, ExecExecStdinResponses, ExecuteTaskActionData, ExecuteTaskActionErrors, ExecuteTaskActionResponses, GetExecData, GetExecErrors, GetExecOutputData, GetExecOutputErrors, GetExecOutputResponses, GetExecResponses, GetFileStatData, GetFileStatErrors, GetFileStatResponses, GetTaskData, GetTaskErrors, GetTaskResponses, ListDirectoryData, ListDirectoryErrors, ListDirectoryResponses, ListExecsData, ListExecsErrors, ListExecsResponses, ListPortsData, ListPortsErrors, ListPortsResponses, ListSetupTasksData, ListSetupTasksErrors, ListSetupTasksResponses, ListTasksData, ListTasksErrors, ListTasksResponses, PerformFileActionData, PerformFileActionErrors, PerformFileActionResponses, ReadFileData, ReadFileErrors, ReadFileResponses, StreamExecsListData, StreamExecsListErrors, StreamExecsListResponses, StreamPortsListData, StreamPortsListErrors, StreamPortsListResponses, UpdateExecData, UpdateExecErrors, UpdateExecResponses } from './types.gen';
+import type { ConnectToExecWebSocketData, ConnectToExecWebSocketErrors, ConnectToExecWebSocketResponses, CreateDirectoryData, CreateDirectoryErrors, CreateDirectoryResponses, CreateExecData, CreateExecErrors, CreateExecResponses, CreateFileData, CreateFileErrors, CreateFileResponses, CreateWatcherData, CreateWatcherErrors, CreateWatcherResponses, DeleteDirectoryData, DeleteDirectoryErrors, DeleteDirectoryResponses, DeleteExecData, DeleteExecErrors, DeleteExecResponses, DeleteFileData, DeleteFileErrors, DeleteFileResponses, ExecExecStdinData, ExecExecStdinErrors, ExecExecStdinResponses, ExecuteTaskActionData, ExecuteTaskActionErrors, ExecuteTaskActionResponses, GetExecData, GetExecErrors, GetExecOutputData, GetExecOutputErrors, GetExecOutputResponses, GetExecResponses, GetFileStatData, GetFileStatErrors, GetFileStatResponses, GetTaskData, GetTaskErrors, GetTaskResponses, ListDirectoryData, ListDirectoryErrors, ListDirectoryResponses, ListExecsData, ListExecsErrors, ListExecsResponses, ListPortsData, ListPortsErrors, ListPortsResponses, ListSetupTasksData, ListSetupTasksErrors, ListSetupTasksResponses, ListTasksData, ListTasksErrors, ListTasksResponses, PerformFileActionData, PerformFileActionErrors, PerformFileActionResponses, ReadFileData, ReadFileErrors, ReadFileResponses, StreamExecsListData, StreamExecsListErrors, StreamExecsListResponses, StreamPortsListData, StreamPortsListErrors, StreamPortsListResponses, UpdateExecData, UpdateExecErrors, UpdateExecResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -439,6 +439,23 @@ export const streamPortsList = <ThrowOnError extends boolean = false>(options?: 
             }
         ],
         url: '/api/v1/stream/ports',
+        ...options
+    });
+};
+
+/**
+ * Watch directory changes using Server-Sent Events (SSE)
+ * Watch a directory for file system changes and stream events via SSE.
+ */
+export const createWatcher = <ThrowOnError extends boolean = false>(options: Options<CreateWatcherData, ThrowOnError>) => {
+    return (options.client ?? client).sse.get<CreateWatcherResponses, CreateWatcherErrors, ThrowOnError>({
+        security: [
+            {
+                scheme: 'bearer',
+                type: 'http'
+            }
+        ],
+        url: '/api/v1/stream/directories/watcher/{path}',
         ...options
     });
 };
