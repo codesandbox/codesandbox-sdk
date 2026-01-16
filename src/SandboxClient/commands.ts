@@ -389,12 +389,13 @@ export class Command {
             this.barrier.open();
           } else {
             const barrier = new Barrier<void>();
-            this.agentClient.shells.subscribeOutput(
+            const disposer = this.agentClient.shells.subscribeOutput(
               this.shell.shellId,
               DEFAULT_SHELL_SIZE,
               (event) => {
                 this.output.push(event.out);
                 if (event.exitCode !== undefined) {
+                  disposer.dispose();
                   barrier.open();
                 }
               }
@@ -518,6 +519,8 @@ export class Command {
             /Error: failed to exec in podman container: exit status 1[\s\S]*$/,
             ""
           );
+
+        this.disposable.dispose();
 
         if (this.status === "FINISHED") {
           return cleaned;

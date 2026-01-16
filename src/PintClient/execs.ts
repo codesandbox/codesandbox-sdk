@@ -1,5 +1,4 @@
 import { Client } from "../api-clients/pint/client";
-import { Emitter, EmitterSubscription } from "../utils/event";
 import { Disposable } from "../utils/disposable";
 import { parseStreamEvent } from "./utils";
 import {
@@ -37,7 +36,7 @@ export class PintShellsClient implements IAgentClientShells {
     execId: string,
     compare: (
       nextExec: ExecItem,
-      prevExec: ExecItem | undefined,
+      prevExec: ExecItem,
       prevExecs: ExecItem[]
     ) => void
   ) {
@@ -53,20 +52,23 @@ export class PintShellsClient implements IAgentClientShells {
       for await (const evt of stream) {
         const execListResponse = parseStreamEvent<ExecListResponse>(evt);
         const execs = execListResponse.execs;
+        const newExec = execs.find((exec) => exec.id === execId);
+        const currentExec = this.execs.find((exec) => exec.id === execId);
 
-        execs.forEach((exec) => {
-          if (exec.id !== execId) {
-            return;
-          }
+        // Removed
+        if (!newExec && currentExec) {
+          this.execs.splice(this.execs.indexOf(currentExec), 1);
+        }
+        // Added
+        else if (newExec && !currentExec) {
+          this.execs.push(newExec);
+        }
+        // Updated
+        else if (newExec && currentExec) {
+          compare(newExec, currentExec, this.execs);
 
-          const prevExec = this.execs.find(
-            (execItem) => execItem.id === exec.id
-          );
-
-          compare(exec, prevExec, this.execs);
-        });
-
-        this.execs = execs;
+          this.execs[this.execs.indexOf(currentExec)] = newExec;
+        }
       }
     });
 
@@ -128,10 +130,6 @@ export class PintShellsClient implements IAgentClientShells {
     listener: (event: SubscribeShellEvent) => void
   ): IDisposable {
     return this.subscribeAndEvaluateExecsUpdates(shellId, (exec, prevExec) => {
-      if (!prevExec) {
-        return;
-      }
-
       if (prevExec.status === "RUNNING" && exec.status === "EXITED") {
         listener({
           type: "exit",

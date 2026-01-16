@@ -45,10 +45,14 @@ export class SandboxClient {
     if (session.isPint) {
       const pintClient = await PintClient.create(session);
       const progress = await pintClient.setup.getProgress();
-      return new SandboxClient(pintClient, {
-        hostToken: session.hostToken,
-        tracer,
-      }, progress);
+      return new SandboxClient(
+        pintClient,
+        {
+          hostToken: session.hostToken,
+          tracer,
+        },
+        progress
+      );
     }
 
     const { client: agentClient, joinResult } = await AgentClient.create({
