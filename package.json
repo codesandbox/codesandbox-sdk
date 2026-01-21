@@ -75,7 +75,7 @@
     "README.md"
   ],
   "devDependencies": {
-    "@hey-api/openapi-ts": "^0.84.4",
+    "@hey-api/openapi-ts": "^0.90.6",
     "@msgpack/msgpack": "^2.7.1",
     "@parcel/watcher": "^2.5.1",
     "@tanstack/react-query": "^5.76.1",
