@@ -767,12 +767,12 @@ export async function betaCodeSandboxBuild(
             if (!client)
               throw new Error("Failed to connect to sandbox to wait for ports");
             const portInfo = await client.ports.waitForPort(port, {
-              timeoutMs: 10_000,
+              timeoutMs: 30_000,
             });
           })
         );
       } else {
-        templateBuildSpinner.text = `Preparing template snapshot: No ports specified, waiting 10 seconds for tasks to run...`;
+        templateBuildSpinner.text = `Preparing template snapshot: No ports specified, waiting 0 seconds for tasks to run...`;
         await sleep(10000);
       }
 
