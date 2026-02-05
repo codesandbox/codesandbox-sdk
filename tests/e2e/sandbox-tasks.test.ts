@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { CodeSandbox } from '../../src/index.js';
-import { Sandbox } from '../../src/Sandbox.js';
-import { SandboxClient } from '../../src/SandboxClient/index.js';
-import { initializeSDK, TEST_TEMPLATE_ID } from './helpers.js';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { CodeSandbox } from "../../src/index.js";
+import { Sandbox } from "../../src/Sandbox.js";
+import { SandboxClient } from "../../src/SandboxClient/index.js";
+import { createSandbox, initializeSDK } from "./helpers.js";
 
-describe('Sandbox Tasks', () => {
+describe("Sandbox Tasks", () => {
   let sdk: CodeSandbox;
   let sandbox: Sandbox | undefined;
   let client: SandboxClient | undefined;
@@ -13,9 +13,7 @@ describe('Sandbox Tasks', () => {
     sdk = initializeSDK();
 
     // Create a sandbox for testing
-    sandbox = await sdk.sandboxes.create({
-      id: TEST_TEMPLATE_ID,
-    });
+    sandbox = await createSandbox(sdk);
 
     // Connect to sandbox
     client = await sandbox.connect();
@@ -31,7 +29,7 @@ describe('Sandbox Tasks', () => {
         client = undefined;
       }
     } catch (error) {
-      console.error('Failed to dispose client:', error);
+      console.error("Failed to dispose client:", error);
     }
 
     if (sandboxId) {
@@ -39,26 +37,32 @@ describe('Sandbox Tasks', () => {
         await sdk.sandboxes.shutdown(sandboxId);
         await sdk.sandboxes.delete(sandboxId);
       } catch (error) {
-        console.error('Failed to cleanup test sandbox:', sandboxId, error);
+        console.error("Failed to cleanup test sandbox:", sandboxId, error);
         try {
           await sdk.sandboxes.delete(sandboxId);
         } catch (deleteError) {
-          console.error('Failed to force delete sandbox:', sandboxId, deleteError);
+          console.error(
+            "Failed to force delete sandbox:",
+            sandboxId,
+            deleteError
+          );
         }
       }
     }
   });
 
-  describe('Task listing', () => {
-    it('should get all tasks', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+  describe("Task listing", () => {
+    it("should get all tasks", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const tasks = await client.tasks.getAll();
       expect(Array.isArray(tasks)).toBe(true);
     });
 
-    it('should get task by ID if tasks exist', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should get task by ID if tasks exist", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const tasks = await client.tasks.getAll();
 
@@ -75,9 +79,10 @@ describe('Sandbox Tasks', () => {
     });
   });
 
-  describe('Task properties', () => {
-    it('should have task properties', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+  describe("Task properties", () => {
+    it("should have task properties", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const tasks = await client.tasks.getAll();
 
@@ -86,18 +91,19 @@ describe('Sandbox Tasks', () => {
         expect(task.id).toBeTruthy();
         expect(task.name).toBeTruthy();
         expect(task.command).toBeTruthy();
-        expect(typeof task.runAtStart).toBe('boolean');
+        expect(typeof task.runAtStart).toBe("boolean");
         expect(task.status).toBeDefined();
         expect(Array.isArray(task.ports)).toBe(true);
       }
     });
   });
 
-  describe('Task operations', () => {
+  describe("Task operations", () => {
     // These tests are skipped as they require specific task configurations
     // and may interfere with running tasks
-    it('should run a task', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should run a task", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const tasks = await client.tasks.getAll();
 
@@ -112,8 +118,9 @@ describe('Sandbox Tasks', () => {
       }
     });
 
-    it('should stop a running task', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should stop a running task", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const tasks = await client.tasks.getAll();
 
@@ -125,8 +132,9 @@ describe('Sandbox Tasks', () => {
       }
     });
 
-    it('should restart a task', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should restart a task", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const tasks = await client.tasks.getAll();
 

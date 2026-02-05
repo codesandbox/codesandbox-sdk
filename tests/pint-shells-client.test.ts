@@ -3,7 +3,6 @@ import { PintShellsClient } from "../src/PintClient/execs";
 import { Client } from "../src/api-clients/pint/client";
 import * as pintApi from "../src/api-clients/pint";
 import { ExecItem } from "../src/api-clients/pint";
-import { IDisposable } from "../src/utils/disposable";
 
 // Mock the API functions
 vi.mock("../src/api-clients/pint", () => ({
@@ -44,6 +43,7 @@ const createMockExecItem = (overrides: Partial<ExecItem> = {}): ExecItem => ({
   status: "RUNNING",
   exitCode: 0,
   pid: 1234,
+  pty: false,
   ...overrides,
 });
 
@@ -278,7 +278,6 @@ describe("PintShellsClient", () => {
       expect(result).toEqual([]);
     });
   });
-
 
   describe("rename", () => {
     it("should return null as rename is not implemented", async () => {

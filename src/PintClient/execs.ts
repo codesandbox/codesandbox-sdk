@@ -42,6 +42,8 @@ export class PintShellsClient implements IAgentClientShells {
   ) {
     const abortController = new AbortController();
 
+    console.log("Subscribing to execs!");
+
     streamExecsList({
       client: this.apiClient,
       signal: abortController.signal,
@@ -49,7 +51,9 @@ export class PintShellsClient implements IAgentClientShells {
         headers: { Accept: "text/event-stream" },
       },
     }).then(async ({ stream }) => {
+      console.log("LIST STREAM READY");
       for await (const evt of stream) {
+        console.log("Got list event");
         const execListResponse = parseStreamEvent<ExecListResponse>(evt);
         const execs = execListResponse.execs;
         const newExec = execs.find((exec) => exec.id === execId);
@@ -155,7 +159,9 @@ export class PintShellsClient implements IAgentClientShells {
         Accept: "text/event-stream",
       },
     }).then(async ({ stream }) => {
+      console.log("OUTPUT STREAM READY");
       for await (const evt of stream) {
+        console.log("Got output event");
         const data = parseStreamEvent<{
           type: "stdout" | "stderr";
           output: "";

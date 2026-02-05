@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { CodeSandbox } from '../../src/index.js';
-import { Sandbox } from '../../src/Sandbox.js';
-import { SandboxClient } from '../../src/SandboxClient/index.js';
-import { initializeSDK, TEST_TEMPLATE_ID } from './helpers.js';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { CodeSandbox } from "../../src/index.js";
+import { Sandbox } from "../../src/Sandbox.js";
+import { SandboxClient } from "../../src/SandboxClient/index.js";
+import { createSandbox, initializeSDK } from "./helpers.js";
 
-describe('Sandbox Setup', () => {
+describe("Sandbox Setup", () => {
   let sdk: CodeSandbox;
   let sandbox: Sandbox | undefined;
   let client: SandboxClient | undefined;
@@ -13,9 +13,7 @@ describe('Sandbox Setup', () => {
     sdk = initializeSDK();
 
     // Create a sandbox for testing
-    sandbox = await sdk.sandboxes.create({
-      id: TEST_TEMPLATE_ID,
-    });
+    sandbox = await createSandbox(sdk);
 
     // Connect to sandbox
     client = await sandbox.connect();
@@ -31,7 +29,7 @@ describe('Sandbox Setup', () => {
         client = undefined;
       }
     } catch (error) {
-      console.error('Failed to dispose client:', error);
+      console.error("Failed to dispose client:", error);
     }
 
     if (sandboxId) {
@@ -39,53 +37,62 @@ describe('Sandbox Setup', () => {
         await sdk.sandboxes.shutdown(sandboxId);
         await sdk.sandboxes.delete(sandboxId);
       } catch (error) {
-        console.error('Failed to cleanup test sandbox:', sandboxId, error);
+        console.error("Failed to cleanup test sandbox:", sandboxId, error);
         try {
           await sdk.sandboxes.delete(sandboxId);
         } catch (deleteError) {
-          console.error('Failed to force delete sandbox:', sandboxId, deleteError);
+          console.error(
+            "Failed to force delete sandbox:",
+            sandboxId,
+            deleteError
+          );
         }
       }
     }
   });
 
-  describe('Setup operations', () => {
-    it('should get setup status', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+  describe("Setup operations", () => {
+    it("should get setup status", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const status = client.setup.status;
       expect(status).toBeDefined();
-      expect(['RUNNING', 'FINISHED', 'STOPPED', 'IDLE']).toContain(status);
+      expect(["RUNNING", "FINISHED", "STOPPED", "IDLE"]).toContain(status);
     });
 
-    it('should get setup steps', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should get setup steps", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const steps = client.setup.getSteps();
       expect(Array.isArray(steps)).toBe(true);
     });
 
-    it('should get current step index', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should get current step index", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const currentStepIndex = client.setup.currentStepIndex;
-      expect(typeof currentStepIndex).toBe('number');
+      expect(typeof currentStepIndex).toBe("number");
     });
 
-    it('should wait until setup completes', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should wait until setup completes", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       // If setup is already finished, this should resolve immediately
       await client.setup.waitUntilComplete();
 
       const status = client.setup.status;
-      expect(status).toBe('FINISHED');
+      expect(status).toBe("FINISHED");
     }, 60000);
   });
 
-  describe('Setup steps', () => {
-    it('should have step properties', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+  describe("Setup steps", () => {
+    it("should have step properties", async () => {
+      if (!client || !sandbox)
+        throw new Error("Client or sandbox not initialized");
 
       const steps = client.setup.getSteps();
 

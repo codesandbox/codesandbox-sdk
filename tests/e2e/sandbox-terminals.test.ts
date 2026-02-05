@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { CodeSandbox } from "../../src/index.js";
 import { Sandbox } from "../../src/Sandbox.js";
 import { SandboxClient } from "../../src/SandboxClient/index.js";
-import { initializeSDK, TEST_TEMPLATE_ID } from "./helpers.js";
+import { createSandbox, initializeSDK, TEST_TEMPLATE_ID } from "./helpers.js";
 
 describe("Sandbox Terminals", () => {
   let sdk: CodeSandbox;
@@ -13,9 +13,7 @@ describe("Sandbox Terminals", () => {
     sdk = initializeSDK();
 
     // Create a sandbox for testing
-    sandbox = await sdk.sandboxes.create({
-      id: TEST_TEMPLATE_ID,
-    });
+    sandbox = await createSandbox(sdk);
 
     // Connect to sandbox
     client = await sandbox.connect();

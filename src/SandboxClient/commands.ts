@@ -382,30 +382,23 @@ export class Command {
     this.tracer = tracer;
 
     if (shell.status === "RUNNING") {
+      console.log(this.shell.shellId, "Listening for output");
       this.disposable.addDisposable(
-        agentClient.shells.subscribe(shell.shellId, async (event) => {
-          if (event.type === "terminate") {
-            this.status = "KILLED";
-            this.barrier.open();
-          } else {
-            const barrier = new Barrier<void>();
-            const disposer = this.agentClient.shells.subscribeOutput(
-              this.shell.shellId,
-              DEFAULT_SHELL_SIZE,
-              (event) => {
-                this.output.push(event.out);
-                if (event.exitCode !== undefined) {
-                  disposer.dispose();
-                  barrier.open();
-                }
-              }
-            );
-            await barrier.wait();
-            this.exitCode = event.exitCode;
-            this.status = event.exitCode === 0 ? "FINISHED" : "ERROR";
-            this.barrier.open();
+        this.agentClient.shells.subscribeOutput(
+          this.shell.shellId,
+          DEFAULT_SHELL_SIZE,
+          (event) => {
+            this.output.push(event.out);
+            if (event.exitCode === 0) {
+              this.exitCode = event.exitCode;
+              this.status = event.exitCode === 0 ? "FINISHED" : "ERROR";
+              this.barrier.open();
+            } else if (typeof event.exitCode === "number") {
+              this.status = "KILLED";
+              this.barrier.open();
+            }
           }
-        })
+        )
       );
     }
   }

@@ -13,11 +13,20 @@ import {
 } from "@codesandbox/sdk";
 import { VmUpdateSpecsRequest } from "../../api-clients/client";
 import { getDefaultTemplateId, retryWithDelay } from "../../utils/api";
-import { getInferredApiKey, getInferredRegistryUrl, isBetaAllowed, isLocalEnvironment } from "../../utils/constants";
+import {
+  getInferredApiKey,
+  getInferredRegistryUrl,
+  isBetaAllowed,
+  isLocalEnvironment,
+} from "../../utils/constants";
 import { hashDirectory as getFilePaths } from "../utils/files";
 import { mkdir, writeFile } from "fs/promises";
 import { sleep } from "../../utils/sleep";
-import { buildDockerImage, prepareDockerBuild, pushDockerImage } from "../utils/docker";
+import {
+  buildDockerImage,
+  prepareDockerBuild,
+  pushDockerImage,
+} from "../utils/docker";
 import { randomUUID } from "crypto";
 
 export type BuildCommandArgs = {
@@ -182,7 +191,6 @@ export const buildCommand: yargs.CommandModule<
       }),
 
   handler: async (argv) => {
-
     // Beta build process using Docker
     // This uses the new architecture using bartender and gvisor
     if (argv.beta && isBetaAllowed()) {
@@ -253,7 +261,8 @@ export const buildCommand: yargs.CommandModule<
               spinner.start(
                 updateSpinnerMessage(
                   index,
-                  `Running setup ${steps.indexOf(step) + 1} / ${steps.length
+                  `Running setup ${steps.indexOf(step) + 1} / ${
+                    steps.length
                   } - ${step.name}...`
                 )
               );
@@ -466,9 +475,9 @@ export const buildCommand: yargs.CommandModule<
               argv.ci
                 ? String(error)
                 : "Failed, please manually verify at https://codesandbox.io/s/" +
-                id +
-                " - " +
-                String(error)
+                    id +
+                    " - " +
+                    String(error)
             )
           );
 
@@ -628,7 +637,9 @@ function createAlias(directory: string, alias: string) {
  * Build a CodeSandbox Template using Docker for use in gvisor-based sandboxes.
  * @param argv arguments to csb build command
  */
-export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildCommandArgs>): Promise<void> {
+export async function betaCodeSandboxBuild(
+  argv: yargs.ArgumentsCamelCase<BuildCommandArgs>
+): Promise<void> {
   let dockerFileCleanupFn: (() => Promise<void>) | undefined;
   let client: SandboxClient | undefined;
 
@@ -662,18 +673,22 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
     let dockerfilePath: string;
 
     try {
-      const result = await prepareDockerBuild(resolvedDirectory, (output: string) => {
-        dockerBuildPrepareSpinner.text = `Preparing build environment: (${output})`;
-      });
+      const result = await prepareDockerBuild(
+        resolvedDirectory,
+        (output: string) => {
+          dockerBuildPrepareSpinner.text = `Preparing build environment: (${output})`;
+        }
+      );
       dockerFileCleanupFn = result.cleanupFn;
       dockerfilePath = result.dockerfilePath;
 
       dockerBuildPrepareSpinner.succeed("Build environment ready.");
     } catch (error) {
-      dockerBuildPrepareSpinner.fail(`Failed to prepare build environment: ${(error as Error).message}`);
+      dockerBuildPrepareSpinner.fail(
+        `Failed to prepare build environment: ${(error as Error).message}`
+      );
       throw error;
     }
-
 
     // Docker Build
     const dockerBuildSpinner = ora({ stream: process.stdout });
@@ -690,7 +705,9 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
         },
       });
     } catch (error) {
-      dockerBuildSpinner.fail(`Failed to build template Docker image: ${(error as Error).message}`);
+      dockerBuildSpinner.fail(
+        `Failed to build template Docker image: ${(error as Error).message}`
+      );
       throw error;
     }
     dockerBuildSpinner.succeed("Template Docker image built successfully.");
@@ -699,19 +716,17 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
     const imagePushSpinner = ora({ stream: process.stdout });
     imagePushSpinner.start("Pushing template Docker image to CodeSandbox...");
     try {
-      await pushDockerImage(
-        fullImageName,
-        (output: string) => {
-          const cleanOutput = stripAnsiCodes(output);
-          imagePushSpinner.text = `Pushing template Docker image to CodeSandbox: (${cleanOutput})`;
-        },
-      );
+      await pushDockerImage(fullImageName, (output: string) => {
+        const cleanOutput = stripAnsiCodes(output);
+        imagePushSpinner.text = `Pushing template Docker image to CodeSandbox: (${cleanOutput})`;
+      });
     } catch (error) {
-      imagePushSpinner.fail(`Failed to push template Docker image: ${(error as Error).message}`);
+      imagePushSpinner.fail(
+        `Failed to push template Docker image: ${(error as Error).message}`
+      );
       throw error;
     }
     imagePushSpinner.succeed("Template Docker image pushed to CodeSandbox.");
-
 
     // Create Template with Docker Image
     const templateData = await api.createTemplate({
@@ -725,7 +740,7 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
         repository: "templates",
         name: imageName,
         tag: "latest",
-        architecture: architecture
+        architecture: architecture,
       },
     });
 
@@ -735,17 +750,22 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
 
     const sandboxId = templateData.sandboxes[0].id;
     try {
-      templateBuildSpinner.text = "Preparing template snapshot: Starting sandbox to create snapshot...";
+      templateBuildSpinner.text =
+        "Preparing template snapshot: Starting sandbox to create snapshot...";
       const sandbox = await sdk.sandboxes.resume(sandboxId);
 
-      templateBuildSpinner.text = "Preparing template snapshot: Connecting to sandbox...";
-      client = await sandbox.connect()
+      templateBuildSpinner.text =
+        "Preparing template snapshot: Connecting to sandbox...";
+      client = await sandbox.connect();
 
       if (argv.ports && argv.ports.length > 0) {
-        templateBuildSpinner.text = `Preparing template snapshot: Waiting for ports ${argv.ports.join(', ')} to be ready...`;
+        templateBuildSpinner.text = `Preparing template snapshot: Waiting for ports ${argv.ports.join(
+          ", "
+        )} to be ready...`;
         await Promise.all(
           argv.ports.map(async (port) => {
-            if (!client) throw new Error('Failed to connect to sandbox to wait for ports');
+            if (!client)
+              throw new Error("Failed to connect to sandbox to wait for ports");
             const portInfo = await client.ports.waitForPort(port, {
               timeoutMs: 10_000,
             });
@@ -756,15 +776,20 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
         await sleep(10000);
       }
 
-      templateBuildSpinner.text = "Preparing template snapshot: Sandbox is ready. Creating snapshot...";
+      templateBuildSpinner.text =
+        "Preparing template snapshot: Sandbox is ready. Creating snapshot...";
       await sdk.sandboxes.hibernate(sandboxId);
 
       templateBuildSpinner.succeed("Template snapshot created.");
-
     } catch (error) {
-      templateBuildSpinner.text = "Preparing template snapshot: Failed to create snapshot. Cleaning up...";
+      templateBuildSpinner.text =
+        "Preparing template snapshot: Failed to create snapshot. Cleaning up...";
       await sdk.sandboxes.shutdown(sandboxId);
-      templateBuildSpinner.fail(`Failed to create template reference and example: ${(error as Error).message}`);
+      templateBuildSpinner.fail(
+        `Failed to create template reference and example: ${
+          (error as Error).message
+        }`
+      );
       throw error;
     }
 
@@ -801,9 +826,7 @@ export async function betaCodeSandboxBuild(argv: yargs.ArgumentsCamelCase<BuildC
 
   CLI:
 
-    csb sandboxes fork ${id}\n`
-
-    );
+    csb sandboxes fork ${id}\n`);
 
     process.exit(0);
   } catch (error) {
