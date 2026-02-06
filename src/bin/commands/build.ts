@@ -757,6 +757,9 @@ export async function betaCodeSandboxBuild(
     }
     imagePushSpinner.succeed("Template Docker image pushed to CodeSandbox.");
 
+
+    const templateCreateSpinner = ora({ stream: process.stdout });
+    templateCreateSpinner.start("Creating template with Docker image...");
     // Create Template with Docker Image
     const templateData = await api.createTemplate({
       forkOf: argv.fromSandbox || getDefaultTemplateId(api.getClient()),
@@ -766,12 +769,13 @@ export async function betaCodeSandboxBuild(
       // @ts-ignore
       image: {
         registry: registry,
-        repository: "templates",
+        repository: repository,
         name: imageName,
         tag: "latest",
         architecture: architecture,
       },
     });
+    templateCreateSpinner.succeed("Template created with Docker image.");
 
     // Create a memory snapshot from the template sandboxes
     const templateBuildSpinner = ora({ stream: process.stdout });
