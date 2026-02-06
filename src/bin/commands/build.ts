@@ -814,7 +814,9 @@ export async function betaCodeSandboxBuild(
 
       templateBuildSpinner.text =
         "Preparing template snapshot: Sandbox is ready. Creating snapshot...";
-      await sdk.sandboxes.hibernate(sandboxId);
+      // TODO: Change back to hibernate once we fix hibernate resume with nydus
+      // await sdk.sandboxes.hibernate(sandboxId);
+      await sdk.sandboxes.shutdown(sandboxId);
 
       templateBuildSpinner.succeed("Template snapshot created.");
     } catch (error) {
