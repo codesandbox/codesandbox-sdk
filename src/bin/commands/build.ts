@@ -26,8 +26,10 @@ import {
   buildDockerImage,
   prepareDockerBuild,
   pushDockerImage,
+  dockerLogin,
 } from "../utils/docker";
 import { randomUUID } from "crypto";
+import { base32Encode } from "../../utils/encoding";
 
 export type BuildCommandArgs = {
   directory: string;
@@ -653,8 +655,17 @@ export async function betaCodeSandboxBuild(
 
     const resolvedDirectory = path.resolve(argv.directory);
 
+    const metaInfo = await api.getMetaInfo();
+    const teamId = metaInfo.data?.auth?.team;
+
+    if (!teamId) {
+      throw new Error("Failed to fetch team information for the provided CSB_API_KEY. Please ensure your API key is correct and has access to a team.");
+    }
+
+    const base32EncodedTeamId = base32Encode(teamId);
+
     const registry = getInferredRegistryUrl();
-    const repository = "templates";
+    const repository = base32EncodedTeamId;
     const imageName = `image-${randomUUID().toLowerCase()}`;
     const tag = "latest";
     const fullImageName = `${registry}/${repository}/${imageName}:${tag}`;
@@ -712,6 +723,27 @@ export async function betaCodeSandboxBuild(
     }
     dockerBuildSpinner.succeed("Template Docker image built successfully.");
 
+    // Docker Login
+    const dockerLoginSpinner = ora({ stream: process.stdout });
+    dockerLoginSpinner.start("Authenticating with CodeSandbox Docker registry...");
+    try {
+      await dockerLogin({
+        registry: registry,
+        username: "_token",
+        password: apiKey,
+        onOutput: (output: string) => {
+          const cleanOutput = stripAnsiCodes(output);
+          dockerLoginSpinner.text = `Authenticating with Docker registry: (${cleanOutput})`;
+        },
+      });
+      dockerLoginSpinner.succeed("Docker registry authentication successful.");
+    } catch (error) {
+      dockerLoginSpinner.fail(
+        `Failed to authenticate with Docker registry: ${(error as Error).message}`
+      );
+      throw error;
+    }
+
     // Push Docker Image
     const imagePushSpinner = ora({ stream: process.stdout });
     imagePushSpinner.start("Pushing template Docker image to CodeSandbox...");
@@ -728,6 +760,9 @@ export async function betaCodeSandboxBuild(
     }
     imagePushSpinner.succeed("Template Docker image pushed to CodeSandbox.");
 
+
+    const templateCreateSpinner = ora({ stream: process.stdout });
+    templateCreateSpinner.start("Creating template with Docker image...");
     // Create Template with Docker Image
     const templateData = await api.createTemplate({
       forkOf: argv.fromSandbox || getDefaultTemplateId(api.getClient()),
@@ -737,12 +772,13 @@ export async function betaCodeSandboxBuild(
       // @ts-ignore
       image: {
         registry: registry,
-        repository: "templates",
+        repository: repository,
         name: imageName,
         tag: "latest",
         architecture: architecture,
       },
     });
+    templateCreateSpinner.succeed("Template created with Docker image.");
 
     // Create a memory snapshot from the template sandboxes
     const templateBuildSpinner = ora({ stream: process.stdout });

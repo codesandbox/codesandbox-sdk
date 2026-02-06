@@ -144,6 +144,72 @@ export async function buildDockerImage(options: DockerBuildOptions): Promise<voi
 
 }
 
+export type DockerLoginOptions = {
+  registry?: string;
+  username: string;
+  password: string;
+  onOutput?: (output: string) => void;
+};
+
+export async function dockerLogin(options: DockerLoginOptions): Promise<void> {
+  const { registry, username, password, onOutput = () => { } } = options;
+
+  await new Promise<void>((resolve, reject) => {
+    const args = ["login"];
+
+    if (registry) {
+      args.push(registry);
+    }
+
+    args.push("--username", username, "--password-stdin");
+
+    const loginProcess = spawn("docker", args, {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    // Write password to stdin
+    loginProcess.stdin?.write(password);
+    loginProcess.stdin?.end();
+
+    let outputBuffer = "";
+
+    loginProcess.stdout?.on("data", (data) => {
+      const output = data.toString();
+      outputBuffer += output;
+      const lines = output.trim().split("\n");
+      const lastLine = lines[lines.length - 1];
+      if (lastLine) {
+        onOutput(lastLine);
+      }
+    });
+
+    loginProcess.stderr?.on("data", (data) => {
+      const output = data.toString();
+      outputBuffer += output;
+      const lines = output.trim().split("\n");
+      const lastLine = lines[lines.length - 1];
+      if (lastLine) {
+        onOutput(lastLine);
+      }
+    });
+
+    loginProcess.on("close", (code) => {
+      if (code === 0) {
+        onOutput(`Docker login successful${registry ? ` to ${registry}` : ""}`);
+        resolve();
+      } else {
+        reject(
+          new Error(`Docker login failed with exit code ${code}\n${outputBuffer}`)
+        );
+      }
+    });
+
+    loginProcess.on("error", (error) => {
+      reject(new Error(`Docker login failed: ${error.message}`));
+    });
+  });
+}
+
 export async function pushDockerImage(imageName: string, onOutput?: (output: string) => void): Promise<void> {
 
   onOutput = onOutput || (() => { });
