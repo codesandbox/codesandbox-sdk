@@ -659,7 +659,7 @@ export async function betaCodeSandboxBuild(
     const teamId = metaInfo.data?.auth?.team;
 
     if (!teamId) {
-      throw new Error("Failed to fetch team information for for the provided CSB_API_KEY. Please ensure your API key is correct and has access to a team.");
+      throw new Error("Failed to fetch team information for the provided CSB_API_KEY. Please ensure your API key is correct and has access to a team.");
     }
 
     const base32EncodedTeamId = base32Encode(teamId);
