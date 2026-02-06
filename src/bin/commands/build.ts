@@ -29,6 +29,7 @@ import {
   dockerLogin,
 } from "../utils/docker";
 import { randomUUID } from "crypto";
+import { base32Encode } from "../../utils/encoding";
 
 export type BuildCommandArgs = {
   directory: string;
@@ -655,14 +656,16 @@ export async function betaCodeSandboxBuild(
     const resolvedDirectory = path.resolve(argv.directory);
 
     const metaInfo = await api.getMetaInfo();
-    const teamShortId = metaInfo.data?.auth?.team_shortid;
+    const teamId = metaInfo.data?.auth?.team;
 
-    if (!teamShortId) {
+    if (!teamId) {
       throw new Error("Failed to fetch team information for for the provided CSB_API_KEY. Please ensure your API key is correct and has access to a team.");
     }
 
+    const base32EncodedTeamId = base32Encode(teamId);
+
     const registry = getInferredRegistryUrl();
-    const repository = teamShortId;
+    const repository = base32EncodedTeamId;
     const imageName = `image-${randomUUID().toLowerCase()}`;
     const tag = "latest";
     const fullImageName = `${registry}/${repository}/${imageName}:${tag}`;
