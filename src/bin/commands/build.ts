@@ -26,6 +26,7 @@ import {
   buildDockerImage,
   prepareDockerBuild,
   pushDockerImage,
+  dockerLogin,
 } from "../utils/docker";
 import { randomUUID } from "crypto";
 
@@ -653,8 +654,15 @@ export async function betaCodeSandboxBuild(
 
     const resolvedDirectory = path.resolve(argv.directory);
 
+    const metaInfo = await api.getMetaInfo();
+    const teamShortId = metaInfo.data?.auth?.team_shortid;
+
+    if (!teamShortId) {
+      throw new Error("Failed to fetch team information for for the provided CSB_API_KEY. Please ensure your API key is correct and has access to a team.");
+    }
+
     const registry = getInferredRegistryUrl();
-    const repository = "templates";
+    const repository = teamShortId;
     const imageName = `image-${randomUUID().toLowerCase()}`;
     const tag = "latest";
     const fullImageName = `${registry}/${repository}/${imageName}:${tag}`;
@@ -711,6 +719,27 @@ export async function betaCodeSandboxBuild(
       throw error;
     }
     dockerBuildSpinner.succeed("Template Docker image built successfully.");
+
+    // Docker Login
+    const dockerLoginSpinner = ora({ stream: process.stdout });
+    dockerLoginSpinner.start("Authenticating with CodeSandbox Docker registry...");
+    try {
+      await dockerLogin({
+        registry: registry,
+        username: "_token",
+        password: apiKey,
+        onOutput: (output: string) => {
+          const cleanOutput = stripAnsiCodes(output);
+          dockerLoginSpinner.text = `Authenticating with Docker registry: (${cleanOutput})`;
+        },
+      });
+      dockerLoginSpinner.succeed("Docker registry authentication successful.");
+    } catch (error) {
+      dockerLoginSpinner.fail(
+        `Failed to authenticate with Docker registry: ${(error as Error).message}`
+      );
+      throw error;
+    }
 
     // Push Docker Image
     const imagePushSpinner = ora({ stream: process.stdout });
