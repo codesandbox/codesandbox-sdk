@@ -582,7 +582,6 @@
             "properties": {
               "scopes": { "items": { "type": "string" }, "type": "array" },
               "team": { "format": "uuid", "nullable": true, "type": "string" },
-              "team_shortid": { "nullable": true, "type": "string" },
               "version": { "type": "string" }
             },
             "required": ["scopes", "team", "version"],
