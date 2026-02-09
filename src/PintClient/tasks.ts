@@ -56,7 +56,9 @@ export class PintClientTasks implements IAgentClientTasks {
       return {
         tasks: {},
         setupTasks: [],
-        validationErrors: [error instanceof Error ? error.message : "Unknown error"],
+        validationErrors: [
+          error instanceof Error ? error.message : "Unknown error",
+        ],
       };
     }
   }
@@ -168,28 +170,39 @@ export class PintClientSetup implements IAgentClientSetup {
 
       if (response.data) {
         // Convert API setup tasks to setup progress format
-        const steps: setup.Step[] = response.data.setupTasks.map((setupTask) => ({
-          name: setupTask.name,
-          command: setupTask.command,
-          shellId: setupTask.execId || null,
-          finishStatus: setupTask.status === 'FINISHED' ? 'SUCCEEDED' : 
-                       setupTask.status === 'ERROR' ? 'FAILED' : null,
-        }));
+        const steps: setup.Step[] = response.data.setupTasks.map(
+          (setupTask) => ({
+            name: setupTask.name,
+            command: setupTask.command,
+            shellId: setupTask.execId || null,
+            finishStatus:
+              setupTask.status === "FINISHED"
+                ? "SUCCEEDED"
+                : setupTask.status === "ERROR"
+                ? "FAILED"
+                : null,
+          })
+        );
 
         // Determine overall state based on task statuses
-        let state: setup.SetupProgress['state'] = 'IDLE';
+        let state: setup.SetupProgress["state"] = "IDLE";
         let currentStepIndex = 0;
 
-        const hasRunningTask = response.data.setupTasks.some(task => task.status === 'RUNNING');
-        const allFinished = response.data.setupTasks.every(task => 
-          task.status === 'FINISHED' || task.status === 'ERROR');
+        const hasRunningTask = response.data.setupTasks.some(
+          (task) => task.status === "RUNNING"
+        );
+        const allFinished = response.data.setupTasks.every(
+          (task) => task.status === "FINISHED" || task.status === "ERROR"
+        );
 
         if (hasRunningTask) {
-          state = 'IN_PROGRESS';
+          state = "IN_PROGRESS";
           // Find the first running task
-          currentStepIndex = response.data.setupTasks.findIndex(task => task.status === 'RUNNING');
+          currentStepIndex = response.data.setupTasks.findIndex(
+            (task) => task.status === "RUNNING"
+          );
         } else if (allFinished) {
-          state = 'FINISHED';
+          state = "FINISHED";
           currentStepIndex = steps.length - 1;
         }
 
@@ -201,7 +214,7 @@ export class PintClientSetup implements IAgentClientSetup {
       } else {
         // Return empty setup progress if no data
         return {
-          state: 'IDLE',
+          state: "IDLE",
           steps: [],
           currentStepIndex: 0,
         };
@@ -209,7 +222,7 @@ export class PintClientSetup implements IAgentClientSetup {
     } catch (error) {
       console.error("Failed to get setup progress:", error);
       return {
-        state: 'IDLE',
+        state: "IDLE",
         steps: [],
         currentStepIndex: 0,
       };
