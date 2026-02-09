@@ -382,7 +382,6 @@ export class Command {
     this.tracer = tracer;
 
     if (shell.status === "RUNNING") {
-      console.log(this.shell.shellId, "Listening for output");
       this.disposable.addDisposable(
         this.agentClient.shells.subscribeOutput(
           this.shell.shellId,
