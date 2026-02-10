@@ -3,12 +3,11 @@ import { CodeSandbox, Sandbox } from "../../src/index.js";
 /**
  * Test template ID used across e2e tests
  */
-export const TEST_TEMPLATE_ID =
-  process.env.CSB_TEST_TEMPLATE_ID ??
-  // Old infra on stream
-  "pt_FXCz5KGvDQsafzZz7awrSe";
+export const TEST_TEMPLATE_ID = process.env.CSB_TEST_TEMPLATE_ID;
 
-export const USE_PINT = Boolean(process.env.USE_PINT ?? false);
+if (!TEST_TEMPLATE_ID) {
+  throw new Error("You have to provide a test template id");
+}
 
 /**
  * Initialize SDK with API key from environment
@@ -20,13 +19,15 @@ export function initializeSDK(): CodeSandbox {
     });
   }
 
+  console.warn("No CSB_BASE_URL provided, defaulting to PRODUCTION");
+
   return new CodeSandbox(process.env.CSB_API_KEY, {
-    baseUrl: "https://api.codesandbox.stream",
+    baseUrl: "https://api.codesandbox.io",
   });
 }
 
 export async function createSandbox(sdk: CodeSandbox) {
-  const templateId = TEST_TEMPLATE_ID;
+  const templateId = TEST_TEMPLATE_ID!;
   const tags = ["sdk"];
   let path = "/e2e-tests";
 
@@ -35,9 +36,6 @@ export async function createSandbox(sdk: CodeSandbox) {
     tags,
     path,
     private_preview: false,
-    // This is just for testing, not official api
-    // @ts-ignore
-    use_pint: USE_PINT,
   });
 
   const startResponse = await sdk.sandboxes["api"].startVm(
