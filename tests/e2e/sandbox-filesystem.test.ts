@@ -1,32 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { CodeSandbox } from "../../src/index.js";
-import { Sandbox } from "../../src/Sandbox.js";
 import { SandboxClient } from "../../src/SandboxClient/index.js";
-import { initializeSDK, TEST_TEMPLATE_ID } from "./helpers.js";
+import { createTest } from "./helpers.js";
 
 describe("Sandbox Filesystem", () => {
-  let sdk: CodeSandbox;
-  let sandbox: Sandbox | undefined;
+  const test = createTest();
   let client: SandboxClient | undefined;
 
   beforeAll(async () => {
-    sdk = initializeSDK();
-
-    // Create a sandbox for testing
-    /*
-    sandbox = await sdk.sandboxes.create({
-      id: TEST_TEMPLATE_ID,
-    });
-    */
-    sandbox = await sdk.sandboxes.resume("7s847p");
-
     // Connect to sandbox
-    client = await sandbox.connect();
+    client = await test.sandbox.connect();
   }, 60000);
 
   afterAll(async () => {
-    const sandboxId = sandbox?.id;
-
     try {
       if (client) {
         await client.disconnect();
@@ -36,32 +21,11 @@ describe("Sandbox Filesystem", () => {
     } catch (error) {
       console.error("Failed to dispose client:", error);
     }
-
-    /*
-    if (sandboxId) {
-      try {
-        await sdk.sandboxes.shutdown(sandboxId);
-        await sdk.sandboxes.delete(sandboxId);
-      } catch (error) {
-        console.error("Failed to cleanup test sandbox:", sandboxId, error);
-        try {
-          await sdk.sandboxes.delete(sandboxId);
-        } catch (deleteError) {
-          console.error(
-            "Failed to force delete sandbox:",
-            sandboxId,
-            deleteError
-          );
-        }
-      }
-    }
-      */
   });
 
   describe("File operations", () => {
     it("should write and read a file", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.writeTextFile("/test-file.txt", "Hello, Sandbox!");
       const fileContent = await client.fs.readTextFile("/test-file.txt");
@@ -70,8 +34,7 @@ describe("Sandbox Filesystem", () => {
     });
 
     it("should list files in directory", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const files = await client.fs.readdir("/");
 
@@ -83,8 +46,7 @@ describe("Sandbox Filesystem", () => {
     });
 
     it("should delete a file", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.remove("/test-file.txt");
 
@@ -98,8 +60,7 @@ describe("Sandbox Filesystem", () => {
 
   describe("Directory operations", () => {
     it("should create a directory", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.mkdir("/test-dir");
 
@@ -111,8 +72,7 @@ describe("Sandbox Filesystem", () => {
     });
 
     it("should delete a directory", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.remove("/test-dir");
 
@@ -124,8 +84,7 @@ describe("Sandbox Filesystem", () => {
 
   describe("Binary file operations", () => {
     it("should write and read binary files", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const binaryData = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]); // "Hello" in bytes
       await client.fs.writeFile("/test-binary.bin", binaryData);
@@ -141,8 +100,7 @@ describe("Sandbox Filesystem", () => {
 
   describe("File stat operations", () => {
     it("should get file stats", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.writeTextFile("/stat-test.txt", "test content");
 
@@ -156,8 +114,7 @@ describe("Sandbox Filesystem", () => {
     });
 
     it("should get directory stats", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.mkdir("/stat-dir");
 
@@ -172,8 +129,7 @@ describe("Sandbox Filesystem", () => {
 
   describe("Copy operations", () => {
     it("should copy a file", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.writeTextFile("/copy-source.txt", "copy test");
       await client.fs.copy("/copy-source.txt", "/copy-dest.txt");
@@ -187,8 +143,7 @@ describe("Sandbox Filesystem", () => {
     });
 
     it("should copy a directory recursively", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.mkdir("/copy-dir");
       await client.fs.writeTextFile("/copy-dir/file.txt", "nested file");
@@ -205,8 +160,7 @@ describe("Sandbox Filesystem", () => {
 
   describe("Rename operations", () => {
     it("should rename a file", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.writeTextFile("/rename-old.txt", "rename test");
       await client.fs.rename("/rename-old.txt", "/rename-new.txt");
@@ -223,8 +177,7 @@ describe("Sandbox Filesystem", () => {
     });
 
     it("should rename a directory", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.mkdir("/rename-dir-old");
       await client.fs.writeTextFile("/rename-dir-old/file.txt", "content");
@@ -245,8 +198,7 @@ describe("Sandbox Filesystem", () => {
   describe.skip("Batch write operations", () => {
     // Skip these tests - batchWrite uses zip/unzip which may not be available in all sandbox environments
     it("should write multiple files at once", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.mkdir("/batch-test");
 
@@ -269,8 +221,7 @@ describe("Sandbox Filesystem", () => {
     });
 
     it("should write nested directories in batch", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.batchWrite([
         { path: "/batch-nested/dir1/file.txt", content: "nested 1" },
@@ -294,8 +245,7 @@ describe("Sandbox Filesystem", () => {
 
   describe("Recursive operations", () => {
     it("should create nested directories", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.mkdir("/nested/deep/path", true);
 
@@ -307,8 +257,7 @@ describe("Sandbox Filesystem", () => {
     });
 
     it("should remove directory with contents recursively", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       await client.fs.mkdir("/recursive-remove");
       await client.fs.writeTextFile("/recursive-remove/file1.txt", "content");
@@ -326,9 +275,8 @@ describe("Sandbox Filesystem", () => {
   });
 
   describe("File watching", () => {
-    it.only("should detect file system changes", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+    it("should detect file system changes", async () => {
+      if (!client) throw new Error("Client not initialized");
 
       try {
         await client.fs.remove("/watch-dir");

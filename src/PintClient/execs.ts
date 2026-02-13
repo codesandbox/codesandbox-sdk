@@ -97,6 +97,7 @@ export class PintShellsClient implements IAgentClientShells {
     projectPath,
     size,
     type,
+    cwd,
   }: {
     command: string;
     args: string[];
@@ -104,6 +105,7 @@ export class PintShellsClient implements IAgentClientShells {
     size: ShellSize;
     type?: ShellProcessType;
     isSystemShell?: boolean;
+    cwd?: string;
   }): Promise<OpenShellDTO> {
     const exec = await createExec({
       client: this.apiClient,
@@ -111,6 +113,8 @@ export class PintShellsClient implements IAgentClientShells {
         args,
         command,
         interactive: type === "COMMAND" ? false : true,
+        // @ts-expect-error - cwd support will be added to Pint API shortly
+        cwd: cwd || projectPath,
       },
     });
 

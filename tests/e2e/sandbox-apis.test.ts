@@ -1,85 +1,51 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { CodeSandbox } from "../../src/index.js";
-import { initializeSDK, retryUntil, createSandbox } from "./helpers.js";
+import { describe, it, expect } from "vitest";
+import { retryUntil, createTest } from "./helpers.js";
 
 describe("Sandbox APIs", () => {
-  let sdk: CodeSandbox;
-  let sandboxId: string | undefined;
-
-  beforeAll(async () => {
-    sdk = initializeSDK();
-
-    // Create a sandbox for testing
-    const sandbox = await createSandbox(sdk);
-    sandboxId = sandbox.id;
-  });
-
-  afterAll(async () => {
-    // Cleanup: shutdown and delete the sandbox
-    if (sandboxId) {
-      try {
-        await sdk.sandboxes.shutdown(sandboxId);
-        await sdk.sandboxes.delete(sandboxId);
-      } catch (error) {
-        console.error("Failed to cleanup test sandbox:", sandboxId, error);
-        // Try to force delete even if shutdown fails
-        try {
-          await sdk.sandboxes.delete(sandboxId);
-        } catch (deleteError) {
-          console.error(
-            "Failed to force delete sandbox:",
-            sandboxId,
-            deleteError
-          );
-        }
-      }
-    }
-  });
+  const test = createTest();
 
   it("should find sandbox in list", async () => {
-    expect(sandboxId).toBeDefined();
-    if (!sandboxId) throw new Error("Sandbox not created");
+    expect(test.sandbox.id).toBeDefined();
 
-    const sandboxes = await sdk.sandboxes.list();
+    const sandboxes = await test.sdk.sandboxes.list({ limit: 10 });
     expect(sandboxes).toBeDefined();
     expect(sandboxes.sandboxes).toBeDefined();
 
-    const found = sandboxes.sandboxes.find((s) => s.id === sandboxId);
+    const found = sandboxes.sandboxes.find((s) => s.id === test.sandbox.id);
     expect(found).toBeDefined();
   });
 
   it("should find sandbox in running list by filter", async () => {
-    expect(sandboxId).toBeDefined();
-    if (!sandboxId) throw new Error("Sandbox not created");
+    expect(test.sandbox.id).toBeDefined();
 
     const foundInList = await retryUntil(60000, 3000, async () => {
-      const runningSandboxesByFilter = await sdk.sandboxes.list({
+      const runningSandboxesByFilter = await test.sdk.sandboxes.list({
         status: "running",
       });
-      return runningSandboxesByFilter.sandboxes.find((s) => s.id === sandboxId);
+      return runningSandboxesByFilter.sandboxes.find(
+        (s) => s.id === test.sandbox.id
+      );
     });
 
     expect(foundInList).toBeDefined();
   }, 70000);
 
   it("should find sandbox in running list by API", async () => {
-    expect(sandboxId).toBeDefined();
-    if (!sandboxId) throw new Error("Sandbox not created");
+    expect(test.sandbox.id).toBeDefined();
 
     const foundByAPI = await retryUntil(60000, 3000, async () => {
-      const runningSandboxByAPI = await sdk.sandboxes.listRunning();
-      return runningSandboxByAPI.vms.find((s) => s.id === sandboxId);
+      const runningSandboxByAPI = await test.sdk.sandboxes.listRunning();
+      return runningSandboxByAPI.vms.find((s) => s.id === test.sandbox.id);
     });
 
     expect(foundByAPI).toBeDefined();
   }, 70000);
 
   it("should get sandbox by ID", async () => {
-    expect(sandboxId).toBeDefined();
-    if (!sandboxId) throw new Error("Sandbox not created");
+    expect(test.sandbox.id).toBeDefined();
 
-    const fetchedSandbox = await sdk.sandboxes.get(sandboxId);
+    const fetchedSandbox = await test.sdk.sandboxes.get(test.sandbox.id);
     expect(fetchedSandbox).toBeDefined();
-    expect(fetchedSandbox.id).toBe(sandboxId);
+    expect(fetchedSandbox.id).toBe(test.sandbox.id);
   });
 });

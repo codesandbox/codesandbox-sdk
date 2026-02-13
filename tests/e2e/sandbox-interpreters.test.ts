@@ -1,27 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { CodeSandbox } from "../../src/index.js";
-import { Sandbox } from "../../src/Sandbox.js";
 import { SandboxClient } from "../../src/SandboxClient/index.js";
-import { createSandbox, initializeSDK, TEST_TEMPLATE_ID } from "./helpers.js";
+import { createTest } from "./helpers.js";
 
 describe("Sandbox Interpreters", () => {
-  let sdk: CodeSandbox;
-  let sandbox: Sandbox | undefined;
+  const test = createTest();
   let client: SandboxClient | undefined;
 
   beforeAll(async () => {
-    sdk = initializeSDK();
-
-    // Create a sandbox for testing
-    sandbox = await createSandbox(sdk);
-
     // Connect to sandbox
-    client = await sandbox.connect();
+    client = await test.sandbox.connect();
   }, 60000);
 
   afterAll(async () => {
-    const sandboxId = sandbox?.id;
-
     try {
       if (client) {
         await client.disconnect();
@@ -31,38 +21,18 @@ describe("Sandbox Interpreters", () => {
     } catch (error) {
       console.error("Failed to dispose client:", error);
     }
-
-    if (sandboxId) {
-      try {
-        await sdk.sandboxes.shutdown(sandboxId);
-        await sdk.sandboxes.delete(sandboxId);
-      } catch (error) {
-        console.error("Failed to cleanup test sandbox:", sandboxId, error);
-        try {
-          await sdk.sandboxes.delete(sandboxId);
-        } catch (deleteError) {
-          console.error(
-            "Failed to force delete sandbox:",
-            sandboxId,
-            deleteError
-          );
-        }
-      }
-    }
   });
 
   describe("JavaScript interpreter", () => {
     it("should execute simple JavaScript code", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const result = await client.interpreters.javascript("2 + 2");
       expect(result).toContain("4");
     });
 
     it("should execute JavaScript with variables", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const result = await client.interpreters.javascript(`
         const x = 10;
@@ -73,8 +43,7 @@ describe("Sandbox Interpreters", () => {
     });
 
     it("should execute JavaScript with return statement", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const result = await client.interpreters.javascript(`
         const greeting = 'Hello from JavaScript';
@@ -86,16 +55,14 @@ describe("Sandbox Interpreters", () => {
 
   describe("Python interpreter", () => {
     it("should execute simple Python code", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const result = await client.interpreters.python("2 + 2");
       expect(result).toContain("4");
     });
 
     it("should execute Python with variables", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const result = await client.interpreters.python(`
 x = 10
@@ -105,8 +72,7 @@ print(x + y)`);
     });
 
     it("should execute Python with print statement", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const result = await client.interpreters.python(`
 message = 'Hello from Python'

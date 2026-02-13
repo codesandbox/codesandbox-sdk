@@ -41,7 +41,7 @@ export class CommandError extends Error {
   output: string;
 
   constructor(message: string, exitCode: number, output: string) {
-    super(message);
+    super(message + " " + output);
     this.name = "CommandError";
     this.exitCode = exitCode;
     this.output = output;
@@ -118,27 +118,30 @@ export class SandboxCommands {
 
     const escapedCommand = command.replace(/'/g, "'\\''");
 
-    // TODO: use a new shell API that natively supports cwd & env
-    let commandWithEnv = Object.keys(passedEnv).length
-      ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
-          passedEnv
-        )
-          .map(([key, value]) => {
-            const escapedValue = String(value).replace(/'/g, "'\\''");
-            return `${key}='${escapedValue}'`;
-          })
-          .join(" ")} bash -c '${escapedCommand}'`
-      : `source $HOME/.private/.env 2>/dev/null || true && bash -c '${escapedCommand}'`;
+    // Build bash args array
+    const args = ["source $HOME/.private/.env 2>/dev/null || true"];
 
+    // Add cd command if cwd is specified (Pitcher doesn't support cwd parameter)
     if (opts?.cwd) {
-      commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
+      args.push("&&", "cd", opts.cwd);
+    }
+
+    if (Object.keys(passedEnv).length) {
+      args.push("&&", "env");
+      Object.entries(passedEnv).forEach(([key, value]) => {
+        const escapedValue = String(value).replace(/'/g, "'\\''");
+        args.push(`${key}='${escapedValue}'`);
+      });
+      args.push("bash", "-c", `'${escapedCommand}'`);
+    } else {
+      args.push("&&", "bash", "-c", `'${escapedCommand}'`);
     }
 
     const shell = await this.agentClient.shells.create({
       projectPath: this.agentClient.workspacePath,
       size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
-      command: commandWithEnv,
-      args: [],
+      command: "bash",
+      args: ["-c", args.join(" ")],
       type: opts?.asGlobalSession ? "COMMAND" : "TERMINAL",
       isSystemShell: true,
     });
@@ -208,6 +211,7 @@ export class SandboxCommands {
           });
         }
 
+        // Add cd command if cwd is specified (Pitcher doesn't support cwd parameter)
         if (opts?.cwd) {
           args.push("&&", "cd", opts.cwd);
         }
@@ -381,6 +385,11 @@ export class Command {
     this.name = details.name;
     this.tracer = tracer;
 
+    // This only happens on Pitcher, Pint will listen to output from lastSequene=0
+    if (shell.buffer) {
+      this.output = shell.buffer;
+    }
+
     if (shell.status === "RUNNING") {
       this.disposable.addDisposable(
         this.agentClient.shells.subscribeOutput(
@@ -393,6 +402,7 @@ export class Command {
               this.status = event.exitCode === 0 ? "FINISHED" : "ERROR";
               this.barrier.open();
             } else if (typeof event.exitCode === "number") {
+              this.exitCode = event.exitCode;
               this.status = "KILLED";
               this.barrier.open();
             }
@@ -519,7 +529,7 @@ export class Command {
         }
 
         throw new CommandError(
-          `Command failed with exit code ${this.exitCode ?? "unknown"}`,
+          `Command failed with exit code ${this.exitCode ?? "unknown"}.`,
           this.exitCode ?? 1,
           cleaned
         );

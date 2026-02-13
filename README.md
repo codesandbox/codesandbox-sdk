@@ -51,9 +51,12 @@ console.log(output); // Hello World
 ### E2E local
 
 - Clone the sandbox templates repo (https://github.com/codesandbox/sandbox-templates)
-- Build template with `csb build ../sandbox-templates/nextjs`
-- Run e2e tests with `CSB_BASE_URL=https://api.codesandbox.dev CSB_TEMPLATE_ID=$NEXTJS_TEMPLATE_ID npm run test:e2e`
-- Run specific test file `CSB_BASE_URL=https://api.codesandbox.dev CSB_TEMPLATE_ID=$NEXTJS_TEMPLATE_ID npm run test -- filesystem`
+- Create the `.env` based on example and populate it
+- Run `source .env` to export the env variables
+- Build template for Pitcher `./dist/bin/codesandbox.mjs build ./test-template`
+- Build template for Pint `./dist/bin/codesandbox.mjs build ./test-template --beta`
+- Run e2e tests with `npm run test:e2e`
+- Run specific test file `npm run test -- filesystem`
 
 ## Efficient Sandbox Retrieval
 

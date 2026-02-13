@@ -1,27 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { CodeSandbox } from "../../src/index.js";
-import { Sandbox } from "../../src/Sandbox.js";
 import { SandboxClient } from "../../src/SandboxClient/index.js";
-import { createSandbox, initializeSDK } from "./helpers.js";
+import { createTest } from "./helpers.js";
 
 describe("Sandbox Hosts", () => {
-  let sdk: CodeSandbox;
-  let sandbox: Sandbox | undefined;
+  const test = createTest();
   let client: SandboxClient | undefined;
 
   beforeAll(async () => {
-    sdk = initializeSDK();
-
-    // Create a sandbox for testing
-    sandbox = await createSandbox(sdk);
-
     // Connect to sandbox
-    client = await sandbox.connect();
+    client = await test.sandbox.connect();
   }, 60000);
 
   afterAll(async () => {
-    const sandboxId = sandbox?.id;
-
     try {
       if (client) {
         await client.disconnect();
@@ -31,41 +21,21 @@ describe("Sandbox Hosts", () => {
     } catch (error) {
       console.error("Failed to dispose client:", error);
     }
-
-    if (sandboxId) {
-      try {
-        await sdk.sandboxes.shutdown(sandboxId);
-        await sdk.sandboxes.delete(sandboxId);
-      } catch (error) {
-        console.error("Failed to cleanup test sandbox:", sandboxId, error);
-        try {
-          await sdk.sandboxes.delete(sandboxId);
-        } catch (deleteError) {
-          console.error(
-            "Failed to force delete sandbox:",
-            sandboxId,
-            deleteError
-          );
-        }
-      }
-    }
   });
 
   describe("Host URL generation", () => {
     it("should generate URL for a port", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const url = client.hosts.getUrl(3000);
       expect(url).toBeTruthy();
       expect(url).toContain("csb.app");
       expect(url).toContain("3000");
-      expect(url).toContain(sandbox.id);
+      expect(url).toContain(test.sandbox.id);
     });
 
     it("should generate URL with custom protocol", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const url = client.hosts.getUrl(8080, "http");
       expect(url).toBeTruthy();
@@ -74,8 +44,7 @@ describe("Sandbox Hosts", () => {
     });
 
     it("should generate URL with https by default", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const url = client.hosts.getUrl(4000);
       expect(url.startsWith("https://")).toBe(true);
@@ -84,8 +53,7 @@ describe("Sandbox Hosts", () => {
 
   describe("Host headers and cookies", () => {
     it("should get headers", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const headers = client.hosts.getHeaders();
       expect(headers).toBeDefined();
@@ -93,8 +61,7 @@ describe("Sandbox Hosts", () => {
     });
 
     it("should get cookies", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const cookies = client.hosts.getCookies();
       expect(cookies).toBeDefined();

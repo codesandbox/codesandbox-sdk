@@ -34,9 +34,70 @@ let PONG_DETECTION_TIMEOUT = 30_000;
 // When focusing the app we do a lower timeout to more quickly detect a potential disconnect
 const FOCUS_PONG_DETECTION_TIMEOUT = 5_000;
 
+type ShellStateChangeEvent =
+  | { type: "out"; out: string }
+  | { type: "exit"; exitCode: number };
+
+class ShellState {
+  private listener?: (event: ShellStateChangeEvent) => void;
+  // The buffer is populated when there is no listener yet, ensuring that we capture
+  // all output and return it
+  private buffer: string[] = [];
+  private exitCode?: number;
+  getBuffer() {
+    const bufferString = this.buffer.join("\n");
+    this.buffer.length = 0;
+    return bufferString;
+  }
+  getExitCode() {
+    return this.exitCode;
+  }
+  addOut(out: string) {
+    if (!this.listener) {
+      this.buffer.push(out);
+      return;
+    }
+
+    this.listener({
+      type: "out",
+      out,
+    });
+  }
+  setExitCode(exitCode: number) {
+    this.exitCode = exitCode;
+
+    if (!this.listener) {
+      return;
+    }
+
+    this.listener({
+      type: "exit",
+      exitCode,
+    });
+  }
+  onChange(listener: (event: ShellStateChangeEvent) => void) {
+    this.listener = listener;
+
+    if (this.buffer.length) {
+      const bufferString = this.buffer.join("\n");
+      this.buffer.length = 0;
+      listener({
+        type: "out",
+        out: bufferString,
+      });
+    }
+
+    return () => {
+      this.listener = undefined;
+    };
+  }
+}
+
 class AgentClientShells implements IAgentClientShells {
   disposeOutputListener: () => void;
-  private shellOutputs: Record<string, string[]> = {};
+  disposeExitListener: () => void;
+  disposeTerminateListener: () => void;
+  private shellStates: Record<string, ShellState> = {};
   constructor(private agentConnection: AgentConnection) {
     // We use a common listener to keep track of all shell output to avoid race conditions. These
     // are then flushed. This does not work with multiple listeners, but you would not use multiple
@@ -44,11 +105,31 @@ class AgentClientShells implements IAgentClientShells {
     this.disposeOutputListener = agentConnection.onNotification(
       "shell/out",
       (event) => {
-        if (!this.shellOutputs[event.shellId]) {
-          this.shellOutputs[event.shellId] = [];
+        if (!this.shellStates[event.shellId]) {
+          this.shellStates[event.shellId] = new ShellState();
         }
 
-        this.shellOutputs[event.shellId].push(event.out);
+        this.shellStates[event.shellId].addOut(event.out);
+      }
+    );
+    this.disposeExitListener = agentConnection.onNotification(
+      "shell/exit",
+      (event) => {
+        if (!this.shellStates[event.shellId]) {
+          this.shellStates[event.shellId] = new ShellState();
+        }
+
+        this.shellStates[event.shellId].setExitCode(event.exitCode);
+      }
+    );
+    this.disposeTerminateListener = agentConnection.onNotification(
+      "shell/terminate",
+      (event) => {
+        if (!this.shellStates[event.shellId]) {
+          this.shellStates[event.shellId] = new ShellState();
+        }
+
+        this.shellStates[event.shellId].setExitCode(130);
       }
     );
   }
@@ -59,6 +140,7 @@ class AgentClientShells implements IAgentClientShells {
     type,
     isSystemShell,
     projectPath,
+    cwd,
   }: {
     command: string;
     args: string[];
@@ -66,15 +148,20 @@ class AgentClientShells implements IAgentClientShells {
     size: shell.ShellSize;
     type?: shell.ShellProcessType;
     isSystemShell?: boolean;
+    cwd?: string;
   }): Promise<shell.OpenShellDTO> {
+    // Pitcher protocol expects a single command string, so we concatenate command and args
+    const fullCommand =
+      args.length > 0 ? `${command} ${args.join(" ")}` : command;
+
     return this.agentConnection.request({
       method: "shell/create",
       params: {
-        command: command + args.join(""),
+        command: fullCommand,
         size,
         type,
         isSystemShell,
-        cwd: projectPath,
+        cwd: cwd || projectPath,
       },
     });
   }
@@ -133,9 +220,38 @@ class AgentClientShells implements IAgentClientShells {
     listener: (event: { out: string; exitCode?: number }) => void
   ): IDisposable {
     const disposable = new Disposable();
-    let disposeOut: () => void;
-    let disposeExit: () => void;
 
+    if (!this.shellStates[shellId]) {
+      this.shellStates[shellId] = new ShellState();
+    }
+
+    const shellState = this.shellStates[shellId];
+
+    if (shellState.getExitCode() !== undefined) {
+      listener({
+        out: shellState.getBuffer(),
+        exitCode: shellState.getExitCode(),
+      });
+
+      return disposable;
+    }
+
+    const disposeChangeListener = shellState.onChange((event) => {
+      if (event.type === "out") {
+        listener({
+          out: event.out,
+        });
+      } else {
+        listener({
+          out: shellState.getBuffer(),
+          exitCode: event.exitCode,
+        });
+      }
+    });
+
+    disposable.onWillDispose(disposeChangeListener);
+
+    // If subscribing to existing shell we need to open it to get events
     this.agentConnection
       .request({
         method: "shell/open",
@@ -149,40 +265,9 @@ class AgentClientShells implements IAgentClientShells {
           out: openShell.buffer.join("\n"),
           exitCode: openShell.exitCode,
         });
-
-        if (typeof openShell.exitCode === "number") {
-          return;
-        }
-
-        disposeOut = this.agentConnection.onNotification(
-          "shell/out",
-          (params) => {
-            if (params.shellId === shellId) {
-              listener({ out: params.out, exitCode: openShell.exitCode });
-            }
-          }
-        );
-        disposeExit = this.agentConnection.onNotification(
-          "shell/exit",
-          (params) => {
-            if (params.shellId === shellId) {
-              listener({ out: "", exitCode: params.exitCode });
-            }
-          }
-        );
       })
       .catch(() => {
-        // Pitcher requires a global shell listener for output to avoid race conditions. When running commands the shell can close
-        // before we get the output, so this just flushes the output gotten in between creating and subscribing
-        listener({
-          out: this.shellOutputs[shellId]
-            ? this.shellOutputs[shellId].join("")
-            : "",
-          // We give a fake exit code, because pint gives an exit code on last event... but we do not know the exit code as the
-          // shell is already gone
-          exitCode: -1,
-        });
-        this.shellOutputs[shellId].length = 0;
+        // The shell does not exist
       });
 
     disposable.onDidDispose(() => {
@@ -197,9 +282,6 @@ class AgentClientShells implements IAgentClientShells {
         .catch(() => {
           // We do not care
         });
-
-      disposeOut?.();
-      disposeExit?.();
     });
 
     return disposable;
@@ -580,6 +662,8 @@ export class AgentClient implements IAgentClient {
   }
   dispose() {
     this.shells.disposeOutputListener();
+    this.shells.disposeExitListener();
+    this.shells.disposeTerminateListener();
     this.agentConnection.dispose();
   }
 }

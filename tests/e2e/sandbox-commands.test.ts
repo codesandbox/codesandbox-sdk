@@ -1,27 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { CodeSandbox } from "../../src/index.js";
-import { Sandbox } from "../../src/Sandbox.js";
 import { SandboxClient } from "../../src/SandboxClient/index.js";
-import { createSandbox, initializeSDK } from "./helpers.js";
+import { createTest } from "./helpers.js";
 
 describe("Sandbox Commands", () => {
-  let sdk: CodeSandbox;
-  let sandbox: Sandbox | undefined;
+  const test = createTest();
   let client: SandboxClient | undefined;
 
   beforeAll(async () => {
-    sdk = initializeSDK();
-
-    // Create a sandbox for testing
-    sandbox = await createSandbox(sdk);
-
     // Connect to sandbox
-    client = await sandbox.connect();
+    client = await test.sandbox.connect();
   }, 60000);
 
   afterAll(async () => {
-    const sandboxId = sandbox?.id;
-
     try {
       if (client) {
         await client.disconnect();
@@ -31,38 +21,18 @@ describe("Sandbox Commands", () => {
     } catch (error) {
       console.error("Failed to dispose client:", error);
     }
-
-    if (sandboxId) {
-      try {
-        await sdk.sandboxes.shutdown(sandboxId);
-        await sdk.sandboxes.delete(sandboxId);
-      } catch (error) {
-        console.error("Failed to cleanup test sandbox:", sandboxId, error);
-        try {
-          await sdk.sandboxes.delete(sandboxId);
-        } catch (deleteError) {
-          console.error(
-            "Failed to force delete sandbox:",
-            sandboxId,
-            deleteError
-          );
-        }
-      }
-    }
   });
 
   describe("Command execution", () => {
     it("should run a simple command and get output", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const output = await client.commands.run('echo "Hello from sandbox"');
       expect(output).toContain("Hello from sandbox");
     });
 
     it("should get output from pwd command", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const output = await client.commands.run("pwd");
       expect(output).toBeTruthy();
@@ -70,8 +40,7 @@ describe("Sandbox Commands", () => {
     });
 
     it("should run multiple commands sequentially", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const output1 = await client.commands.run('echo "first"');
       const output2 = await client.commands.run('echo "second"');
@@ -83,8 +52,7 @@ describe("Sandbox Commands", () => {
     });
 
     it("should run multiple commands with array syntax", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       // Array of commands should be joined with &&
       const output = await client.commands.run([
@@ -101,8 +69,7 @@ describe("Sandbox Commands", () => {
 
   describe("Background commands", () => {
     it("should run command in background", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const command = await client.commands.runBackground(
         'sleep 1 && echo "done"'
@@ -115,9 +82,8 @@ describe("Sandbox Commands", () => {
       expect(output).toContain("done");
     }, 10000);
 
-    it.only("should run multiple commands in background with array syntax", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+    it("should run multiple commands in background with array syntax", async () => {
+      if (!client) throw new Error("Client not initialized");
 
       // Array of commands should be joined with &&
       const command = await client.commands.runBackground([
@@ -136,8 +102,7 @@ describe("Sandbox Commands", () => {
     }, 10000);
 
     it("should be able to kill background command", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const command = await client.commands.runBackground("sleep 30");
       expect(command).toBeDefined();
@@ -151,8 +116,7 @@ describe("Sandbox Commands", () => {
 
   describe("Command listing", () => {
     it("should get all commands", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const commands = await client.commands.getAll();
       expect(Array.isArray(commands)).toBe(true);
@@ -161,8 +125,7 @@ describe("Sandbox Commands", () => {
 
   describe("Working directory", () => {
     it("should run command in specified directory", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       // Create a test directory
       await client.fs.mkdir("/test-cwd");
@@ -177,8 +140,7 @@ describe("Sandbox Commands", () => {
 
   describe("Environment variables", () => {
     it("should run command with custom environment variables", async () => {
-      if (!client || !sandbox)
-        throw new Error("Client or sandbox not initialized");
+      if (!client) throw new Error("Client not initialized");
 
       const output = await client.commands.run("echo $TEST_VAR", {
         env: { TEST_VAR: "custom_value" },

@@ -10,6 +10,14 @@ export type ShellSize = { cols: number; rows: number };
 
 export const DEFAULT_SHELL_SIZE: ShellSize = { cols: 128, rows: 24 };
 
+function resolveCwd(workspacePath: string, cwd?: string): string | undefined {
+  if (!cwd) return undefined;
+  // Strip leading slash to ensure cwd is always relative to workspace
+  const relativeCwd = cwd.startsWith("/") ? cwd.slice(1) : cwd;
+  // Join with workspace path
+  return `${workspacePath}/${relativeCwd}`.replace(/\/+/g, "/");
+}
+
 export class Terminals {
   private disposable = new Disposable();
   private tracer?: Tracer;
@@ -64,24 +72,30 @@ export class Terminals {
   ) {
     const allEnv = Object.assign(opts?.env ?? {});
 
-    // TODO: use a new shell API that natively supports cwd & env
-    let commandWithEnv = Object.keys(allEnv).length
-      ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
-          allEnv
-        )
-          .map(([key, value]) => `${key}=${value}`)
-          .join(" ")} ${command}`
-      : `source $HOME/.private/.env 2>/dev/null || true && ${command}`;
+    // Build the command args array
+    const args = ["source $HOME/.private/.env 2>/dev/null || true"];
 
-    if (opts?.cwd) {
-      commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
+    // Add cd command if cwd is specified (Pitcher doesn't support cwd parameter)
+    const resolvedCwd = resolveCwd(this.agentClient.workspacePath, opts?.cwd);
+    if (resolvedCwd && resolvedCwd !== this.agentClient.workspacePath) {
+      args.push("&&", "cd", resolvedCwd);
+    }
+
+    if (Object.keys(allEnv).length) {
+      args.push("&&", "env");
+      Object.entries(allEnv).forEach(([key, value]) => {
+        args.push(`${key}=${value}`);
+      });
+      args.push(command);
+    } else {
+      args.push("&&", command);
     }
 
     const shell = await this.agentClient.shells.create({
       projectPath: this.agentClient.workspacePath,
       size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
-      command: commandWithEnv,
-      args: [],
+      command: "bash",
+      args: ["-c", args.join(" ")],
       type: "TERMINAL",
       isSystemShell: true,
     });
@@ -122,26 +136,17 @@ export class Terminals {
           });
         }
 
-        if (opts?.cwd) {
-          args.push("&&", "cd", opts.cwd);
-        }
-
         const shell = await this.agentClient.shells.create({
           projectPath: this.agentClient.workspacePath,
           size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
           command,
-          args: this.agentClient.type === "pint" ? [] : args,
+          args,
           type: "TERMINAL",
           isSystemShell: true,
+          cwd: resolveCwd(this.agentClient.workspacePath, opts?.cwd),
         });
 
-        const terminal = new Terminal(shell, this.agentClient, this.tracer);
-
-        if (this.agentClient.type === "pint") {
-          await terminal.write(args.join(" ") + "\n");
-        }
-
-        return terminal;
+        return new Terminal(shell, this.agentClient, this.tracer);
       }
     );
   }

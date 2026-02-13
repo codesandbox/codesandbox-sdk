@@ -188,11 +188,10 @@ export class FileSystem {
             projectPath: this.agentClient.workspacePath,
             size: { cols: 128, rows: 24 },
             command: "bash",
-            args: [
-              `cd ${this.agentClient.workspacePath} && unzip -o ${tempZipPath}`,
-            ],
+            args: ["-c", `unzip -o ${tempZipPath}`],
             type: "COMMAND",
             isSystemShell: true,
+            cwd: this.agentClient.workspacePath,
           });
 
           if (result.status === "ERROR" || result.status === "KILLED") {

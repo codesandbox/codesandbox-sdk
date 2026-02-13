@@ -1,12 +1,49 @@
+import { afterAll, beforeAll } from "vitest";
 import { CodeSandbox, Sandbox } from "../../src/index.js";
 
 /**
  * Test template ID used across e2e tests
  */
-export const TEST_TEMPLATE_ID = process.env.CSB_TEST_TEMPLATE_ID;
+export const TEST_TEMPLATE_ID = process.env.CSB_TEMPLATE_ID;
 
 if (!TEST_TEMPLATE_ID) {
   throw new Error("You have to provide a test template id");
+}
+
+export function createTest() {
+  const test = {} as {
+    sdk: CodeSandbox;
+    sandbox: Sandbox;
+  };
+
+  beforeAll(async () => {
+    test.sdk = initializeSDK();
+
+    // Create a sandbox for testing
+    test.sandbox = await createSandbox(test.sdk);
+  });
+
+  afterAll(async () => {
+    // Shutdown and deletion can take more than 10 seconds, we prevent this using a timeout
+    await Promise.race([
+      new Promise((resolve) => setTimeout(resolve, 9900)),
+      deleteSandbox(test.sdk, test.sandbox.id),
+    ]);
+  }, 10_000);
+
+  return test;
+}
+
+async function deleteSandbox(sdk: CodeSandbox, sandboxId: string) {
+  try {
+    await sdk.sandboxes.shutdown(sandboxId!);
+    await sdk.sandboxes.delete(sandboxId!);
+  } catch {
+    // Try to force delete even if shutdown fails
+    try {
+      await sdk.sandboxes.delete(sandboxId!);
+    } catch {}
+  }
 }
 
 /**
