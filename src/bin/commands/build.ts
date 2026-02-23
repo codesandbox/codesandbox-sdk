@@ -659,7 +659,9 @@ export async function betaCodeSandboxBuild(
     const teamId = metaInfo.data?.auth?.team;
 
     if (!teamId) {
-      throw new Error("Failed to fetch team information for the provided CSB_API_KEY. Please ensure your API key is correct and has access to a team.");
+      throw new Error(
+        "Failed to fetch team information for the provided CSB_API_KEY. Please ensure your API key is correct and has access to a team."
+      );
     }
 
     const base32EncodedTeamId = base32Encode(teamId);
@@ -725,7 +727,9 @@ export async function betaCodeSandboxBuild(
 
     // Docker Login
     const dockerLoginSpinner = ora({ stream: process.stdout });
-    dockerLoginSpinner.start("Authenticating with CodeSandbox Docker registry...");
+    dockerLoginSpinner.start(
+      "Authenticating with CodeSandbox Docker registry..."
+    );
     try {
       await dockerLogin({
         registry: registry,
@@ -739,7 +743,9 @@ export async function betaCodeSandboxBuild(
       dockerLoginSpinner.succeed("Docker registry authentication successful.");
     } catch (error) {
       dockerLoginSpinner.fail(
-        `Failed to authenticate with Docker registry: ${(error as Error).message}`
+        `Failed to authenticate with Docker registry: ${
+          (error as Error).message
+        }`
       );
       throw error;
     }
@@ -759,7 +765,6 @@ export async function betaCodeSandboxBuild(
       throw error;
     }
     imagePushSpinner.succeed("Template Docker image pushed to CodeSandbox.");
-
 
     const templateCreateSpinner = ora({ stream: process.stdout });
     templateCreateSpinner.start("Creating template with Docker image...");

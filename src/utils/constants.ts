@@ -43,13 +43,10 @@ export function getInferredRegistryUrl() {
 
 export function isLocalEnvironment(): boolean {
   const apiHostName = getInferredApiHost();
-  return apiHostName === "api.codesandbox.dev"
+  return apiHostName === "api.codesandbox.dev";
 }
 
-const BETA_ALLOWED_HOSTS = [
-  "api.codesandbox.dev",
-  "api.codesandbox.stream",
-];
+const BETA_ALLOWED_HOSTS = ["api.codesandbox.dev", "api.codesandbox.stream"];
 export function isBetaAllowed(): boolean {
   const apiHostName = getInferredApiHost();
   return BETA_ALLOWED_HOSTS.includes(apiHostName);

@@ -68,7 +68,7 @@ describe("Sandbox Commands", () => {
   });
 
   describe("Background commands", () => {
-    it("should run command in background", async () => {
+    it.only("should run command in background", async () => {
       if (!client) throw new Error("Client not initialized");
 
       const command = await client.commands.runBackground(

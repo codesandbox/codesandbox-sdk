@@ -53,8 +53,9 @@ console.log(output); // Hello World
 - Clone the sandbox templates repo (https://github.com/codesandbox/sandbox-templates)
 - Create the `.env` based on example and populate it
 - Run `source .env` to export the env variables
-- Build template for Pitcher `./dist/bin/codesandbox.mjs build ./test-template`
-- Build template for Pint `./dist/bin/codesandbox.mjs build ./test-template --beta`
+- Build template for Pitcher `./dist/bin/codesandbox.mjs build ./test-template-pitcher`
+- Build template for Pint `./dist/bin/codesandbox.mjs build ./test-template-pint --beta`
+- Update `.env` with template id and `source .env` it again
 - Run e2e tests with `npm run test:e2e`
 - Run specific test file `npm run test -- filesystem`
 
