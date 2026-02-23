@@ -68,7 +68,7 @@ describe("Sandbox Commands", () => {
   });
 
   describe("Background commands", () => {
-    it.only("should run command in background", async () => {
+    it("should run command in background", async () => {
       if (!client) throw new Error("Client not initialized");
 
       const command = await client.commands.runBackground(
@@ -112,6 +112,33 @@ describe("Sandbox Commands", () => {
       // Command should be killed
       expect(command).toBeDefined();
     }, 10000);
+
+    it("should stream output from a long-running command via onOutput", async () => {
+      if (!client) throw new Error("Client not initialized");
+
+      const command = await client.commands.runBackground(
+        'for i in 1 2 3; do echo "line $i"; sleep 1; done'
+      );
+      expect(command.status).toBe("RUNNING");
+
+      // Register listener before open() so we don't miss chunks that arrive
+      // immediately after the first one unblocks the barrier
+      const receivedChunks: string[] = [];
+      command.onOutput((chunk) => {
+        receivedChunks.push(chunk);
+      });
+
+      // open() subscribes to output and enables the onOutput event
+      await command.open();
+
+      const output = await command.waitUntilComplete();
+
+      expect(output).toContain("line 1");
+      expect(output).toContain("line 2");
+      expect(output).toContain("line 3");
+      // At least some chunks should have arrived incrementally via the event
+      expect(receivedChunks.length).toBeGreaterThan(0);
+    }, 15000);
   });
 
   describe("Command listing", () => {

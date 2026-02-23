@@ -107,7 +107,6 @@ export class PintShellsClient implements IAgentClientShells {
     isSystemShell?: boolean;
     cwd?: string;
   }): Promise<OpenShellDTO> {
-    console.log(command, args);
     const exec = await createExec({
       client: this.apiClient,
       body: {
