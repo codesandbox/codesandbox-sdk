@@ -56,6 +56,7 @@
     "clean": "rimraf ./dist",
     "test": "vitest",
     "test:e2e": "vitest run tests/e2e",
+    "benchmark": "npx tsx scripts/benchmark-port-ready.ts",
     "typecheck": "tsc --noEmit",
     "format": "prettier '**/*.{md,js,jsx,json,ts,tsx}' --write",
     "postbuild": "rimraf {lib,es}/**/__tests__ {lib,es}/**/*.{spec,test}.{js,d.ts,js.map}",
