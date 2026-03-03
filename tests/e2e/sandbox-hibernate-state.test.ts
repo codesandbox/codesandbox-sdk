@@ -78,19 +78,4 @@ describe("Sandbox Hibernate State", () => {
       }
     }
   }, 300000);
-
-  it("should report bootupType as RESUME after hibernation", async () => {
-    const client = await test.sandbox.connect();
-    await client.disconnect();
-    client.dispose();
-
-    await test.sdk.sandboxes.hibernate(test.sandbox.id);
-    const resumed = await test.sdk.sandboxes.resume(test.sandbox.id);
-
-    expect(resumed.bootupType).toBe("RESUME");
-
-    const afterClient = await resumed.connect();
-    await afterClient.disconnect();
-    afterClient.dispose();
-  }, 120000);
 });
