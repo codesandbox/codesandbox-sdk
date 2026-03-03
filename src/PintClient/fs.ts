@@ -1,8 +1,5 @@
 import { Client } from "../api-clients/pint/client";
-import {
-  IAgentClientFS,
-  PickRawFsResult,
-} from "../agent-client-interface";
+import { IAgentClientFS, PickRawFsResult } from "../agent-client-interface";
 import { fs } from "../pitcher-protocol";
 import { Disposable } from "../utils/disposable";
 import { parseStreamEvent } from "./utils";
@@ -16,6 +13,7 @@ import {
   getFileStat,
   createWatcher,
 } from "../api-clients/pint";
+import { Barrier } from "../utils/barrier";
 export class PintFsClient implements IAgentClientFS {
   constructor(private apiClient: Client) {}
 
@@ -99,7 +97,7 @@ export class PintFsClient implements IAgentClientFS {
     create?: boolean,
     overwrite?: boolean
   ): Promise<PickRawFsResult<"fs/writeFile">> {
-     try {
+    try {
       // Convert Uint8Array content to string for the API
       const decoder = new TextDecoder();
       const contentString = decoder.decode(content);
@@ -136,7 +134,7 @@ export class PintFsClient implements IAgentClientFS {
     }
   }
 
-    async remove(
+  async remove(
     path: string,
     recursive?: boolean
   ): Promise<PickRawFsResult<"fs/remove">> {
@@ -257,7 +255,7 @@ export class PintFsClient implements IAgentClientFS {
           path: from,
         },
         body: {
-          action: 'copy',
+          action: "copy",
           destination: to,
         },
       });
@@ -296,7 +294,7 @@ export class PintFsClient implements IAgentClientFS {
           path: from,
         },
         body: {
-          action: 'move',
+          action: "move",
           destination: to,
         },
       });
@@ -349,21 +347,31 @@ export class PintFsClient implements IAgentClientFS {
         signal: abortController.signal,
       });
 
+      const barrier = new Barrier<void>();
+
       // Start listening to the stream in the background
       (async () => {
         try {
           for await (const evt of response.stream) {
             try {
               const watchEvent = parseStreamEvent<fs.FSWatchEvent>(evt);
-              onEvent(watchEvent);
+
+              // @ts-ignore
+              if (watchEvent.type === "connected") {
+                barrier.open();
+              } else {
+                onEvent(watchEvent);
+              }
             } catch (error) {
-              console.warn('Failed to parse filesystem watch event:', error);
+              console.warn("Failed to parse filesystem watch event:", error);
             }
           }
         } catch (error) {
-          console.error('Filesystem watch stream error:', error);
+          console.error("Filesystem watch stream error:", error);
         }
       })();
+
+      await barrier.wait();
 
       return {
         type: "success",

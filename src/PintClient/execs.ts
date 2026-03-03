@@ -82,7 +82,15 @@ export class PintShellsClient implements IAgentClientShells {
       name: JSON.stringify({
         type: "command",
         command: exec.command,
-        name: "",
+        name: exec.interactive
+          ? JSON.stringify({
+              type: "terminal",
+              command: exec.command,
+            })
+          : JSON.stringify({
+              type: "command",
+              command: exec.command,
+            }),
       }),
       ownerUsername: "root",
       shellId: exec.id,

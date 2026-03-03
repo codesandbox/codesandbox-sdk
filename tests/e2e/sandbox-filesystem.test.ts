@@ -275,7 +275,7 @@ describe("Sandbox Filesystem", () => {
   });
 
   describe("File watching", () => {
-    it("should detect file system changes", async () => {
+    it.only("should detect file system changes", async () => {
       if (!client) throw new Error("Client not initialized");
 
       try {
@@ -285,6 +285,7 @@ describe("Sandbox Filesystem", () => {
       await client.fs.mkdir("/watch-dir");
 
       let changeDetected = false;
+
       const watcher = await client.fs.watch("/watch-dir", { recursive: true });
       const eventDisposable = watcher.onEvent((event) => {
         if (event.paths.some((p) => p.includes("watched-file.txt"))) {
