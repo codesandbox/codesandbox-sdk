@@ -11,9 +11,8 @@ import {
   createDirectory,
   deleteDirectory,
   getFileStat,
-  createWatcher,
 } from "../api-clients/pint";
-import { Barrier } from "../utils/barrier";
+
 export class PintFsClient implements IAgentClientFS {
   constructor(private apiClient: Client) {}
 
@@ -334,48 +333,81 @@ export class PintFsClient implements IAgentClientFS {
   > {
     try {
       const abortController = new AbortController();
+      const config = this.apiClient.getConfig();
 
-      const response = await createWatcher({
-        client: this.apiClient,
-        path: {
-          path: path,
-        },
+      const url = this.apiClient.buildUrl({
+        baseUrl: config.baseUrl as string,
+        url: "/api/v1/stream/directories/watcher/{path}",
+        path: { path: path.startsWith("/") ? path.slice(1) : path },
         query: {
           recursive: options.recursive,
           ignorePatterns: options.excludes ? [...options.excludes] : undefined,
         },
-        signal: abortController.signal,
+        querySerializer:
+          typeof config.querySerializer === "function"
+            ? config.querySerializer
+            : undefined,
       });
 
-      const barrier = new Barrier<void>();
+      // Make the fetch eagerly so watch() only resolves once the server
+      // has confirmed the watcher is active (200 OK means ready channel fired).
+      const _fetch = config.fetch ?? globalThis.fetch;
+      const response = await _fetch(
+        new Request(url, {
+          method: "GET",
+          headers: config.headers as Headers,
+          signal: abortController.signal,
+        })
+      );
 
-      // Start listening to the stream in the background
+      if (!response.ok) {
+        return {
+          type: "error",
+          error: `Failed to establish watcher: ${response.status} ${response.statusText}`,
+          errno: null,
+        };
+      }
+
+      // SSE connection established — server watcher is now active.
+      // Process the stream in the background.
+      let reader: ReadableStreamDefaultReader<string> | null = null;
       (async () => {
         try {
-          for await (const evt of response.stream) {
-            try {
-              const watchEvent = parseStreamEvent<fs.FSWatchEvent>(evt);
-
-              // @ts-ignore
-              if (watchEvent.type === "connected") {
-                barrier.open();
-              } else {
-                onEvent(watchEvent);
+          if (!response.body) return;
+          reader = response.body
+            .pipeThrough(new TextDecoderStream())
+            .getReader();
+          let buffer = "";
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += value;
+            const chunks = buffer.split("\n\n");
+            buffer = chunks.pop() ?? "";
+            for (const chunk of chunks) {
+              const dataLine = chunk
+                .split("\n")
+                .find((l) => l.startsWith("data:"));
+              if (!dataLine) continue;
+              try {
+                const data = JSON.parse(dataLine.replace(/^data:\s*/, ""));
+                onEvent(parseStreamEvent<fs.FSWatchEvent>(data));
+              } catch (e) {
+                console.warn("Failed to parse filesystem watch event:", e);
               }
-            } catch (error) {
-              console.warn("Failed to parse filesystem watch event:", error);
             }
           }
         } catch (error) {
-          console.error("Filesystem watch stream error:", error);
+          if ((error as Error)?.name !== "AbortError") {
+            console.error("Filesystem watch stream error:", error);
+          }
         }
       })();
-
-      await barrier.wait();
 
       return {
         type: "success",
         dispose(): void {
+          reader?.cancel();
           abortController.abort();
         },
       };

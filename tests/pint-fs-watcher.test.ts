@@ -1,268 +1,171 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import * as http from 'node:http'
 import { PintFsClient } from '../src/PintClient/fs'
-import { Client } from '../src/api-clients/pint/client'
-import * as pintApi from '../src/api-clients/pint'
+import { createClient, createConfig } from '../src/api-clients/pint/client'
 
-// Mock the pint API functions
-vi.mock('../src/api-clients/pint', () => ({
-  createWatcher: vi.fn(),
-  createFile: vi.fn(),
-  readFile: vi.fn(),
-  listDirectory: vi.fn(),
-  deleteDirectory: vi.fn(),
-  createDirectory: vi.fn(),
-  getFileStat: vi.fn(),
-  performFileAction: vi.fn(),
-}))
+/**
+ * Creates a minimal mock server that mimics pint's SSE watcher endpoint.
+ * Mirrors the Go test helper `setupV1TestServer` in the pint project.
+ *
+ * The server guarantees the watcher is active before sending 200 OK,
+ * just like pint's `CreateWatcher` uses the `ready` channel.
+ */
+function createMockPintServer() {
+  let activeSseResponse: http.ServerResponse | null = null
+
+  const server = http.createServer((req, res) => {
+    if (req.url?.includes('/api/v1/stream/directories/watcher/')) {
+      // Simulate pint: watcher is set up synchronously before headers are written.
+      // The 200 OK signals to the client that the watcher is fully active.
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      })
+      res.flushHeaders()
+      activeSseResponse = res
+      req.on('close', () => {
+        activeSseResponse = null
+      })
+    } else {
+      res.writeHead(404)
+      res.end()
+    }
+  })
+
+  return {
+    server,
+    /** Send a filesystem event over the active SSE connection. */
+    sendEvent(event: { paths: string[]; type: string }) {
+      activeSseResponse?.write(`data: ${JSON.stringify(event)}\n\n`)
+    },
+    isConnected() {
+      return activeSseResponse !== null
+    },
+  }
+}
 
 describe('PintFsClient filesystem watcher', () => {
+  let server: http.Server
+  let sendEvent: (event: { paths: string[]; type: string }) => void
+  let isConnected: () => boolean
   let fsClient: PintFsClient
-  let mockApiClient: Client
-  let mockCreateWatcher: any
+  let port: number
+  let activeWatcher: { dispose(): void } | null = null
 
-  beforeEach(() => {
-    // Create a mock API client
-    mockApiClient = {} as Client
+  beforeEach(async () => {
+    activeWatcher = null
+    const mock = createMockPintServer()
+    server = mock.server
+    sendEvent = mock.sendEvent
+    isConnected = mock.isConnected
 
-    // Create instance of PintFsClient
-    fsClient = new PintFsClient(mockApiClient)
+    await new Promise<void>((resolve) => server.listen(0, resolve))
+    port = (server.address() as http.AddressInfo).port
 
-    // Get reference to mocked functions
-    mockCreateWatcher = vi.mocked(pintApi.createWatcher)
-  })
-
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it('should successfully start watching a directory', async () => {
-    const path = '/test/directory'
-    const options = { recursive: true, excludes: ['*.log', 'node_modules/*'] }
-    const onEvent = vi.fn()
-
-    // Mock the stream generator
-    async function* mockStream() {
-      yield 'data: {"paths": ["/test/directory/file1.txt"], "type": "add"}'
-      yield 'data: {"paths": ["/test/directory/file2.txt"], "type": "change"}'
-    }
-
-    // Mock createWatcher to return a stream
-    mockCreateWatcher.mockResolvedValue({
-      stream: mockStream()
-    })
-
-    // Call watch method
-    const result = await fsClient.watch(path, options, onEvent)
-
-    // Verify the result
-    expect(result.type).toBe('success')
-    expect(result).toHaveProperty('dispose')
-
-    // Verify createWatcher was called with correct parameters
-    expect(mockCreateWatcher).toHaveBeenCalledWith({
-      client: mockApiClient,
-      path: { path },
-      query: {
-        recursive: true,
-        ignorePatterns: ['*.log', 'node_modules/*']
-      },
-      signal: expect.any(AbortSignal)
-    })
-
-    // Wait a bit for the async stream processing
-    await new Promise(resolve => setTimeout(resolve, 100))
-
-    // Verify events were parsed and fired
-    expect(onEvent).toHaveBeenCalledTimes(2)
-    expect(onEvent).toHaveBeenCalledWith({
-      paths: ['/test/directory/file1.txt'],
-      type: 'add'
-    })
-    expect(onEvent).toHaveBeenCalledWith({
-      paths: ['/test/directory/file2.txt'],
-      type: 'change'
-    })
-  })
-
-  it('should handle watcher with minimal options', async () => {
-    const path = '/simple/path'
-    const options = {}
-    const onEvent = vi.fn()
-
-    // Mock empty stream
-    async function* mockStream() {
-      // Empty stream
-    }
-
-    mockCreateWatcher.mockResolvedValue({
-      stream: mockStream()
-    })
-
-    const result = await fsClient.watch(path, options, onEvent)
-
-    expect(result.type).toBe('success')
-    expect(mockCreateWatcher).toHaveBeenCalledWith({
-      client: mockApiClient,
-      path: { path },
-      query: {
-        recursive: undefined,
-        ignorePatterns: undefined
-      },
-      signal: expect.any(AbortSignal)
-    })
-  })
-
-  it('should handle filesystem events correctly', async () => {
-    const path = '/test/path'
-    const options = { recursive: false }
-    const onEvent = vi.fn()
-
-    // Mock stream with different event types
-    async function* mockStream() {
-      yield 'data: {"paths": ["/test/path/new-file.txt"], "type": "add"}'
-      yield 'data: {"paths": ["/test/path/modified-file.txt"], "type": "change"}'
-      yield 'data: {"paths": ["/test/path/deleted-file.txt"], "type": "remove"}'
-    }
-
-    mockCreateWatcher.mockResolvedValue({
-      stream: mockStream()
-    })
-
-    const result = await fsClient.watch(path, options, onEvent)
-    expect(result.type).toBe('success')
-
-    // Wait for stream processing
-    await new Promise(resolve => setTimeout(resolve, 100))
-
-    // Verify all event types were handled
-    expect(onEvent).toHaveBeenCalledTimes(3)
-    expect(onEvent).toHaveBeenNthCalledWith(1, {
-      paths: ['/test/path/new-file.txt'],
-      type: 'add'
-    })
-    expect(onEvent).toHaveBeenNthCalledWith(2, {
-      paths: ['/test/path/modified-file.txt'],
-      type: 'change'
-    })
-    expect(onEvent).toHaveBeenNthCalledWith(3, {
-      paths: ['/test/path/deleted-file.txt'],
-      type: 'remove'
-    })
-  })
-
-  it('should handle malformed stream events gracefully', async () => {
-    const path = '/test/path'
-    const options = {}
-    const onEvent = vi.fn()
-
-    // Mock stream with malformed data
-    async function* mockStream() {
-      yield 'data: {"paths": ["/test/path/good-file.txt"], "type": "add"}'
-      yield 'data: invalid json'
-      yield 'data: {"paths": ["/test/path/another-good-file.txt"], "type": "change"}'
-    }
-
-    mockCreateWatcher.mockResolvedValue({
-      stream: mockStream()
-    })
-
-    // Spy on console.warn to verify error handling
-    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-
-    const result = await fsClient.watch(path, options, onEvent)
-    expect(result.type).toBe('success')
-
-    // Wait for stream processing
-    await new Promise(resolve => setTimeout(resolve, 100))
-
-    // Verify only valid events were processed
-    expect(onEvent).toHaveBeenCalledTimes(2)
-    expect(onEvent).toHaveBeenNthCalledWith(1, {
-      paths: ['/test/path/good-file.txt'],
-      type: 'add'
-    })
-    expect(onEvent).toHaveBeenNthCalledWith(2, {
-      paths: ['/test/path/another-good-file.txt'],
-      type: 'change'
-    })
-
-    // Verify warning was logged for malformed data
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Failed to parse filesystem watch event:',
-      expect.any(Error)
+    const apiClient = createClient(
+      createConfig({
+        baseUrl: `http://localhost:${port}`,
+        headers: { Authorization: 'Bearer test-token' },
+      })
     )
-
-    consoleSpy.mockRestore()
+    fsClient = new PintFsClient(apiClient)
   })
 
-  it('should allow disposal of watcher', async () => {
-    const path = '/test/path'
-    const options = {}
-    const onEvent = vi.fn()
+  afterEach(async () => {
+    // Dispose any active watcher to close the SSE connection so server.close() can complete.
+    activeWatcher?.dispose()
+    activeWatcher = null
+    await new Promise<void>((resolve) => server.close(() => resolve()))
+  })
 
-    // Mock stream that would run indefinitely
-    async function* mockStream() {
-      let count = 0
-      while (true) {
-        yield `data: {"paths": ["/test/path/file${count}.txt"], "type": "add"}`
-        count++
-        // Add a small delay to prevent tight loop
-        await new Promise(resolve => setTimeout(resolve, 10))
-      }
-    }
+  it('watch() resolves only after the server has confirmed the watcher is active (200 OK)', async () => {
+    // Mirrors TestFileWatcherIsReadyWhenConnectionEstablished:
+    // The watcher must be active the moment watch() resolves — no sleep needed.
+    const result = await fsClient.watch('/sandbox/project', { recursive: true }, () => {})
 
-    mockCreateWatcher.mockResolvedValue({
-      stream: mockStream()
+    expect(result.type).toBe('success')
+    expect(isConnected()).toBe(true)
+
+    if (result.type === 'success') activeWatcher = result
+  })
+
+  it('delivers SSE events to onEvent immediately after watch() resolves', async () => {
+    // Mirrors the core of TestFileWatcherIsReadyWhenConnectionEstablished:
+    // send an event right after watch() resolves, no sleep.
+    const events: Array<{ paths: string[]; type: string }> = []
+
+    const result = await fsClient.watch('/sandbox/project', { recursive: true }, (event) => {
+      events.push(event as any)
     })
 
-    const result = await fsClient.watch(path, options, onEvent)
     expect(result.type).toBe('success')
-    
-    if (result.type === 'success') {
-      expect(typeof result.dispose).toBe('function')
+    if (result.type === 'success') activeWatcher = result
 
-      // Let it run for a bit
-      await new Promise(resolve => setTimeout(resolve, 50))
+    // Send event immediately — watcher is already active, no sleep needed.
+    sendEvent({ paths: ['/sandbox/project/new-file.txt'], type: 'ADD' })
 
-      // Dispose the watcher
-      result.dispose()
+    // Wait for the event loop to process the SSE data.
+    await new Promise((resolve) => setTimeout(resolve, 200))
 
-      // The dispose function should abort the controller
-      expect(() => result.dispose()).not.toThrow()
-    }
+    expect(events).toHaveLength(1)
+    expect(events[0]).toEqual({ paths: ['/sandbox/project/new-file.txt'], type: 'ADD' })
   })
 
-  it('should handle createWatcher promise rejection', async () => {
-    const path = '/test/path'
-    const options = {}
-    const onEvent = vi.fn()
+  it('delivers multiple event types (ADD, CHANGE, REMOVE)', async () => {
+    const events: Array<{ paths: string[]; type: string }> = []
 
-    // Mock createWatcher to reject
-    mockCreateWatcher.mockRejectedValue(new Error('Network error'))
+    const result = await fsClient.watch('/sandbox/project', {}, (event) => {
+      events.push(event as any)
+    })
+    expect(result.type).toBe('success')
+    if (result.type === 'success') activeWatcher = result
 
-    const result = await fsClient.watch(path, options, onEvent)
+    sendEvent({ paths: ['/sandbox/project/a.txt'], type: 'ADD' })
+    sendEvent({ paths: ['/sandbox/project/b.txt'], type: 'CHANGE' })
+    sendEvent({ paths: ['/sandbox/project/c.txt'], type: 'REMOVE' })
 
-    expect(result.type).toBe('error')
-    if (result.type === 'error') {
-      expect(result.error).toBe('Network error')
-      expect(result.errno).toBe(null)
-    }
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    expect(events).toHaveLength(3)
+    expect(events[0].type).toBe('ADD')
+    expect(events[1].type).toBe('CHANGE')
+    expect(events[2].type).toBe('REMOVE')
   })
 
-  it('should handle unknown errors', async () => {
-    const path = '/test/path'
-    const options = {}
-    const onEvent = vi.fn()
+  it('returns error when server returns non-200', async () => {
+    // Close the default server and replace with one that returns 400.
+    await new Promise<void>((resolve) => server.close(() => resolve()))
+    server = http.createServer((_req, res) => {
+      res.writeHead(400, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ message: 'Directory not found', code: 400 }))
+    })
+    await new Promise<void>((resolve) => server.listen(port, resolve))
 
-    // Mock createWatcher to reject with non-Error
-    mockCreateWatcher.mockRejectedValue('String error')
-
-    const result = await fsClient.watch(path, options, onEvent)
+    const result = await fsClient.watch('/nonexistent/path', {}, () => {})
 
     expect(result.type).toBe('error')
-    if (result.type === 'error') {
-      expect(result.error).toBe('Unknown error')
-      expect(result.errno).toBe(null)
-    }
+  })
+
+  it('stops receiving events after dispose()', async () => {
+    const events: Array<{ paths: string[]; type: string }> = []
+
+    const result = await fsClient.watch('/sandbox/project', {}, (event) => {
+      events.push(event as any)
+    })
+    expect(result.type).toBe('success')
+    if (result.type !== 'success') return
+
+    sendEvent({ paths: ['/sandbox/project/before.txt'], type: 'ADD' })
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect(events).toHaveLength(1)
+
+    result.dispose()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    // Any events sent after dispose should not arrive.
+    sendEvent({ paths: ['/sandbox/project/after.txt'], type: 'ADD' })
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect(events).toHaveLength(1)
   })
 })
