@@ -275,7 +275,7 @@ describe("Sandbox Filesystem", () => {
   });
 
   describe("File watching", () => {
-    it.only("should detect file system changes", async () => {
+    it("should detect file system changes", async () => {
       if (!client) throw new Error("Client not initialized");
 
       try {
