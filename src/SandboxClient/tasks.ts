@@ -107,6 +107,7 @@ export class Task {
     output: string[];
     dimensions: typeof DEFAULT_SHELL_SIZE;
   };
+  private currentSubscribeOutput?: IDisposable;
   private onOutputEmitter = this.disposable.addDisposable(
     new Emitter<string>()
   );
@@ -174,36 +175,19 @@ export class Task {
           task.shell &&
           task.shell.shellId !== lastShellId
         ) {
-          const openedShell = await this.agentClient.shells.open(
+          const openedShell = this.openedShell;
+          this.currentSubscribeOutput?.dispose();
+          this.openedShell.shellId = task.shell.shellId;
+          this.currentSubscribeOutput = this.agentClient.shells.subscribeOutput(
             task.shell.shellId,
-            this.openedShell.dimensions
+            this.openedShell.dimensions,
+            ({ out }) => {
+              this.onOutputEmitter.fire("\x1B[2J\x1B[3J\x1B[1;1H");
+              openedShell.output.push(out);
+              this.onOutputEmitter.fire(out);
+            }
           );
-
-          this.openedShell = {
-            shellId: openedShell.shellId,
-            output: openedShell.buffer,
-            dimensions: this.openedShell.dimensions,
-          };
-
-          this.onOutputEmitter.fire("\x1B[2J\x1B[3J\x1B[1;1H");
-          openedShell.buffer.forEach((out) => this.onOutputEmitter.fire(out));
         }
-      })
-    );
-
-    this.disposable.addDisposable(
-      this.agentClient.shells.onShellOut(({ shellId, out }) => {
-        if (
-          !this.shell ||
-          this.shell.shellId !== shellId ||
-          !this.openedShell
-        ) {
-          return;
-        }
-
-        // Update output for shell
-        this.openedShell.output.push(out);
-        this.onOutputEmitter.fire(out);
       })
     );
   }
@@ -256,16 +240,24 @@ export class Task {
           throw new Error("Task is not running");
         }
 
-        const openedShell = await this.agentClient.shells.open(
-          this.shell.shellId,
-          dimensions
-        );
+        if (this.openedShell) {
+          return this.openedShell.output.join("\n");
+        }
 
-        this.openedShell = {
-          shellId: openedShell.shellId,
-          output: openedShell.buffer,
+        const openedShell = (this.openedShell = {
           dimensions,
-        };
+          output: [] as string[],
+          shellId: this.shell.shellId,
+        });
+
+        this.currentSubscribeOutput = this.agentClient.shells.subscribeOutput(
+          this.shell.shellId,
+          dimensions,
+          ({ out }) => {
+            openedShell.output.push(out);
+            this.onOutputEmitter.fire(out);
+          }
+        );
 
         return this.openedShell.output.join("\n");
       }
@@ -356,6 +348,7 @@ export class Task {
     );
   }
   dispose() {
+    this.currentSubscribeOutput?.dispose();
     this.disposable.dispose();
   }
 }

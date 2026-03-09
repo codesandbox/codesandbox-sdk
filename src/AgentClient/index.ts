@@ -17,12 +17,15 @@ import {
   IAgentClientSystem,
   IAgentClientTasks,
   PickRawFsResult,
+  SubscribeShellEvent,
 } from "../agent-client-interface";
 import { AgentConnection } from "./AgentConnection";
 import { Emitter, Event } from "../utils/event";
 import { DEFAULT_SUBSCRIPTIONS, SandboxSession } from "../types";
 import { SandboxClient } from "../SandboxClient";
 import { InitStatus } from "../pitcher-protocol/messages/system";
+import { IDisposable } from "@xterm/headless";
+import { Disposable } from "../utils/disposable";
 
 // Timeout for detecting a pong response, leading to a forced disconnect
 // Increased from 15s to 30s to be more tolerant of network latency
@@ -31,51 +34,134 @@ let PONG_DETECTION_TIMEOUT = 30_000;
 // When focusing the app we do a lower timeout to more quickly detect a potential disconnect
 const FOCUS_PONG_DETECTION_TIMEOUT = 5_000;
 
-class AgentClientShells implements IAgentClientShells {
-  private onShellExitedEmitter = new Emitter<{
-    shellId: string;
-    exitCode: number;
-  }>();
-  onShellExited = this.onShellExitedEmitter.event;
+type ShellStateChangeEvent =
+  | { type: "out"; out: string }
+  | { type: "exit"; exitCode: number };
 
-  private onShellTerminatedEmitter = new Emitter<
-    shell.ShellTerminateNotification["params"]
-  >();
-  onShellTerminated = this.onShellTerminatedEmitter.event;
+class ShellState {
+  private listener?: (event: ShellStateChangeEvent) => void;
+  // The buffer is populated when there is no listener yet, ensuring that we capture
+  // all output and return it
+  private buffer: string[] = [];
+  private exitCode?: number;
+  getBuffer() {
+    const bufferString = this.buffer.join("\n");
+    this.buffer.length = 0;
+    return bufferString;
+  }
+  getExitCode() {
+    return this.exitCode;
+  }
+  addOut(out: string) {
+    if (!this.listener) {
+      this.buffer.push(out);
+      return;
+    }
 
-  private onShellOutEmitter = new Emitter<
-    shell.ShellOutNotification["params"]
-  >();
-  onShellOut = this.onShellOutEmitter.event;
-
-  constructor(private agentConnection: AgentConnection) {
-    agentConnection.onNotification("shell/exit", (params) => {
-      this.onShellExitedEmitter.fire(params);
-    });
-
-    agentConnection.onNotification("shell/terminate", (params) => {
-      this.onShellTerminatedEmitter.fire(params);
-    });
-
-    agentConnection.onNotification("shell/out", (params) => {
-      this.onShellOutEmitter.fire(params);
+    this.listener({
+      type: "out",
+      out,
     });
   }
-  create(
-    projectPath: string,
-    size: shell.ShellSize,
-    command?: string,
-    type?: shell.ShellProcessType,
-    isSystemShell?: boolean
-  ): Promise<shell.OpenShellDTO> {
+  setExitCode(exitCode: number) {
+    this.exitCode = exitCode;
+
+    if (!this.listener) {
+      return;
+    }
+
+    this.listener({
+      type: "exit",
+      exitCode,
+    });
+  }
+  onChange(listener: (event: ShellStateChangeEvent) => void) {
+    this.listener = listener;
+
+    if (this.buffer.length) {
+      const bufferString = this.buffer.join("\n");
+      this.buffer.length = 0;
+      listener({
+        type: "out",
+        out: bufferString,
+      });
+    }
+
+    return () => {
+      this.listener = undefined;
+    };
+  }
+}
+
+class AgentClientShells implements IAgentClientShells {
+  disposeOutputListener: () => void;
+  disposeExitListener: () => void;
+  disposeTerminateListener: () => void;
+  private shellStates: Record<string, ShellState> = {};
+  constructor(private agentConnection: AgentConnection) {
+    // We use a common listener to keep track of all shell output to avoid race conditions. These
+    // are then flushed. This does not work with multiple listeners, but you would not use multiple
+    // listeners for command/terminal output anyways. NOTE! These notifications only appear for created/opened shells
+    this.disposeOutputListener = agentConnection.onNotification(
+      "shell/out",
+      (event) => {
+        if (!this.shellStates[event.shellId]) {
+          this.shellStates[event.shellId] = new ShellState();
+        }
+
+        this.shellStates[event.shellId].addOut(event.out);
+      }
+    );
+    this.disposeExitListener = agentConnection.onNotification(
+      "shell/exit",
+      (event) => {
+        if (!this.shellStates[event.shellId]) {
+          this.shellStates[event.shellId] = new ShellState();
+        }
+
+        this.shellStates[event.shellId].setExitCode(event.exitCode);
+      }
+    );
+    this.disposeTerminateListener = agentConnection.onNotification(
+      "shell/terminate",
+      (event) => {
+        if (!this.shellStates[event.shellId]) {
+          this.shellStates[event.shellId] = new ShellState();
+        }
+
+        this.shellStates[event.shellId].setExitCode(130);
+      }
+    );
+  }
+  create({
+    command,
+    args,
+    size,
+    type,
+    isSystemShell,
+    projectPath,
+    cwd,
+  }: {
+    command: string;
+    args: string[];
+    projectPath: string;
+    size: shell.ShellSize;
+    type?: shell.ShellProcessType;
+    isSystemShell?: boolean;
+    cwd?: string;
+  }): Promise<shell.OpenShellDTO> {
+    // Pitcher protocol expects a single command string, so we concatenate command and args
+    const fullCommand =
+      args.length > 0 ? `${command} ${args.join(" ")}` : command;
+
     return this.agentConnection.request({
       method: "shell/create",
       params: {
-        command,
+        command: fullCommand,
         size,
         type,
         isSystemShell,
-        cwd: projectPath,
+        cwd: cwd || projectPath,
       },
     });
   }
@@ -97,17 +183,108 @@ class AgentClientShells implements IAgentClientShells {
 
     return result.shells;
   }
-  open(
+  subscribe(
     shellId: shell.ShellId,
-    size: shell.ShellSize
-  ): Promise<shell.OpenShellDTO> {
-    return this.agentConnection.request({
-      method: "shell/open",
-      params: {
-        shellId,
-        size,
-      },
+    listener: (event: SubscribeShellEvent) => void
+  ): IDisposable {
+    const disposable = new Disposable();
+
+    const disposeExit = this.agentConnection.onNotification(
+      "shell/exit",
+      (params) => {
+        if (params.shellId === shellId) {
+          listener({ type: "exit", exitCode: params.exitCode });
+        }
+      }
+    );
+
+    const disposeTerminate = this.agentConnection.onNotification(
+      "shell/terminate",
+      (params) => {
+        if (params.shellId === shellId) {
+          listener({ type: "terminate" });
+        }
+      }
+    );
+
+    disposable.onDidDispose(() => {
+      disposeExit();
+      disposeTerminate();
     });
+
+    return disposable;
+  }
+  subscribeOutput(
+    shellId: shell.ShellId,
+    size: shell.ShellSize,
+    listener: (event: { out: string; exitCode?: number }) => void
+  ): IDisposable {
+    const disposable = new Disposable();
+
+    if (!this.shellStates[shellId]) {
+      this.shellStates[shellId] = new ShellState();
+    }
+
+    const shellState = this.shellStates[shellId];
+
+    if (shellState.getExitCode() !== undefined) {
+      listener({
+        out: shellState.getBuffer(),
+        exitCode: shellState.getExitCode(),
+      });
+
+      return disposable;
+    }
+
+    const disposeChangeListener = shellState.onChange((event) => {
+      if (event.type === "out") {
+        listener({
+          out: event.out,
+        });
+      } else {
+        listener({
+          out: shellState.getBuffer(),
+          exitCode: event.exitCode,
+        });
+      }
+    });
+
+    disposable.onWillDispose(disposeChangeListener);
+
+    // If subscribing to existing shell we need to open it to get events
+    this.agentConnection
+      .request({
+        method: "shell/open",
+        params: {
+          shellId,
+          size,
+        },
+      })
+      .then((openShell) => {
+        listener({
+          out: openShell.buffer.join("\n"),
+          exitCode: openShell.exitCode,
+        });
+      })
+      .catch(() => {
+        // The shell does not exist
+      });
+
+    disposable.onDidDispose(() => {
+      this.agentConnection
+        .request({
+          method: "shell/close",
+          params: {
+            shellId,
+            size,
+          },
+        })
+        .catch(() => {
+          // We do not care
+        });
+    });
+
+    return disposable;
   }
   rename(shellId: shell.ShellId, name: string): Promise<null> {
     return this.agentConnection.request({
@@ -390,6 +567,7 @@ class AgentClientSystem implements IAgentClientSystem {
 }
 
 export class AgentClient implements IAgentClient {
+  readonly type = "pitcher" as const;
   static async create({
     session,
     getSession,
@@ -483,6 +661,9 @@ export class AgentClient implements IAgentClient {
     }
   }
   dispose() {
+    this.shells.disposeOutputListener();
+    this.shells.disposeExitListener();
+    this.shells.disposeTerminateListener();
     this.agentConnection.dispose();
   }
 }

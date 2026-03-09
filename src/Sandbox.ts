@@ -151,13 +151,13 @@ export class Sandbox {
           return `export ${key}='${safe}'`;
         })
         .join("\n");
-      commands.push(
-        [
-          `cat << 'EOF' > "$HOME/.private/.env"`,
-          envStrings,
-          `EOF`,
-        ].join("\n")
-      );
+      const cmd = [
+        `mkdir -p "$HOME/.private"`,
+        `cat << 'EOF' > "$HOME/.private/.env"`,
+        envStrings,
+        `EOF`,
+      ].join("\n");
+      await client.commands.run(cmd);
     }
 
     if (customSession.git) {
@@ -188,8 +188,7 @@ export class Sandbox {
     pitcherManagerResponse: PitcherManagerResponse,
     customSession?: SessionCreateOptions
   ): Promise<SandboxSession> {
-    // HACK: we currently do not get a flag for pint, but this is a check we can use for now
-    const isPint = false;
+    const isPint = pitcherManagerResponse.vmAgentType === "pint";
 
     if (!customSession || !customSession.id) {
       return {
@@ -205,6 +204,9 @@ export class Sandbox {
         userWorkspacePath: pitcherManagerResponse.userWorkspacePath,
         workspacePath: pitcherManagerResponse.workspacePath,
         pitcherVersion: pitcherManagerResponse.pitcherVersion,
+        pintToken: pitcherManagerResponse.pintToken,
+        pintURL: pitcherManagerResponse.pintURL,  
+        vmAgentType: pitcherManagerResponse.vmAgentType,
       };
     }
 
@@ -231,6 +233,9 @@ export class Sandbox {
       userWorkspacePath: handledResponse.user_workspace_path,
       workspacePath: pitcherManagerResponse.workspacePath,
       pitcherVersion: pitcherManagerResponse.pitcherVersion,
+      pintToken: pitcherManagerResponse.pintToken,
+      pintURL: pitcherManagerResponse.pintURL,  
+      vmAgentType: pitcherManagerResponse.vmAgentType,
     };
   }
 

@@ -117,36 +117,6 @@
         "title": "VMAssignTagAliasResponse",
         "type": "object"
       },
-      "TemplateCreateRequest": {
-        "properties": {
-          "description": {
-            "default": "[Template description]",
-            "description": "Template description. Maximum 255 characters. Defaults to description of original sandbox.",
-            "maxLength": 255,
-            "type": "string"
-          },
-          "forkOf": {
-            "description": "Short ID of the sandbox to fork.",
-            "example": "pt_1234567890",
-            "type": "string"
-          },
-          "tags": {
-            "default": [],
-            "description": "Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.",
-            "items": { "type": "string" },
-            "type": "array"
-          },
-          "title": {
-            "default": "[Template title]",
-            "description": "Template title. Maximum 255 characters. Defaults to title of original sandbox with (forked).",
-            "maxLength": 255,
-            "type": "string"
-          }
-        },
-        "required": ["forkOf"],
-        "title": "TemplateCreateRequest",
-        "type": "object"
-      },
       "PreviewToken": {
         "properties": {
           "expires_at": { "nullable": true, "type": "string" },
@@ -210,6 +180,66 @@
           }
         ],
         "title": "PreviewTokenRevokeAllResponse",
+        "type": "object"
+      },
+      "TemplateCreateRequestCommon": {
+        "properties": {
+          "description": {
+            "default": "[Template description]",
+            "description": "Template description. Maximum 255 characters. Defaults to description of original sandbox.",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "forkOf": {
+            "description": "Short ID of the sandbox to fork.",
+            "example": "pt_1234567890",
+            "type": "string"
+          },
+          "image": {
+            "description": "Container image to use as template",
+            "properties": {
+              "architecture": {
+                "description": "The architecture of the image. Required for multi-platform images",
+                "type": "string"
+              },
+              "name": {
+                "description": "The image name (for example 'nginx').",
+                "type": "string"
+              },
+              "registry": {
+                "default": "docker.io",
+                "description": "The container registry where the image is stored.",
+                "type": "string"
+              },
+              "repository": {
+                "default": "library",
+                "description": "The repository or namespace where the image is stored.",
+                "type": "string"
+              },
+              "tag": {
+                "default": "latest",
+                "description": "The image tag.",
+                "type": "string"
+              }
+            },
+            "required": ["name"],
+            "type": "object"
+          },
+          "tags": {
+            "default": [],
+            "description": "Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.",
+            "items": { "type": "string" },
+            "type": "array"
+          },
+          "title": {
+            "default": "[Template title]",
+            "description": "Template title. Maximum 255 characters. Defaults to title of original sandbox with (forked).",
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": ["forkOf"],
+        "title": "TemplateCreateRequestCommon",
         "type": "object"
       },
       "Sandbox": {
@@ -941,6 +971,7 @@
                   "reconnect_token": { "type": "string" },
                   "use_pint": { "type": "boolean" },
                   "user_workspace_path": { "type": "string" },
+                  "vm_agent_type": { "type": "string" },
                   "workspace_path": { "type": "string" }
                 },
                 "required": [
@@ -955,7 +986,8 @@
                   "reconnect_token",
                   "use_pint",
                   "user_workspace_path",
-                  "workspace_path"
+                  "workspace_path",
+                  "vm_agent_type"
                 ],
                 "type": "object"
               }
@@ -1555,6 +1587,7 @@
                       "reconnect_token": { "type": "string" },
                       "use_pint": { "type": "boolean" },
                       "user_workspace_path": { "type": "string" },
+                      "vm_agent_type": { "type": "string" },
                       "workspace_path": { "type": "string" }
                     },
                     "required": [
@@ -1569,7 +1602,8 @@
                       "reconnect_token",
                       "use_pint",
                       "user_workspace_path",
-                      "workspace_path"
+                      "workspace_path",
+                      "vm_agent_type"
                     ],
                     "type": "object"
                   },
@@ -2134,7 +2168,9 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/TemplateCreateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/TemplateCreateRequestCommon"
+              }
             }
           },
           "description": "Template Create Request",

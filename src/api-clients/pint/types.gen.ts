@@ -124,6 +124,10 @@ export type ExecItem = {
      */
     interactive: boolean;
     /**
+     * Whether the exec is using a pty
+     */
+    pty: boolean;
+    /**
      * Exit code of the process (only present when process has exited)
      */
     exitCode: number;
@@ -153,6 +157,10 @@ export type CreateExecRequest = {
      * Whether to start interactive shell session or not (defaults to false)
      */
     interactive?: boolean;
+    /**
+     * Whether to start pty shell session or not (defaults to false)
+     */
+    pty?: boolean;
 };
 
 export type UpdateExecRequest = {
@@ -167,6 +175,29 @@ export type ExecDeleteResponse = {
      * Deletion confirmation message
      */
     message: string;
+};
+
+export type ExecStdout = {
+    /**
+     * Type of the exec output
+     */
+    type: 'stdout' | 'stderr';
+    /**
+     * Data associated with the exec output
+     */
+    output: string;
+    /**
+     * Sequence number of the output message
+     */
+    sequence: number;
+    /**
+     * Timestamp of when the output was generated
+     */
+    timestamp?: string;
+    /**
+     * Exit code of the process (only present when process has exited)
+     */
+    exitCode?: number;
 };
 
 export type ExecStdin = {
@@ -296,29 +327,6 @@ export type PortsListResponse = {
      * List of open ports
      */
     ports: Array<PortInfo>;
-};
-
-export type ExecStdout = {
-    /**
-     * Type of the exec output
-     */
-    type: 'stdout' | 'stderr';
-    /**
-     * Data associated with the exec output
-     */
-    output: string;
-    /**
-     * Sequence number of the output message
-     */
-    sequence: number;
-    /**
-     * Timestamp of when the output was generated
-     */
-    timestamp?: string;
-    /**
-     * Exit code of the process (only present when process has exited)
-     */
-    exitCode?: number;
 };
 
 export type Task = TaskItem;
@@ -1270,3 +1278,54 @@ export type StreamPortsListResponses = {
 };
 
 export type StreamPortsListResponse = StreamPortsListResponses[keyof StreamPortsListResponses];
+
+export type CreateWatcherData = {
+    body?: never;
+    path: {
+        /**
+         * Directory path to watch
+         */
+        path: string;
+    };
+    query?: {
+        /**
+         * Whether to watch directories recursively
+         */
+        recursive?: boolean;
+        /**
+         * Glob patterns to ignore certain files or directories (can be specified multiple times)
+         */
+        ignorePatterns?: Array<string>;
+    };
+    url: '/api/v1/stream/directories/watcher/{path}';
+};
+
+export type CreateWatcherErrors = {
+    /**
+     * Bad Request - Path is required or invalid path
+     */
+    400: _Error;
+    /**
+     * Unauthorized
+     */
+    401: _Error;
+    /**
+     * Internal Server Error - Failed to create file
+     */
+    500: _Error;
+    /**
+     * Unexpected Error
+     */
+    default: _Error;
+};
+
+export type CreateWatcherError = CreateWatcherErrors[keyof CreateWatcherErrors];
+
+export type CreateWatcherResponses = {
+    /**
+     * Server-Sent Events stream of directory files updates
+     */
+    200: string;
+};
+
+export type CreateWatcherResponse = CreateWatcherResponses[keyof CreateWatcherResponses];

@@ -70,28 +70,6 @@ export type VmAssignTagAliasResponse = {
 };
 
 /**
- * TemplateCreateRequest
- */
-export type TemplateCreateRequest = {
-    /**
-     * Template description. Maximum 255 characters. Defaults to description of original sandbox.
-     */
-    description?: string;
-    /**
-     * Short ID of the sandbox to fork.
-     */
-    forkOf: string;
-    /**
-     * Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.
-     */
-    tags?: Array<string>;
-    /**
-     * Template title. Maximum 255 characters. Defaults to title of original sandbox with (forked).
-     */
-    title?: string;
-};
-
-/**
  * PreviewToken
  */
 export type PreviewToken = {
@@ -133,6 +111,53 @@ export type PreviewTokenRevokeAllResponse = {
     data?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * TemplateCreateRequestCommon
+ */
+export type TemplateCreateRequestCommon = {
+    /**
+     * Template description. Maximum 255 characters. Defaults to description of original sandbox.
+     */
+    description?: string;
+    /**
+     * Short ID of the sandbox to fork.
+     */
+    forkOf: string;
+    /**
+     * Container image to use as template
+     */
+    image?: {
+        /**
+         * The architecture of the image. Required for multi-platform images
+         */
+        architecture?: string;
+        /**
+         * The image name (for example 'nginx').
+         */
+        name: string;
+        /**
+         * The container registry where the image is stored.
+         */
+        registry?: string;
+        /**
+         * The repository or namespace where the image is stored.
+         */
+        repository?: string;
+        /**
+         * The image tag.
+         */
+        tag?: string;
+    };
+    /**
+     * Tags to set on the new sandbox, if any. Will not inherit tags from the source sandbox.
+     */
+    tags?: Array<string>;
+    /**
+     * Template title. Maximum 255 characters. Defaults to title of original sandbox with (forked).
+     */
+    title?: string;
 };
 
 /**
@@ -599,6 +624,7 @@ export type VmStartResponse = {
         reconnect_token: string;
         use_pint: boolean;
         user_workspace_path: string;
+        vm_agent_type: string;
         workspace_path: string;
     };
 };
@@ -964,6 +990,7 @@ export type SandboxForkResponse = {
             reconnect_token: string;
             use_pint: boolean;
             user_workspace_path: string;
+            vm_agent_type: string;
             workspace_path: string;
         } | null;
         title: string | null;
@@ -1285,7 +1312,7 @@ export type TemplatesCreateData = {
     /**
      * Template Create Request
      */
-    body?: TemplateCreateRequest;
+    body?: TemplateCreateRequestCommon;
     path?: never;
     query?: never;
     url: '/templates';

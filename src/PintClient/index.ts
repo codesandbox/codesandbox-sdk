@@ -3,9 +3,9 @@ import { Emitter, EmitterSubscription } from "../utils/event";
 import { SandboxSession } from "../types";
 import { Disposable } from "../utils/disposable";
 import { Client, createClient, createConfig } from "../api-clients/pint/client";
-import { PintClientTasks, PintClientSetup, PintClientSystem} from "./tasks";
-import {PintFsClient} from "./fs";
-import {PintShellsClient} from "./execs";
+import { PintClientTasks, PintClientSetup, PintClientSystem } from "./tasks";
+import { PintFsClient } from "./fs";
+import { PintShellsClient } from "./execs";
 import { parseStreamEvent } from "./utils";
 import {
   IAgentClient,
@@ -69,7 +69,6 @@ class PintPortsClient implements IAgentClientPorts {
   }
 }
 
-
 export class PintClient implements IAgentClient {
   static async create(session: SandboxSession) {
     return new PintClient(session);
@@ -101,9 +100,9 @@ export class PintClient implements IAgentClient {
 
     const apiClient = createClient(
       createConfig({
-        baseUrl: session.pitcherURL,
+        baseUrl: session.pintURL,
         headers: {
-          Authorization: `Bearer ${session.pitcherToken}`,
+          Authorization: `Bearer ${session.pintToken}`,
         },
       })
     );

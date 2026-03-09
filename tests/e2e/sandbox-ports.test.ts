@@ -1,29 +1,17 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { CodeSandbox } from '../../src/index.js';
-import { Sandbox } from '../../src/Sandbox.js';
-import { SandboxClient } from '../../src/SandboxClient/index.js';
-import { initializeSDK, TEST_TEMPLATE_ID } from './helpers.js';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { SandboxClient } from "../../src/SandboxClient/index.js";
+import { createTest } from "./helpers.js";
 
-describe('Sandbox Ports', () => {
-  let sdk: CodeSandbox;
-  let sandbox: Sandbox | undefined;
+describe("Sandbox Ports", () => {
+  const test = createTest();
   let client: SandboxClient | undefined;
 
   beforeAll(async () => {
-    sdk = initializeSDK();
-
-    // Create a sandbox for testing
-    sandbox = await sdk.sandboxes.create({
-      id: TEST_TEMPLATE_ID,
-    });
-
     // Connect to sandbox
-    client = await sandbox.connect();
+    client = await test.sandbox.connect();
   }, 60000);
 
   afterAll(async () => {
-    const sandboxId = sandbox?.id;
-
     try {
       if (client) {
         await client.disconnect();
@@ -31,44 +19,34 @@ describe('Sandbox Ports', () => {
         client = undefined;
       }
     } catch (error) {
-      console.error('Failed to dispose client:', error);
-    }
-
-    if (sandboxId) {
-      try {
-        await sdk.sandboxes.shutdown(sandboxId);
-        await sdk.sandboxes.delete(sandboxId);
-      } catch (error) {
-        console.error('Failed to cleanup test sandbox:', sandboxId, error);
-        try {
-          await sdk.sandboxes.delete(sandboxId);
-        } catch (deleteError) {
-          console.error('Failed to force delete sandbox:', sandboxId, deleteError);
-        }
-      }
+      console.error("Failed to dispose client:", error);
     }
   });
 
-  describe('Port listing', () => {
-    it('should get all open ports', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+  describe("Port listing", () => {
+    it("should get all open ports", async () => {
+      if (!client) throw new Error("Client not initialized");
 
       const ports = await client.ports.getAll();
       expect(Array.isArray(ports)).toBe(true);
     });
   });
 
-  describe('Port operations with server', () => {
+  describe("Port operations with server", () => {
     // Skipped - these tests have shell lifecycle management issues
-    it('should detect when a port opens', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should detect when a port opens", async () => {
+      if (!client) throw new Error("Client not initialized");
 
       // Start a simple HTTP server in the background
-      const serverCommand = await client.commands.runBackground(`node -e 'require("http").createServer((req, res) => res.end("hello")).listen(8888)'`);
+      const serverCommand = await client.commands.runBackground(
+        `node -e 'require("http").createServer((req, res) => res.end("hello")).listen(8888)'`
+      );
 
       try {
         // Wait for port to open (with timeout)
-        const portInfo = await client.ports.waitForPort(8888, { timeoutMs: 20000 });
+        const portInfo = await client.ports.waitForPort(8888, {
+          timeoutMs: 20000,
+        });
         expect(portInfo).toBeDefined();
         expect(portInfo.port).toBe(8888);
         expect(portInfo.host).toBeTruthy();
@@ -78,11 +56,13 @@ describe('Sandbox Ports', () => {
       }
     }, 40000);
 
-    it('should get port information', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should get port information", async () => {
+      if (!client) throw new Error("Client not initialized");
 
       // Start a server
-      const serverCommand = await client.commands.runBackground(`node -e 'require("http").createServer((req, res) => res.end("test")).listen(9999)'`);
+      const serverCommand = await client.commands.runBackground(
+        `node -e 'require("http").createServer((req, res) => res.end("test")).listen(9999)'`
+      );
 
       try {
         // Wait for port to open
@@ -102,10 +82,10 @@ describe('Sandbox Ports', () => {
     }, 40000);
   });
 
-  describe('Port events', () => {
+  describe("Port events", () => {
     // Skipped - these tests have shell lifecycle management issues
-    it('should listen to port opened events', async () => {
-      if (!client || !sandbox) throw new Error('Client or sandbox not initialized');
+    it("should listen to port opened events", async () => {
+      if (!client) throw new Error("Client not initialized");
 
       let portOpened = false;
       let openedPort = 0;
@@ -119,7 +99,9 @@ describe('Sandbox Ports', () => {
       });
 
       // Start a server
-      const serverCommand = await client.commands.runBackground(`node -e 'require("http").createServer((req, res) => res.end("test")).listen(7777)'`);
+      const serverCommand = await client.commands.runBackground(
+        `node -e 'require("http").createServer((req, res) => res.end("test")).listen(7777)'`
+      );
 
       try {
         // Wait for the port to be detected

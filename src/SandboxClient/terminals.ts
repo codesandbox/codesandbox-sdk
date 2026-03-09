@@ -4,10 +4,19 @@ import { Emitter } from "../utils/event";
 import { isCommandShell, ShellRunOpts } from "./commands";
 import { type IAgentClient } from "../agent-client-interface";
 import { Tracer, SpanStatusCode } from "@opentelemetry/api";
+import { Barrier } from "../utils/barrier";
 
 export type ShellSize = { cols: number; rows: number };
 
 export const DEFAULT_SHELL_SIZE: ShellSize = { cols: 128, rows: 24 };
+
+function resolveCwd(workspacePath: string, cwd?: string): string | undefined {
+  if (!cwd) return undefined;
+  // Strip leading slash to ensure cwd is always relative to workspace
+  const relativeCwd = cwd.startsWith("/") ? cwd.slice(1) : cwd;
+  // Join with workspace path
+  return `${workspacePath}/${relativeCwd}`.replace(/\/+/g, "/");
+}
 
 export class Terminals {
   private disposable = new Disposable();
@@ -57,6 +66,47 @@ export class Terminals {
     );
   }
 
+  private async createPitcherTerminal(
+    command: "bash" | "zsh" | "fish" | "ksh" | "dash" = "bash",
+    opts?: ShellRunOpts
+  ) {
+    const allEnv = Object.assign(opts?.env ?? {});
+
+    // Build the command args array
+    const args = ["source $HOME/.private/.env 2>/dev/null || true"];
+
+    // Add cd command if cwd is specified (Pitcher doesn't support cwd parameter)
+    const resolvedCwd = resolveCwd(this.agentClient.workspacePath, opts?.cwd);
+    if (resolvedCwd && resolvedCwd !== this.agentClient.workspacePath) {
+      args.push("&&", "cd", resolvedCwd);
+    }
+
+    if (Object.keys(allEnv).length) {
+      args.push("&&", "env");
+      Object.entries(allEnv).forEach(([key, value]) => {
+        args.push(`${key}=${value}`);
+      });
+      args.push(command);
+    } else {
+      args.push("&&", command);
+    }
+
+    const shell = await this.agentClient.shells.create({
+      projectPath: this.agentClient.workspacePath,
+      size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
+      command: "bash",
+      args: ["-c", args.join(" ")],
+      type: "TERMINAL",
+      isSystemShell: true,
+    });
+
+    if (opts?.name) {
+      this.agentClient.shells.rename(shell.shellId, opts.name);
+    }
+
+    return new Terminal(shell, this.agentClient, this.tracer);
+  }
+
   async create(
     command: "bash" | "zsh" | "fish" | "ksh" | "dash" = "bash",
     opts?: ShellRunOpts
@@ -71,32 +121,30 @@ export class Terminals {
         hasDimensions: !!opts?.dimensions,
       },
       async () => {
-        const allEnv = Object.assign(opts?.env ?? {});
-
-        // TODO: use a new shell API that natively supports cwd & env
-        let commandWithEnv = Object.keys(allEnv).length
-          ? `source $HOME/.private/.env 2>/dev/null || true && env ${Object.entries(
-              allEnv
-            )
-              .map(([key, value]) => `${key}=${value}`)
-              .join(" ")} ${command}`
-          : `source $HOME/.private/.env 2>/dev/null || true && ${command}`;
-
-        if (opts?.cwd) {
-          commandWithEnv = `cd ${opts.cwd} && ${commandWithEnv}`;
+        if (this.agentClient.type === "pitcher") {
+          return this.createPitcherTerminal(command, opts);
         }
 
-        const shell = await this.agentClient.shells.create(
-          this.agentClient.workspacePath,
-          opts?.dimensions ?? DEFAULT_SHELL_SIZE,
-          commandWithEnv,
-          "TERMINAL",
-          true
-        );
+        const passedEnv = Object.assign(opts?.env ?? {});
 
-        if (opts?.name) {
-          this.agentClient.shells.rename(shell.shellId, opts.name);
+        // Build bash args array
+        const args = ["source $HOME/.private/.env 2>/dev/null || true"];
+
+        if (Object.keys(passedEnv).length) {
+          Object.entries(passedEnv).forEach(([key, value]) => {
+            args.push("&&", "env", `${key}=${value}`);
+          });
         }
+
+        const shell = await this.agentClient.shells.create({
+          projectPath: this.agentClient.workspacePath,
+          size: opts?.dimensions ?? DEFAULT_SHELL_SIZE,
+          command,
+          args,
+          type: "TERMINAL",
+          isSystemShell: true,
+          cwd: resolveCwd(this.agentClient.workspacePath, opts?.cwd),
+        });
 
         return new Terminal(shell, this.agentClient, this.tracer);
       }
@@ -143,6 +191,7 @@ export class Terminal {
   );
   public readonly onOutput = this.onOutputEmitter.event;
   private output = this.shell.buffer || [];
+  private isSubscribingOutput = false;
 
   /**
    * Gets the ID of the terminal. Can be used to open it again.
@@ -164,18 +213,6 @@ export class Terminal {
     tracer?: Tracer
   ) {
     this.tracer = tracer;
-    this.disposable.addDisposable(
-      this.agentClient.shells.onShellOut(({ shellId, out }) => {
-        if (shellId === this.shell.shellId) {
-          this.onOutputEmitter.fire(out);
-
-          this.output.push(out);
-          if (this.output.length > 1000) {
-            this.output.shift();
-          }
-        }
-      })
-    );
   }
 
   private async withSpan<T>(
@@ -223,14 +260,44 @@ export class Terminal {
         rows: dimensions.rows,
       },
       async () => {
-        const shell = await this.agentClient.shells.open(
-          this.shell.shellId,
-          dimensions
+        if (this.isSubscribingOutput) {
+          return this.output.join("\n");
+        }
+
+        const barrier = new Barrier<string>();
+
+        this.disposable.addDisposable(
+          this.agentClient.shells.subscribeOutput(
+            this.shell.shellId,
+            dimensions,
+            ({ out }) => {
+              if (barrier.isOpen()) {
+                this.onOutputEmitter.fire(out);
+
+                this.output.push(out);
+                if (this.output.length > 1000) {
+                  this.output.shift();
+                }
+              } else {
+                this.output.push(out);
+                barrier.open(out);
+              }
+            }
+          )
         );
 
-        this.output = shell.buffer;
+        this.disposable.onDidDispose(() => {
+          barrier.dispose();
+        });
 
-        return this.output.join("\n");
+        const result = await barrier.wait();
+
+        // This will never really happen
+        if (result.status === "disposed") {
+          return "";
+        }
+
+        return result.value;
       }
     );
   }

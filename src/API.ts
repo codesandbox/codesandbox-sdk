@@ -346,6 +346,9 @@ export class API {
       pitcherVersion: handledResponse.pitcher_version,
       latestPitcherVersion: handledResponse.latest_pitcher_version,
       pitcherToken: handledResponse.pitcher_token,
+      pintToken: handledResponse.pint_token,
+      pintURL: handledResponse.pint_url,
+      vmAgentType: handledResponse.vm_agent_type,
     };
   }
 

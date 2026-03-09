@@ -36,6 +36,29 @@ const output = await client.commands.run("echo 'Hello World'");
 console.log(output); // Hello World
 ```
 
+## Running tests
+
+### All tests
+
+- Run all tests with `npm run test`
+- Run specific test file `npm run test -- filesystem`
+
+### E2E production
+
+- Run e2e tests with `npm run test:e2e`
+- Run specific test file `npm run test -- filesystem`
+
+### E2E local
+
+- Clone the sandbox templates repo (https://github.com/codesandbox/sandbox-templates)
+- Create the `.env` based on example and populate it
+- Run `source .env` to export the env variables
+- Build template for Pitcher `./dist/bin/codesandbox.mjs build ./test-template-pitcher`
+- Build template for Pint `./dist/bin/codesandbox.mjs build ./test-template-pint --beta`
+- Update `.env` with template id and `source .env` it again
+- Run e2e tests with `npm run test:e2e`
+- Run specific test file `npm run test -- filesystem`
+
 ## Efficient Sandbox Retrieval
 
 When you need to retrieve metadata for specific sandboxes by their IDs, you can use the efficient retrieval methods instead of listing and filtering all sandboxes:

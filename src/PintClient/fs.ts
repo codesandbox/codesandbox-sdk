@@ -1,8 +1,8 @@
 import { Client } from "../api-clients/pint/client";
-import {
-  IAgentClientFS,
-  PickRawFsResult,
-} from "../agent-client-interface";
+import { IAgentClientFS, PickRawFsResult } from "../agent-client-interface";
+import { fs } from "../pitcher-protocol";
+import { Disposable } from "../utils/disposable";
+import { parseStreamEvent } from "./utils";
 import {
   createFile,
   readFile,
@@ -12,6 +12,7 @@ import {
   deleteDirectory,
   getFileStat,
 } from "../api-clients/pint";
+
 export class PintFsClient implements IAgentClientFS {
   constructor(private apiClient: Client) {}
 
@@ -95,7 +96,7 @@ export class PintFsClient implements IAgentClientFS {
     create?: boolean,
     overwrite?: boolean
   ): Promise<PickRawFsResult<"fs/writeFile">> {
-     try {
+    try {
       // Convert Uint8Array content to string for the API
       const decoder = new TextDecoder();
       const contentString = decoder.decode(content);
@@ -132,7 +133,7 @@ export class PintFsClient implements IAgentClientFS {
     }
   }
 
-    async remove(
+  async remove(
     path: string,
     recursive?: boolean
   ): Promise<PickRawFsResult<"fs/remove">> {
@@ -253,7 +254,7 @@ export class PintFsClient implements IAgentClientFS {
           path: from,
         },
         body: {
-          action: 'copy',
+          action: "copy",
           destination: to,
         },
       });
@@ -292,7 +293,7 @@ export class PintFsClient implements IAgentClientFS {
           path: from,
         },
         body: {
-          action: 'move',
+          action: "move",
           destination: to,
         },
       });
@@ -325,12 +326,98 @@ export class PintFsClient implements IAgentClientFS {
       readonly recursive?: boolean;
       readonly excludes?: readonly string[];
     },
-    onEvent: (watchEvent: any) => void
+    onEvent: (watchEvent: fs.FSWatchEvent) => void
   ): Promise<
     | (PickRawFsResult<"fs/watch"> & { type: "error" })
     | { type: "success"; dispose(): void }
   > {
-    throw new Error("Not implemented");
+    try {
+      const abortController = new AbortController();
+      const config = this.apiClient.getConfig();
+
+      const url = this.apiClient.buildUrl({
+        baseUrl: config.baseUrl as string,
+        url: "/api/v1/stream/directories/watcher/{path}",
+        path: { path: path.startsWith("/") ? path.slice(1) : path },
+        query: {
+          recursive: options.recursive,
+          ignorePatterns: options.excludes ? [...options.excludes] : undefined,
+        },
+        querySerializer:
+          typeof config.querySerializer === "function"
+            ? config.querySerializer
+            : undefined,
+      });
+
+      // Make the fetch eagerly so watch() only resolves once the server
+      // has confirmed the watcher is active (200 OK means ready channel fired).
+      const _fetch = config.fetch ?? globalThis.fetch;
+      const response = await _fetch(
+        new Request(url, {
+          method: "GET",
+          headers: config.headers as Headers,
+          signal: abortController.signal,
+        })
+      );
+
+      if (!response.ok) {
+        return {
+          type: "error",
+          error: `Failed to establish watcher: ${response.status} ${response.statusText}`,
+          errno: null,
+        };
+      }
+
+      // SSE connection established — server watcher is now active.
+      // Process the stream in the background.
+      let reader: ReadableStreamDefaultReader<string> | null = null;
+      (async () => {
+        try {
+          if (!response.body) return;
+          reader = response.body
+            .pipeThrough(new TextDecoderStream())
+            .getReader();
+          let buffer = "";
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += value;
+            const chunks = buffer.split("\n\n");
+            buffer = chunks.pop() ?? "";
+            for (const chunk of chunks) {
+              const dataLine = chunk
+                .split("\n")
+                .find((l) => l.startsWith("data:"));
+              if (!dataLine) continue;
+              try {
+                const data = JSON.parse(dataLine.replace(/^data:\s*/, ""));
+                onEvent(parseStreamEvent<fs.FSWatchEvent>(data));
+              } catch (e) {
+                console.warn("Failed to parse filesystem watch event:", e);
+              }
+            }
+          }
+        } catch (error) {
+          if ((error as Error)?.name !== "AbortError") {
+            console.error("Filesystem watch stream error:", error);
+          }
+        }
+      })();
+
+      return {
+        type: "success",
+        dispose(): void {
+          reader?.cancel();
+          abortController.abort();
+        },
+      };
+    } catch (error) {
+      return {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        errno: null,
+      };
+    }
   }
 
   async download(path?: string): Promise<{ downloadUrl: string }> {

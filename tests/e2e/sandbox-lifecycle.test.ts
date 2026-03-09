@@ -1,20 +1,15 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { CodeSandbox } from '../../src/index.js';
-import { initializeSDK, TEST_TEMPLATE_ID } from './helpers.js';
+import { describe, it, expect } from "vitest";
+import { createTest, TEST_TEMPLATE_ID } from "./helpers.js";
 
-describe('Sandbox Lifecycle', () => {
-  let sdk: CodeSandbox;
-
-  beforeAll(() => {
-    sdk = initializeSDK();
-  });
+describe("Sandbox Lifecycle", () => {
+  const test = createTest();
 
   it('should complete full lifecycle: create, hibernate, resume, restart, shutdown, delete', async () => {
     let sandboxId: string | undefined;
 
     try {
       // Create sandbox
-      let sandbox = await sdk.sandboxes.create({
+      let sandbox = await test.sdk.sandboxes.create({
         id: TEST_TEMPLATE_ID,
       });
       expect(sandbox).toBeDefined();
@@ -22,30 +17,30 @@ describe('Sandbox Lifecycle', () => {
       sandboxId = sandbox.id;
 
       // Hibernate sandbox
-      await sdk.sandboxes.hibernate(sandboxId);
+      await test.sdk.sandboxes.hibernate(sandboxId);
 
       // Resume sandbox
-      sandbox = await sdk.sandboxes.resume(sandboxId);
+      sandbox = await test.sdk.sandboxes.resume(sandboxId);
       expect(sandbox).toBeDefined();
       expect(sandbox.id).toBe(sandboxId);
 
       // Restart sandbox
-      await sdk.sandboxes.restart(sandboxId);
+      await test.sdk.sandboxes.restart(sandboxId);
 
       // Shutdown sandbox
-      await sdk.sandboxes.shutdown(sandboxId);
+      await test.sdk.sandboxes.shutdown(sandboxId);
 
       // Delete sandbox
-      await sdk.sandboxes.delete(sandboxId);
+      await test.sdk.sandboxes.delete(sandboxId);
       sandboxId = undefined; // Mark as cleaned up
     } finally {
       // Ensure cleanup even on test failure
       if (sandboxId) {
         try {
-          await sdk.sandboxes.shutdown(sandboxId);
-          await sdk.sandboxes.delete(sandboxId);
+          await test.sdk.sandboxes.shutdown(sandboxId);
+          await test.sdk.sandboxes.delete(sandboxId);
         } catch (error) {
-          console.error('Failed to cleanup sandbox:', sandboxId, error);
+          console.error("Failed to cleanup sandbox:", sandboxId, error);
         }
       }
     }
