@@ -62,6 +62,7 @@
     "postbuild": "rimraf {lib,es}/**/__tests__ {lib,es}/**/*.{spec,test}.{js,d.ts,js.map}",
     "postversion": "git push && git push --tags",
     "prepublish": "npm run build",
+    "benchmark": "vitest run --config vitest.benchmark.config.ts",
     "demo:install": "cd demo && npm install",
     "demo:dev": "cd demo && npm run dev",
     "demo:build": "cd demo && npm run build"
