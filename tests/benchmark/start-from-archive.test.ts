@@ -27,8 +27,8 @@ import {
   initSDK,
   measurePortReady,
   printReport,
-  record,
-  recordError,
+  recordSandbox,
+  recordSandboxError,
   timeMs,
 } from "./utils.js";
 
@@ -60,10 +60,8 @@ function parseArgs() {
 // Operation names
 // ---------------------------------------------------------------------------
 
-type OperationName = "start_from_archive" | "start_from_archive_to_port_ready";
-
-const CORE_OPS: OperationName[] = ["start_from_archive"];
-const PORT_OPS: OperationName[] = ["start_from_archive_to_port_ready"];
+const CORE_OPS = ["start_from_archive"] as const;
+const PORT_OPS = ["start_from_archive_to_port_ready"] as const;
 
 // ---------------------------------------------------------------------------
 // Single benchmark iteration
@@ -86,17 +84,19 @@ async function runIteration(
   try {
     opStart = performance.now();
     [sandbox, ms] = await timeMs(() => sdk.sandboxes.resume(sandboxId));
-    record(state, "start_from_archive", ms);
+    recordSandbox(state, sandboxId, "start_from_archive", ms);
     console.log(`  Started from archive  ${(ms / 1000).toFixed(2)}s ✓`);
   } catch (err) {
     console.log(`  Failed to start from archive ✗  ${String(err)}`);
-    recordError(state, "start_from_archive");
+    recordSandboxError(state, sandboxId, "start_from_archive");
     return;
   }
 
   // ── port readiness ────────────────────────────────────────────────────────
   if (port) {
-    await measurePortReady(sandbox, port, "start_from_archive_to_port_ready", opStart, state);
+    const portMs = await measurePortReady(sandbox, port, opStart);
+    if (portMs !== null) recordSandbox(state, sandboxId, "start_from_archive_to_port_ready", portMs);
+    else recordSandboxError(state, sandboxId, "start_from_archive_to_port_ready");
   }
 
   // ── re-archive for next iteration ─────────────────────────────────────────
@@ -122,7 +122,7 @@ const TIMEOUT_MS = (iterations + 1) * 5 * 60 * 1000;
 
 test("sandbox start-from-archive benchmark", { timeout: TIMEOUT_MS }, async () => {
   const sdk = initSDK();
-  const state = createState([...CORE_OPS, ...PORT_OPS]);
+  const state = createState();
 
   const baseUrl = process.env.CSB_BASE_URL ?? "https://api.codesandbox.io";
   console.log("Sandbox Start-from-Archive Benchmark");
@@ -135,6 +135,6 @@ test("sandbox start-from-archive benchmark", { timeout: TIMEOUT_MS }, async () =
     await runIteration(sdk, state, sandboxId, port, i);
   }
 
-  const ops = port ? [...CORE_OPS, ...PORT_OPS] : CORE_OPS;
+  const ops = port ? [...CORE_OPS, ...PORT_OPS] : [...CORE_OPS];
   printReport(ops, state);
 });

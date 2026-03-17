@@ -25,8 +25,8 @@ import {
   initSDK,
   measurePortReady,
   printReport,
-  record,
-  recordError,
+  recordSandbox,
+  recordSandboxError,
   timeMs,
   tryCleanup,
 } from "./utils.js";
@@ -59,29 +59,19 @@ function parseArgs() {
 // Operation names
 // ---------------------------------------------------------------------------
 
-type OperationName =
-  | "create"
-  | "hibernate"
-  | "resume"
-  | "shutdown"
-  | "start_after_shutdown"
-  | "create_to_port_ready"
-  | "resume_to_port_ready"
-  | "start_after_shutdown_to_port_ready";
-
-const CORE_OPS: OperationName[] = [
+const CORE_OPS = [
   "create",
   "hibernate",
   "resume",
   "shutdown",
   "start_after_shutdown",
-];
+] as const;
 
-const PORT_OPS: OperationName[] = [
+const PORT_OPS = [
   "create_to_port_ready",
   "resume_to_port_ready",
   "start_after_shutdown_to_port_ready",
-];
+] as const;
 
 // ---------------------------------------------------------------------------
 // Single benchmark iteration
@@ -107,60 +97,63 @@ async function runIteration(
       [sandbox, ms] = await timeMs(() =>
         sdk.sandboxes.create({ id: templateId, tags: ["benchmark"] })
       );
-      record(state, "create", ms);
+      recordSandbox(state, sandbox.id, "create", ms);
       console.log(`  Created  ${(ms / 1000).toFixed(2)}s ✓  (id: ${sandbox.id})`);
     } catch (err) {
       console.log(`  Failed creating ✗  ${String(err)}`);
-      recordError(state, "create");
       return;
-    }
-
-    if (port) {
-      await measurePortReady(sandbox, port, "create_to_port_ready", opStart!, state);
     }
 
     const sandboxId = sandbox.id;
 
-    // ── hibernate ─────────────────────────────────────────────────────────────
-    console.log("  Hibernating...");
-    try {
-      [, ms] = await timeMs(() => sdk.sandboxes.hibernate(sandboxId));
-      record(state, "hibernate", ms);
-      console.log(`  Hibernated  ${(ms / 1000).toFixed(2)}s ✓`);
-    } catch (err) {
-      console.log(`  Failed hibernating ✗  ${String(err)}`);
-      recordError(state, "hibernate");
-      await tryCleanup(sdk, sandboxId);
-      return;
-    }
-
-    // ── resume ────────────────────────────────────────────────────────────────
-    console.log("  Resuming...");
-    try {
-      opStart = performance.now();
-      [sandbox, ms] = await timeMs(() => sdk.sandboxes.resume(sandboxId));
-      record(state, "resume", ms);
-      console.log(`  Resumed  ${(ms / 1000).toFixed(2)}s ✓`);
-    } catch (err) {
-      console.log(`  Failed resuming ✗  ${String(err)}`);
-      recordError(state, "resume");
-      await tryCleanup(sdk, sandboxId);
-      return;
-    }
-
     if (port) {
-      await measurePortReady(sandbox, port, "resume_to_port_ready", opStart!, state);
+      const portMs = await measurePortReady(sandbox, port, opStart!);
+      if (portMs !== null) recordSandbox(state, sandboxId, "create_to_port_ready", portMs);
+      else recordSandboxError(state, sandboxId, "create_to_port_ready");
     }
+
+    // // ── hibernate ─────────────────────────────────────────────────────────────
+    // console.log("  Hibernating...");
+    // try {
+    //   [, ms] = await timeMs(() => sdk.sandboxes.hibernate(sandboxId));
+    //   recordSandbox(state, sandboxId, "hibernate", ms);
+    //   console.log(`  Hibernated  ${(ms / 1000).toFixed(2)}s ✓`);
+    // } catch (err) {
+    //   console.log(`  Failed hibernating ✗  ${String(err)}`);
+    //   recordSandboxError(state, sandboxId, "hibernate");
+    //   await tryCleanup(sdk, sandboxId);
+    //   return;
+    // }
+
+    // // ── resume ────────────────────────────────────────────────────────────────
+    // console.log("  Resuming...");
+    // try {
+    //   opStart = performance.now();
+    //   [sandbox, ms] = await timeMs(() => sdk.sandboxes.resume(sandboxId));
+    //   recordSandbox(state, sandboxId, "resume", ms);
+    //   console.log(`  Resumed  ${(ms / 1000).toFixed(2)}s ✓`);
+    // } catch (err) {
+    //   console.log(`  Failed resuming ✗  ${String(err)}`);
+    //   recordSandboxError(state, sandboxId, "resume");
+    //   await tryCleanup(sdk, sandboxId);
+    //   return;
+    // }
+
+    // if (port) {
+    //   const portMs = await measurePortReady(sandbox, port, opStart!);
+    //   if (portMs !== null) recordSandbox(state, sandboxId, "resume_to_port_ready", portMs);
+    //   else recordSandboxError(state, sandboxId, "resume_to_port_ready");
+    // }
 
     // ── shutdown ──────────────────────────────────────────────────────────────
     console.log("  Shutting down...");
     try {
       [, ms] = await timeMs(() => sdk.sandboxes.shutdown(sandboxId));
-      record(state, "shutdown", ms);
+      recordSandbox(state, sandboxId, "shutdown", ms);
       console.log(`  Shut down  ${(ms / 1000).toFixed(2)}s ✓`);
     } catch (err) {
       console.log(`  Failed shutting down ✗  ${String(err)}`);
-      recordError(state, "shutdown");
+      recordSandboxError(state, sandboxId, "shutdown");
       await tryCleanup(sdk, sandboxId);
       return;
     }
@@ -170,17 +163,19 @@ async function runIteration(
     try {
       opStart = performance.now();
       [sandbox, ms] = await timeMs(() => sdk.sandboxes.resume(sandboxId));
-      record(state, "start_after_shutdown", ms);
+      recordSandbox(state, sandboxId, "start_after_shutdown", ms);
       console.log(`  Started (after shutdown)  ${(ms / 1000).toFixed(2)}s ✓`);
     } catch (err) {
       console.log(`  Failed starting (after shutdown) ✗  ${String(err)}`);
-      recordError(state, "start_after_shutdown");
+      recordSandboxError(state, sandboxId, "start_after_shutdown");
       await tryCleanup(sdk, sandboxId);
       return;
     }
 
     if (port) {
-      await measurePortReady(sandbox, port, "start_after_shutdown_to_port_ready", opStart!, state);
+      const portMs = await measurePortReady(sandbox, port, opStart!);
+      if (portMs !== null) recordSandbox(state, sandboxId, "start_after_shutdown_to_port_ready", portMs);
+      else recordSandboxError(state, sandboxId, "start_after_shutdown_to_port_ready");
     }
 
     // ── final shutdown (unmeasured cleanup) ───────────────────────────────────
@@ -206,7 +201,7 @@ const TIMEOUT_MS = (iterations + 1) * 5 * 60 * 1000;
 
 test("sandbox lifecycle benchmark", { timeout: TIMEOUT_MS }, async () => {
   const sdk = initSDK();
-  const state = createState([...CORE_OPS, ...PORT_OPS]);
+  const state = createState();
 
   const baseUrl = process.env.CSB_BASE_URL ?? "https://api.codesandbox.io";
   console.log("Sandbox Lifecycle Benchmark");
@@ -219,6 +214,6 @@ test("sandbox lifecycle benchmark", { timeout: TIMEOUT_MS }, async () => {
     await runIteration(sdk, state, templateId, port, i);
   }
 
-  const ops = port ? [...CORE_OPS, ...PORT_OPS] : CORE_OPS;
+  const ops = port ? [...CORE_OPS, ...PORT_OPS] : [...CORE_OPS];
   printReport(ops, state);
 });

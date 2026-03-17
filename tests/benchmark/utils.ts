@@ -64,24 +64,44 @@ export function computeStats(values: number[]): Stats {
 // Benchmark state
 // ---------------------------------------------------------------------------
 
+export interface SandboxRecord {
+  id: string;
+  timings: Record<string, number>;
+  errors: string[];
+}
+
 export interface BenchmarkState {
-  timings: Record<string, number[]>;
-  errors: Record<string, number>;
+  sandboxes: SandboxRecord[];
 }
 
-export function createState(ops: readonly string[]): BenchmarkState {
-  return {
-    timings: Object.fromEntries(ops.map((op) => [op, []])),
-    errors: Object.fromEntries(ops.map((op) => [op, 0])),
-  };
+export function createState(): BenchmarkState {
+  return { sandboxes: [] };
 }
 
-export function record(state: BenchmarkState, op: string, ms: number): void {
-  state.timings[op].push(ms);
+function getOrCreate(state: BenchmarkState, id: string): SandboxRecord {
+  let entry = state.sandboxes.find((s) => s.id === id);
+  if (!entry) {
+    entry = { id, timings: {}, errors: [] };
+    state.sandboxes.push(entry);
+  }
+  return entry;
 }
 
-export function recordError(state: BenchmarkState, op: string): void {
-  state.errors[op]++;
+export function recordSandbox(
+  state: BenchmarkState,
+  id: string,
+  op: string,
+  ms: number
+): void {
+  getOrCreate(state, id).timings[op] = ms;
+}
+
+export function recordSandboxError(
+  state: BenchmarkState,
+  id: string,
+  op: string
+): void {
+  getOrCreate(state, id).errors.push(op);
 }
 
 // ---------------------------------------------------------------------------
@@ -104,26 +124,24 @@ export async function tryCleanup(sdk: CodeSandbox, sandboxId: string): Promise<v
 // ---------------------------------------------------------------------------
 // Port readiness helper
 // Measures time from `opStart` until the given port is ready on the sandbox.
+// Returns elapsed ms, or null on failure.
 // ---------------------------------------------------------------------------
 
 export async function measurePortReady(
   sandbox: Sandbox,
   port: number,
-  opName: string,
-  opStart: number,
-  state: BenchmarkState
-): Promise<void> {
+  opStart: number
+): Promise<number | null> {
   let client: SandboxClient | undefined;
   try {
     client = await sandbox.connect();
     await client.ports.waitForPort(port, { timeoutMs: 120_000 });
-    record(state, opName, performance.now() - opStart);
-    console.log(
-      `  Port ${port} ready  ${((performance.now() - opStart) / 1000).toFixed(2)}s ✓`
-    );
+    const ms = performance.now() - opStart;
+    console.log(`  Port ${port} ready  ${(ms / 1000).toFixed(2)}s ✓`);
+    return ms;
   } catch (err) {
     console.log(`  Port ${port} not ready ✗  ${String(err)}`);
-    recordError(state, opName);
+    return null;
   } finally {
     try {
       await client?.disconnect();
@@ -156,8 +174,10 @@ export function printReport(ops: readonly string[], state: BenchmarkState): void
   console.log("─────────────────\n");
 
   for (const op of ops) {
-    const samples = state.timings[op];
-    const errCount = state.errors[op];
+    const samples = state.sandboxes
+      .map((s) => s.timings[op])
+      .filter((v): v is number => v !== undefined);
+    const errCount = state.sandboxes.filter((s) => s.errors.includes(op)).length;
 
     if (samples.length === 0) {
       if (errCount > 0) console.log(`${label(op)}: no data  errors=${errCount}`);
@@ -179,5 +199,36 @@ export function printReport(ops: readonly string[], state: BenchmarkState): void
     ].join("  ");
 
     console.log(`${label(op)}: ${row}`);
+  }
+
+  if (state.sandboxes.length > 0) {
+    console.log("\nPER-SANDBOX TIMINGS");
+    console.log("───────────────────\n");
+
+    const headers = ["SANDBOX ID", ...ops.map((op) => op.toUpperCase())];
+    const rows = state.sandboxes.map(({ id, timings, errors }) => [
+      id,
+      ...ops.map((op) => {
+        if (timings[op] !== undefined) return `${(timings[op] / 1000).toFixed(2)}s`;
+        if (errors.includes(op)) return "ERROR";
+        return "-";
+      }),
+    ]);
+
+    const colWidths = headers.map((h, i) =>
+      Math.max(h.length, ...rows.map((r) => r[i].length))
+    );
+
+    const sep = "    ";
+    console.log(headers.map((h, i) => h.padEnd(colWidths[i])).join(sep));
+    for (const row of rows) {
+      const line = row.map((val, i) => {
+        const plain = val.padEnd(colWidths[i]);
+        if (val === "ERROR") return `\x1b[91m${plain}\x1b[0m`;
+        if (val === "-")     return `\x1b[2m${plain}\x1b[0m`;
+        return plain;
+      });
+      console.log(line.join(sep));
+    }
   }
 }
