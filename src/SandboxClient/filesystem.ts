@@ -187,8 +187,8 @@ export class FileSystem {
           const result = await this.agentClient.shells.create({
             projectPath: this.agentClient.workspacePath,
             size: { cols: 128, rows: 24 },
-            command: `unzip -o ${tempZipPath}`,
-            args: [],
+            command: "unzip",
+            args: ["-o", tempZipPath],
             type: "COMMAND",
             isSystemShell: true,
             cwd: this.agentClient.workspacePath,
