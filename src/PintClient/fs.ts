@@ -97,17 +97,15 @@ export class PintFsClient implements IAgentClientFS {
     overwrite?: boolean
   ): Promise<PickRawFsResult<"fs/writeFile">> {
     try {
-      // Convert Uint8Array content to string for the API
-      const decoder = new TextDecoder();
-      const contentString = decoder.decode(content);
-
       const response = await createFile({
         client: this.apiClient,
         path: {
           path: path,
         },
-        body: {
-          content: contentString,
+        body: content as unknown as { content: string },
+        bodySerializer: (body) => body as unknown as string,
+        headers: {
+          "Content-Type": "application/octet-stream",
         },
       });
 
