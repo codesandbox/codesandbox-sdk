@@ -51,3 +51,13 @@ export function isBetaAllowed(): boolean {
   const apiHostName = getInferredApiHost();
   return BETA_ALLOWED_HOSTS.includes(apiHostName);
 }
+
+export function getInferredImageBuilderUrl(): string {
+  if (process.env.CSB_IMAGE_BUILDER_URL) {
+    return process.env.CSB_IMAGE_BUILDER_URL;
+  }
+  const apiUrl = getInferredBaseUrl(getInferredApiKey());
+  // Derive image-builder URL from API URL:
+  // "https://api.codesandbox.io" -> "https://builder.codesandbox.io"
+  return apiUrl.replace(/\/\/api\./, "//builder.");
+}
