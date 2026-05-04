@@ -15,21 +15,16 @@ import { VmUpdateSpecsRequest } from "../../api-clients/client";
 import { getDefaultTemplateId, retryWithDelay } from "../../utils/api";
 import {
   getInferredApiKey,
-  getInferredRegistryUrl,
+  getInferredImageBuilderUrl,
   isBetaAllowed,
   isLocalEnvironment,
 } from "../../utils/constants";
 import { hashDirectory as getFilePaths } from "../utils/files";
 import { mkdir, writeFile } from "fs/promises";
 import { sleep } from "../../utils/sleep";
-import {
-  buildDockerImage,
-  prepareDockerBuild,
-  pushDockerImage,
-  dockerLogin,
-} from "../utils/docker";
+import { findDockerfile } from "../utils/docker";
+import { ImageBuilderClient, parseImageRef } from "../utils/imageBuilder";
 import { randomUUID } from "crypto";
-import { base32Encode } from "../../utils/encoding";
 
 export type BuildCommandArgs = {
   directory: string;
@@ -636,13 +631,13 @@ function createAlias(directory: string, alias: string) {
 }
 
 /**
- * Build a CodeSandbox Template using Docker for use in gvisor-based sandboxes.
+ * Build a CodeSandbox Template using the hosted image-builder service for use
+ * in gvisor-based sandboxes.
  * @param argv arguments to csb build command
  */
 export async function betaCodeSandboxBuild(
   argv: yargs.ArgumentsCamelCase<BuildCommandArgs>
 ): Promise<void> {
-  let dockerFileCleanupFn: (() => Promise<void>) | undefined;
   let client: SandboxClient | undefined;
 
   try {
@@ -654,121 +649,58 @@ export async function betaCodeSandboxBuild(
       : VMTier.Micro;
 
     const resolvedDirectory = path.resolve(argv.directory);
+    const imageBuilderUrl = getInferredImageBuilderUrl();
+    const imageName = `image-${randomUUID().toLowerCase()}:latest`;
 
-    const metaInfo = await api.getMetaInfo();
-    const teamId = metaInfo.data?.auth?.team;
+    // Determine whether we need a synthetic Dockerfile or can use the existing one
+    const dockerfileInfo = await findDockerfile(resolvedDirectory);
+    let dockerfileContent: string | undefined;
 
-    if (!teamId) {
-      throw new Error(
-        "Failed to fetch team information for the provided CSB_API_KEY. Please ensure your API key is correct and has access to a team."
-      );
+    if (!dockerfileInfo.exists) {
+      // No Dockerfile found — generate a default one
+      dockerfileContent =
+        "FROM node:24\n\nWORKDIR /workspace\nCOPY . /workspace\n";
+    } else if (dockerfileInfo.inCodesandbox) {
+      // Dockerfile lives in .codesandbox/ — read it and append WORKDIR/COPY
+      const existing = await fs.readFile(dockerfileInfo.path!, "utf-8");
+      dockerfileContent =
+        existing +
+        "\n\n# Added by CodeSandbox SDK\nWORKDIR /workspace\nCOPY . /workspace\n";
     }
+    // else: root Dockerfile — use as-is, no synthetic content needed
 
-    const base32EncodedTeamId = base32Encode(teamId);
+    // Build image via the hosted image-builder service
+    const imageBuildSpinner = ora({ stream: process.stdout });
+    imageBuildSpinner.start("Building template image...");
 
-    const registry = getInferredRegistryUrl();
-    const repository = base32EncodedTeamId;
-    const imageName = `image-${randomUUID().toLowerCase()}`;
-    const tag = "latest";
-    const fullImageName = `${registry}/${repository}/${imageName}:${tag}`;
-
-    let architecture = "amd64";
-    // For dev environments with arm64 (Apple Silicon), use arm64 architecture
-    if (process.arch === "arm64" && isLocalEnvironment()) {
-      console.log("Using arm64 architecture for Docker build");
-      architecture = "arm64";
-    }
-
-    // Prepare Docker Build
-    const dockerBuildPrepareSpinner = ora({ stream: process.stdout });
-    dockerBuildPrepareSpinner.start("Preparing build environment...");
-
-    let dockerfilePath: string;
-
+    let imageRef: string;
     try {
-      const result = await prepareDockerBuild(
-        resolvedDirectory,
-        (output: string) => {
-          dockerBuildPrepareSpinner.text = `Preparing build environment: (${output})`;
-        }
-      );
-      dockerFileCleanupFn = result.cleanupFn;
-      dockerfilePath = result.dockerfilePath;
-
-      dockerBuildPrepareSpinner.succeed("Build environment ready.");
-    } catch (error) {
-      dockerBuildPrepareSpinner.fail(
-        `Failed to prepare build environment: ${(error as Error).message}`
-      );
-      throw error;
-    }
-
-    // Docker Build
-    const dockerBuildSpinner = ora({ stream: process.stdout });
-    dockerBuildSpinner.start("Building template docker image...");
-    try {
-      await buildDockerImage({
-        dockerfilePath,
-        imageName: fullImageName,
-        context: resolvedDirectory,
-        architecture,
-        onOutput: (output: string) => {
-          const cleanOutput = stripAnsiCodes(output);
-          dockerBuildSpinner.text = `Building template Docker image: (${cleanOutput})`;
+      const ibClient = new ImageBuilderClient(imageBuilderUrl, apiKey);
+      imageRef = await ibClient.build({
+        contextDir: resolvedDirectory,
+        imageName,
+        dockerfileContent,
+        onOutput: (line) => {
+          const clean = stripAnsiCodes(line);
+          if (clean.trim()) {
+            imageBuildSpinner.text = `Building template image: ${clean.trim().slice(0, 120)}`;
+          }
         },
       });
     } catch (error) {
-      dockerBuildSpinner.fail(
-        `Failed to build template Docker image: ${(error as Error).message}`
+      imageBuildSpinner.fail(
+        `Failed to build template image: ${(error as Error).message}`
       );
       throw error;
     }
-    dockerBuildSpinner.succeed("Template Docker image built successfully.");
+    imageBuildSpinner.succeed("Template image built successfully.");
 
-    // Docker Login
-    const dockerLoginSpinner = ora({ stream: process.stdout });
-    dockerLoginSpinner.start(
-      "Authenticating with CodeSandbox Docker registry..."
-    );
-    try {
-      await dockerLogin({
-        registry: registry,
-        username: "_token",
-        password: apiKey,
-        onOutput: (output: string) => {
-          const cleanOutput = stripAnsiCodes(output);
-          dockerLoginSpinner.text = `Authenticating with Docker registry: (${cleanOutput})`;
-        },
-      });
-      dockerLoginSpinner.succeed("Docker registry authentication successful.");
-    } catch (error) {
-      dockerLoginSpinner.fail(
-        `Failed to authenticate with Docker registry: ${
-          (error as Error).message
-        }`
-      );
-      throw error;
-    }
-
-    // Push Docker Image
-    const imagePushSpinner = ora({ stream: process.stdout });
-    imagePushSpinner.start("Pushing template Docker image to CodeSandbox...");
-    try {
-      await pushDockerImage(fullImageName, (output: string) => {
-        const cleanOutput = stripAnsiCodes(output);
-        imagePushSpinner.text = `Pushing template Docker image to CodeSandbox: (${cleanOutput})`;
-      });
-    } catch (error) {
-      imagePushSpinner.fail(
-        `Failed to push template Docker image: ${(error as Error).message}`
-      );
-      throw error;
-    }
-    imagePushSpinner.succeed("Template Docker image pushed to CodeSandbox.");
+    // Parse the returned image reference into components for createTemplate
+    const parsedImage = parseImageRef(imageRef);
 
     const templateCreateSpinner = ora({ stream: process.stdout });
-    templateCreateSpinner.start("Creating template with Docker image...");
-    // Create Template with Docker Image
+    templateCreateSpinner.start("Creating template with image...");
+    // Create Template with the built image
     const templateData = await api.createTemplate({
       forkOf: argv.fromSandbox || getDefaultTemplateId(api.getClient()),
       title: argv.name,
@@ -776,14 +708,14 @@ export async function betaCodeSandboxBuild(
       tags: ["sdk-template"],
       // @ts-ignore
       image: {
-        registry: registry,
-        repository: repository,
-        name: imageName,
-        tag: "latest",
-        architecture: architecture,
+        registry: parsedImage.registry,
+        repository: parsedImage.repository,
+        name: parsedImage.name,
+        tag: parsedImage.tag,
+        architecture: isLocalEnvironment() ? "arm64" : "amd64",
       },
     });
-    templateCreateSpinner.succeed("Template created with Docker image.");
+    templateCreateSpinner.succeed("Template created with image.");
 
     // Create a memory snapshot from the template sandboxes
     const templateBuildSpinner = ora({ stream: process.stdout });
@@ -876,10 +808,6 @@ export async function betaCodeSandboxBuild(
     console.error(error);
     process.exit(1);
   } finally {
-    // Cleanup temporary Dockerfile if created
-    if (dockerFileCleanupFn) {
-      await dockerFileCleanupFn();
-    }
     if (client) {
       await client.disconnect();
       client.dispose();
