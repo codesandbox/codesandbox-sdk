@@ -1,0 +1,44 @@
+name: Release
+
+# Publishes to npm using Trusted Publishing (OIDC). No NPM_TOKEN secret is
+# used — npm verifies the workflow's OIDC identity instead. The npm package
+# must be configured to trust this exact workflow file (release.yml).
+#
+# Triggered when Release Please publishes a GitHub Release (see
+# release-please.yml). Because Release Please creates the release with a PAT
+# (RELEASE_PLEASE_TOKEN) rather than the default GITHUB_TOKEN, this
+# `release: published` event is able to trigger this workflow.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # Required for npm Trusted Publishing (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      # Trusted Publishing requires npm >= 11.5.1, newer than what ships with
+      # Node 20.
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to npm
+        run: npm publish --no-git-checks
